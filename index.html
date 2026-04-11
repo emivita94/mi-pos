@@ -1354,6 +1354,9 @@
       <span class="mob-ticket-nro" id="mobTicketNro">#0001</span>
     </div>
     <div class="hright" style="display:flex;align-items:center;gap:4px;">
+      <button id="btnInstalarApp" onclick="instalarApp()" title="Instalar app" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;background:transparent;border:none;cursor:pointer;border-radius:50;padding:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
       <button id="syncBadge" class="sync-ok" onclick="goTo('scConfigSync');renderSyncPanel()" title="Estado de sincronización">
         <!-- Ícono nube upload -->
         <svg class="sync-cloud" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1742,6 +1745,35 @@ if('serviceWorker' in navigator){
       });
   });
 }
+
+// ── PWA INSTALL PROMPT ──────────────────────────────────
+var _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Mostrar botón de instalar en el header
+  var btn = document.getElementById('btnInstalarApp');
+  if(btn) btn.style.display = 'inline-flex';
+  console.log('[PWA] Install prompt disponible');
+});
+
+function instalarApp(){
+  if(!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  _deferredInstallPrompt.userChoice.then(function(result){
+    console.log('[PWA] Usuario eligio:', result.outcome);
+    _deferredInstallPrompt = null;
+    var btn = document.getElementById('btnInstalarApp');
+    if(btn) btn.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', function(){
+  console.log('[PWA] App instalada');
+  _deferredInstallPrompt = null;
+  var btn = document.getElementById('btnInstalarApp');
+  if(btn) btn.style.display = 'none';
+});
 
 // ── MANEJO DEL BOTÓN ATRÁS ──────────────────────────────
 // Pantallas desde las que NO se puede retroceder con el botón Atrás
