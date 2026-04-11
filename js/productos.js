@@ -6,13 +6,13 @@ const COLORES_TILE = [
   '#827717','#6d6f1a','#33691e','#4e342e','#37474f',
   '#558b2f','#bf360c','#00695c','#0277bd','#283593',
 ];
-let CATEGORIAS = [];
-let nextCatId  = 1;
+var CATEGORIAS = [];
+var nextCatId  = 1;
 var CATEGORIAS_DEFAULT = CATEGORIAS.map(c => c.nombre);
 
 // Descuentos (igual que productos pero categoría especial)
-let DESCUENTOS = []; // {id, name, tipo:'%'|'monto', valor:null|number, color:'#e53935'}
-let nextDescId = 9000;
+var DESCUENTOS = []; // {id, name, tipo:'%'|'monto', valor:null|number, color:'#e53935'}
+var nextDescId = 9000;
 
 // ════════════════════════════════════════════════════════
 // DESCUENTOS
@@ -1129,7 +1129,7 @@ function crearArticuloDesdeCategoria(){
 // MODIFICADORES — Admin, Modal y Lógica
 // ══════════════════════════════════════════════════════
 
-let modificadores   = [];  // [{id, nombre, tipo, obligatorio, opciones:[]}]
+var modificadores   = [];  // [{id, nombre, tipo, obligatorio, opciones:[]}]
 let modifEditId     = null;
 let modifTipoSel    = 'unico';
 let modifOpciones   = [];  // [{id?, nombre, precio_adicional}]

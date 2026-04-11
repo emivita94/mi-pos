@@ -30,7 +30,7 @@
 // (cart, ticketDescuento, currentTicketNro, ticketCounter,
 //  tipoPedido, pendientes, showTkt, npCtx, npVal,
 //  divPagos, divNpIdx, divMethodIdx, PAY_METHODS, mesaActual)
-var curCat = 'Todos los artículos';
+// curCat → js/state.js
 
 // ── CARRITO ─────────────────────────────────────────────────
 

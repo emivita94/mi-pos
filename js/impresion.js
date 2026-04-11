@@ -104,8 +104,7 @@ function imprimirComandaActual(){
 // IMPRESIÓN TÉRMICA — POS58 / POS80
 // ══════════════════════════════════════════════════════
 
-// Guardar último recibo para reimprimir
-var ultimoReciboData = null;
+// ultimoReciboData → js/state.js
 
 // Obtener tamaño de papel configurado
 function getPaperSize(tipo){ return (printers[tipo] && printers[tipo].size) || localStorage.getItem('printerSize_'+tipo) || '58'; }
@@ -894,10 +893,7 @@ function imprimirComanda(data){
 // BLOQUE 2: Configuración de impresoras (variables, helpers)
 // ══════════════════════════════════════════════════════════════════════════════
 
-let printers = {
-  ticket:  { type: null, name: null, device: null, size: '58' }, // type: 'bt'|'pc'
-  comanda: { type: null, name: null, device: null, size: '58' },
-};
+// printers → js/state.js (declaración única)
 
 // Restaurar configuración de impresoras al iniciar
 function isAndroidAPK() {

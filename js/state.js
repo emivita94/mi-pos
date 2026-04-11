@@ -24,6 +24,13 @@ var PAY_METHODS = ['Efectivo','POS','Transferencia'];
 // ── MESA ──
 var mesaActual = null;
 
+// ── PRODUCTOS ──
+var PRODS = [
+  {id:99,name:'ÍTEM LIBRE',price:0,color:'#546e7a',cat:'Otros',
+   precioVariable:true,itemLibre:true,iva:'10',colorPropio:false},
+];
+var curCat = 'Todos los artículos';
+
 // ── Setters con control ──
 // Cada setter permite poner logs, validaciones o eventos a futuro.
 
@@ -63,3 +70,30 @@ function setDivMethodIdx(val) { divMethodIdx = val; }
 
 function setMesaActual(val) { mesaActual = val; }
 function clearMesaActual() { mesaActual = null; }
+
+// ── CONFIGURACIÓN NEGOCIO ──
+var configData = {
+  negocio:      localStorage.getItem('an')       || 'MI NEGOCIO',
+  direccion:    localStorage.getItem('ad')       || 'ASUNCION',
+  ciudad:       localStorage.getItem('ciudad')   || '',
+  telefono:     localStorage.getItem('at')       || '',
+  ruc:          localStorage.getItem('ar')       || '',
+  email:        localStorage.getItem('email_negocio') || '',
+  pie_recibo:   localStorage.getItem('pie_recibo')|| '¡Gracias por su compra!',
+  mostrar_ruc:  localStorage.getItem('mostrar_ruc')||'1',
+  moneda:       localStorage.getItem('moneda')   || 'GS',
+  terminal:     localStorage.getItem('pos_terminal')  || 'Terminal 1',
+  sucursal:     localStorage.getItem('pos_sucursal')  || 'Principal',
+  deposito:     localStorage.getItem('pos_deposito')  || 'Depósito Principal',
+  sucursal_id:  localStorage.getItem('pos_sucursal_id') || null,
+  deposito_id:  localStorage.getItem('pos_deposito_id') || null,
+};
+
+// ── IMPRESORAS ──
+var printers = {
+  ticket:  { type: null, name: null, device: null, size: '58' },
+  comanda: { type: null, name: null, device: null, size: '58' },
+};
+
+// ── ÚLTIMO RECIBO ──
+var ultimoReciboData = null;

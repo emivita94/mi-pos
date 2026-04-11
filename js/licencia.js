@@ -28,7 +28,7 @@ var APP_VERSION = 'v1.9.0 (2026-04-08)';
 //   - Turno/Cierre → ocultos en drawer
 //   - Todo lo demás (catálogo, mesas, delivery, carrito) → sin cambios
 // ══════════════════════════════════════════════════════════════════════════════
-let MODO_TERMINAL = localStorage.getItem('pos_modo_terminal') || 'caja';
+var MODO_TERMINAL = localStorage.getItem('pos_modo_terminal') || 'caja';
 // SUPA_ANON ahora en js/config.js
 
 // supaRPC viene de js/config.js

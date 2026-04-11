@@ -1,6 +1,6 @@
 // ── Turno / Caja: apertura, cierre, registro de ventas ──
 // ── TURNO / CAJA ─────────────────────────────────────────────────────────────
-let turnoData = {
+var turnoData = {
   fechaApertura: null,
   efectivoInicial: 0,
   ventas: [],       // {items, total, metodo, comprobante, factura, fecha, nroTicket}
