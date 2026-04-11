@@ -67,15 +67,23 @@ function goCobrar(){
 async function sateliteEnviarPedido(){
   // ── Validación básica ────────────────────────────────────────────────────
   if(!cart || cart.length === 0){
-    toast('Agregá productos primero');
+    toast('Agrega productos primero');
     return;
   }
 
-  const email    = localStorage.getItem('lic_email');
-  const terminal = localStorage.getItem('pos_terminal') || 'Satélite';
-  const licId    = parseInt(localStorage.getItem('ali')) || null;
-  const tipo     = tipoPedido || 'llevar'; // 'local' | 'delivery' | 'llevar'
-  const mesaNombre = mesaActual ? mesaActual.nombre : null;
+  // ── Verificar que hay caja abierta en la sucursal ───────────────────────
+  var cajaActiva = await sateliteVerificarCajaActiva();
+  if(!cajaActiva){
+    toast('No hay caja abierta en esta sucursal. El cajero debe abrir turno primero.');
+    sateliteMostrarEsperaCaja();
+    return;
+  }
+
+  var email    = localStorage.getItem('lic_email');
+  var terminal = localStorage.getItem('pos_terminal') || 'Satelite';
+  var licId    = parseInt(localStorage.getItem('ali')) || null;
+  var tipo     = tipoPedido || 'llevar';
+  var mesaNombre = mesaActual ? mesaActual.nombre : null;
 
   // Número de orden visible (ej: Orden #0012 en la comanda)
   // Usamos ticketCounter que ya existe y se autoincrementa
@@ -101,17 +109,18 @@ async function sateliteEnviarPedido(){
     };
   });
 
-  const pedidoData = {
+  var pedidoData = {
     licencia_email:  email,
     licencia_id:     licId,
-    terminal_origen: terminal,          // identifica qué tablet/celular creó el pedido
-    numero_orden:    nroOrden,          // número correlativo visible
-    mesa:            mesaNombre,        // null si es delivery o para llevar
-    tipo_pedido:     tipoFinal,         // 'local' | 'delivery' | 'llevar' | 'adicional'
-    estado:          'abierto',         // la caja lo cambia a 'en_cobro' → 'cobrado'
+    terminal_origen: terminal,
+    numero_orden:    nroOrden,
+    mesa:            mesaNombre,
+    sucursal:        localStorage.getItem('pos_sucursal') || 'Principal',
+    tipo_pedido:     tipoFinal,
+    estado:          'abierto',
     items:           JSON.stringify(itemsParaSupabase),
     total:           calcTotal(),
-    mesero_id:       terminal,          // para la regla: solo el dueño puede editar
+    mesero_id:       terminal,
     created_at:      new Date().toISOString(),
     updated_at:      new Date().toISOString(),
   };
@@ -604,29 +613,112 @@ async function sateliteConfigurarModo(modo){
 //
 // Retorna: true si hay caja activa, false si no.
 async function sateliteVerificarCajaActiva(){
-  if(MODO_TERMINAL !== 'satelite') return true; // en modo caja siempre ok
-  if(!navigator.onLine || USAR_DEMO) return true; // offline: asumir que hay caja
+  if(MODO_TERMINAL !== 'satelite') return true;
+  if(!navigator.onLine || USAR_DEMO) return true;
 
-  const email    = localStorage.getItem('lic_email');
-  const terminal = localStorage.getItem('pos_terminal');
+  var email    = localStorage.getItem('lic_email');
+  var sucursal = localStorage.getItem('pos_sucursal') || 'Principal';
   if(!email) return false;
 
   try{
-    // Buscar turno abierto para esta licencia (cualquier terminal)
-    const rows = await supaGet('pos_turno',
+    var rows = await supaGet('pos_turno',
         'licencia_email=eq.' + encodeURIComponent(email)
+        + '&sucursal=eq.' + encodeURIComponent(sucursal)
         + '&estado=eq.abierto'
         + '&limit=1'
-        + '&select=id,terminal,fecha_apertura');
-    const hayTurno = Array.isArray(rows) && rows.length > 0;
+        + '&select=id,terminal,fecha_apertura,sucursal');
+    var hayTurno = Array.isArray(rows) && rows.length > 0;
     if(hayTurno){
-      console.log('[Satélite] Caja activa detectada — turno de terminal:', rows[0].terminal);
+      console.log('[Satelite] Caja activa en ' + sucursal + ' — turno de:', rows[0].terminal);
     } else {
-      console.warn('[Satélite] Sin caja activa — el cajero debe abrir turno primero');
+      console.warn('[Satelite] Sin caja abierta en sucursal ' + sucursal);
     }
     return hayTurno;
   } catch(e){
-    console.warn('[Satélite] Error verificando caja:', e.message);
-    return true; // ante la duda, permitir operar
+    console.warn('[Satelite] Error verificando caja:', e.message);
+    return true;
+  }
+}
+
+// ── Pantalla de espera: satelite esperando caja abierta ──────────────────────
+var _satelitePollingId = null;
+
+function sateliteMostrarEsperaCaja(){
+  // No duplicar overlay
+  if(document.getElementById('sateliteEsperaOverlay')) return;
+
+  var sucursal = localStorage.getItem('pos_sucursal') || 'Principal';
+  var div = document.createElement('div');
+  div.id = 'sateliteEsperaOverlay';
+  div.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;';
+  div.innerHTML =
+    '<div style="width:64px;height:64px;border-radius:18px;background:rgba(83,74,183,.15);border:2px solid #534AB7;display:flex;align-items:center;justify-content:center;">' +
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+    '</div>' +
+    '<h2 style="color:#fff;font-family:Barlow,sans-serif;font-size:20px;font-weight:800;text-align:center;margin:0;">Esperando caja abierta</h2>' +
+    '<p style="color:#888;font-family:Barlow,sans-serif;font-size:14px;text-align:center;max-width:300px;line-height:1.5;margin:0;">' +
+      'No hay turno abierto en sucursal <b style="color:#fff;">' + sucursal + '</b>.<br>El cajero debe abrir turno para que puedas tomar pedidos.' +
+    '</p>' +
+    '<div id="sateliteEsperaStatus" style="color:#534AB7;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;">Verificando cada 15 segundos...</div>' +
+    '<button onclick="sateliteReintentarCaja()" style="margin-top:12px;background:#534AB7;border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:14px 32px;cursor:pointer;letter-spacing:.5px;">REINTENTAR AHORA</button>';
+  document.body.appendChild(div);
+
+  // Iniciar polling
+  sateliteIniciarPollingCaja();
+}
+
+function sateliteOcultarEsperaCaja(){
+  var overlay = document.getElementById('sateliteEsperaOverlay');
+  if(overlay) overlay.remove();
+  if(_satelitePollingId){
+    clearInterval(_satelitePollingId);
+    _satelitePollingId = null;
+  }
+}
+
+function sateliteIniciarPollingCaja(){
+  if(_satelitePollingId) clearInterval(_satelitePollingId);
+  _satelitePollingId = setInterval(async function(){
+    var status = document.getElementById('sateliteEsperaStatus');
+    if(status) status.textContent = 'Verificando...';
+    var activa = await sateliteVerificarCajaActiva();
+    if(activa){
+      sateliteOcultarEsperaCaja();
+      toast('Caja abierta detectada');
+      // Entrar al POS
+      if(typeof mesasSalones !== 'undefined' && mesasSalones && mesasSalones.length > 0){
+        if(typeof mesasCargar === 'function') await mesasCargar();
+        goTo('scMesas');
+        if(typeof renderMesasScreen === 'function') renderMesasScreen();
+      } else {
+        goTo('scSale');
+        if(typeof renderCatPills === 'function') renderCatPills();
+        if(typeof filterP === 'function') filterP();
+      }
+    } else {
+      if(status) status.textContent = 'Sin caja abierta. Reintentando en 15s...';
+    }
+  }, 15000);
+}
+
+async function sateliteReintentarCaja(){
+  var status = document.getElementById('sateliteEsperaStatus');
+  if(status) status.textContent = 'Verificando...';
+  var activa = await sateliteVerificarCajaActiva();
+  if(activa){
+    sateliteOcultarEsperaCaja();
+    toast('Caja abierta detectada');
+    if(typeof mesasSalones !== 'undefined' && mesasSalones && mesasSalones.length > 0){
+      if(typeof mesasCargar === 'function') await mesasCargar();
+      goTo('scMesas');
+      if(typeof renderMesasScreen === 'function') renderMesasScreen();
+    } else {
+      goTo('scSale');
+      if(typeof renderCatPills === 'function') renderCatPills();
+      if(typeof filterP === 'function') filterP();
+    }
+  } else {
+    if(status) status.textContent = 'Sin caja abierta. Reintentando en 15s...';
+    toast('No hay caja abierta todavia');
   }
 }

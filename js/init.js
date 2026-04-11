@@ -134,28 +134,11 @@ async function iniciarApp(){
   updTabTicketHeader();
   updBtnGuardar();
 
-  if(turnoOk){
-    if(mesasSalones.length > 0){
-      goTo('scMesas');
-      renderMesasScreen();
-      toast('Sesión restaurada');
-    } else {
-      goTo('scSale');
-      // Renderizar productos desde lo que ya está en memoria (IndexedDB)
-      renderCatPills();
-      filterP();
-      toast('Sesión restaurada — '+turnoData.ventas.length+' venta'+(turnoData.ventas.length!==1?'s':''));
-    }
-  } else {
-    // Sin turno activo — comportamiento diferente según el modo:
-    if(MODO_TERMINAL === 'satelite'){
-      // MODO SATÉLITE: el mesero NO abre turno, simplemente espera que la caja lo haga.
-      // En lugar de mostrar la pantalla confusa de "Turno cerrado / Abrir turno",
-      // ir directo al POS y cargar productos. El mesero puede tomar pedidos
-      // siempre que haya internet y la caja haya abierto turno en Supabase.
-      // La validación de turno activo ocurre en sateliteEnviarPedido().
+  if(MODO_TERMINAL === 'satelite'){
+    // MODO SATELITE: siempre verificar caja abierta en esta sucursal
+    var cajaAbierta = await sateliteVerificarCajaActiva();
+    if(cajaAbierta){
       if(mesasSalones && mesasSalones.length > 0){
-        // Si hay mesas configuradas, ir al panel de mesas directamente
         await mesasCargar();
         goTo('scMesas');
         renderMesasScreen();
@@ -164,11 +147,24 @@ async function iniciarApp(){
         renderCatPills();
         filterP();
       }
-      toast('Terminal satélite lista');
+      toast('Terminal satelite lista');
     } else {
-      // MODO CAJA: comportamiento original — mostrar pantalla de turno cerrado
-      goTo('scClosed');
+      sateliteMostrarEsperaCaja();
     }
+  } else if(turnoOk){
+    if(mesasSalones.length > 0){
+      goTo('scMesas');
+      renderMesasScreen();
+      toast('Sesion restaurada');
+    } else {
+      goTo('scSale');
+      renderCatPills();
+      filterP();
+      toast('Sesion restaurada — '+turnoData.ventas.length+' venta'+(turnoData.ventas.length!==1?'s':''));
+    }
+  } else {
+    // MODO CAJA sin turno: mostrar pantalla de turno cerrado
+    goTo('scClosed');
   }
 
   // ── PASO 4: Refrescar productos/categorías ───────────────
