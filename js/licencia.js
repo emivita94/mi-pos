@@ -456,9 +456,66 @@ async function doActivar(){
   }catch(e){ console.warn('[Activar] No se pudo recuperar config:', e.message); }
   // Este dispositivo no tiene config → mostrar formulario de setup
   // Pre-llenar nombre del negocio si lo tenemos
-  const negGuardado = localStorage.getItem(SK.negocio);
+  var negGuardado = localStorage.getItem(SK.negocio);
   if(negGuardado) document.getElementById('activadoNegocio').value = negGuardado;
+
+  // Cargar sucursales existentes para sugerir en el dropdown
+  cargarSucursalesExistentes(email);
+
   document.getElementById('scActivado').style.display='flex';
+}
+
+async function cargarSucursalesExistentes(email){
+  var sel = document.getElementById('activadoSucursal');
+  var list = document.getElementById('sucursalesList');
+  if(!sel) return;
+  if(!email || USAR_DEMO) return;
+  try {
+    var rows = await supaGet('activaciones',
+      'email=eq.' + encodeURIComponent(email)
+      + '&activa=eq.true'
+      + '&deleted_at=is.null'
+      + '&select=sucursal,nombre_negocio'
+    );
+    if(!Array.isArray(rows) || !rows.length) return;
+
+    // Sucursales unicas
+    var sucursales = [];
+    var vistas = {};
+    rows.forEach(function(r){
+      if(r.sucursal && !vistas[r.sucursal]){
+        vistas[r.sucursal] = true;
+        sucursales.push(r.sucursal);
+      }
+    });
+    if(!sucursales.length) return;
+
+    // Pre-llenar negocio si no tiene
+    var negInput = document.getElementById('activadoNegocio');
+    if(negInput && !negInput.value && rows[0].nombre_negocio){
+      negInput.value = rows[0].nombre_negocio;
+    }
+
+    // Crear datalist si no existe
+    if(!list){
+      list = document.createElement('datalist');
+      list.id = 'sucursalesList';
+      document.body.appendChild(list);
+      sel.setAttribute('list', 'sucursalesList');
+    }
+    list.innerHTML = sucursales.map(function(s){
+      return '<option value="' + s.replace(/"/g, '&quot;') + '">';
+    }).join('');
+
+    // Si solo hay una sucursal, preseleccionarla
+    if(sucursales.length === 1 && !sel.value){
+      sel.value = sucursales[0];
+    }
+
+    console.log('[Setup] Sucursales existentes:', sucursales.join(', '));
+  } catch(e){
+    console.warn('[Setup] Error cargando sucursales:', e.message);
+  }
 }
 
 function licShowError(msg){
