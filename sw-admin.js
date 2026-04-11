@@ -1,5 +1,17 @@
-const CACHE = 'ampersand-admin-v1774973019';
-const ASSETS = ['/admin-negocio.html', '/manifest-admin.json', '/icon.png', '/icon-192.png'];
+const CACHE = 'ampersand-admin-v20260408-refactor';
+
+const ASSETS = [
+  '/admin-negocio.html',
+  '/manifest-admin.json',
+  '/icon.png',
+  '/icon-192.png',
+  '/css/admin.css',
+  '/js/config.js',
+  '/js/admin-dashboard.js',
+  '/js/admin-productos.js',
+  '/js/admin-inventario.js',
+  '/js/admin-finanzas.js',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(

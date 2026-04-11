@@ -26,32 +26,13 @@
 })();
 
 // ── ESTADO ──────────────────────────────────────────────────
-// Declaradas con var para que sean globales y visibles
-// desde el script inline del index.html y otros archivos JS.
-var cart = [];
+// Variables globales centralizadas en js/state.js
+// (cart, ticketDescuento, currentTicketNro, ticketCounter,
+//  tipoPedido, pendientes, showTkt, npCtx, npVal,
+//  divPagos, divNpIdx, divMethodIdx, PAY_METHODS, mesaActual)
 var curCat = 'Todos los artículos';
-var showTkt = false;
-var npCtx = '';
-var npVal = '';
-var ticketDescuento = 0;
-
-var ticketCounter = parseInt(localStorage.getItem('pos_ticket_counter') || '1');
-var tipoPedido = 'llevar'; // 'local' | 'llevar' | 'delivery'
-var pendientes = [];
-var currentTicketNro = null;
-
-// Pago dividido
-var divPagos = [];
-var divNpIdx = -1;
-var PAY_METHODS = ['Efectivo', 'POS', 'Transferencia'];
-var divMethodIdx = -1;
 
 // ── CARRITO ─────────────────────────────────────────────────
-
-function setCart(newCart) { cart = newCart; }
-function setNpCtx(v) { npCtx = v; }
-function setNpVal(v) { npVal = v; }
-function setShowTkt(v) { showTkt = v; }
 
 function addCart(id, tileEl){
   const p=PRODS.find(x=>x.id===id); if(!p)return;
@@ -113,7 +94,7 @@ function calcDescuentoMonto() { return calcSubtotal() - calcTotal(); }
 
 function vaciarTicket(){
   if(!cart.length) return;
-  cart=[]; ticketDescuento=0; currentTicketNro=null; mesaActual=null; tipoPedido='llevar';
+  clearCart(); resetTicketDescuento(); setCurrentTicketNro(null); clearMesaActual();
   setTipoPedido('llevar'); updTabTicketHeader(); updMesaBtn?.();
   const dBar=document.getElementById('tabDeliveryBar'); if(dBar)dBar.classList.remove('visible');
   updUI(); updBtnGuardar(); goTo('scSale'); toast('Ticket vaciado');
@@ -212,15 +193,15 @@ function doGuardar() {
       pendientes[idx].fecha = new Date().toISOString();
     }
     const nro = currentTicketNro;
-    currentTicketNro = null;
-    cart = [];
+    setCurrentTicketNro(null);
+    clearCart();
     updUI(); updBtnGuardar();
     guardarPendientesLocal();
     goTo('scSale');
     toast('✓ Ticket #' + String(nro).padStart(4, '0') + ' actualizado');
   } else {
-    const nro = ticketCounter++;
-    localStorage.setItem('pos_ticket_counter', ticketCounter);
+    const nro = ticketCounter;
+    incrementTicketCounter();
     pendientes.push({
       nro,
       obs: obs || '',
@@ -229,8 +210,8 @@ function doGuardar() {
       fecha: new Date().toISOString(),
       esPresupuesto: false,
     });
-    currentTicketNro = null;
-    cart = [];
+    setCurrentTicketNro(null);
+    clearCart();
     updUI(); updBtnGuardar();
     guardarPendientesLocal();
     goTo('scSale');
@@ -315,11 +296,11 @@ function cargarTicket(i) {
         fecha: new Date(),
         esPresupuesto: false,
       });
-      ticketCounter++;
+      incrementTicketCounter();
     }
   }
-  cart = JSON.parse(JSON.stringify(t.cart));
-  currentTicketNro = t.nro;
+  setCart(JSON.parse(JSON.stringify(t.cart)));
+  setCurrentTicketNro(t.nro);
   updUI();
   updBtnGuardar();
   goTo('scSale');
@@ -341,8 +322,8 @@ function cajaAbrirPedidoSatelite(i) {
   }
 
   // Cargar el carrito del pedido satélite
-  cart = JSON.parse(JSON.stringify(t.cart || []));
-  currentTicketNro = t.nro;
+  setCart(JSON.parse(JSON.stringify(t.cart || [])));
+  setCurrentTicketNro(t.nro);
 
   // Setear tipo de pedido y mesa si corresponde
   if (typeof setTipoPedido === 'function') {
@@ -351,7 +332,7 @@ function cajaAbrirPedidoSatelite(i) {
   if (t.mesa_id && typeof mesasMesas !== 'undefined') {
     var mesa = mesasMesas.find(function(m) { return m.id === t.mesa_id; });
     if (mesa) {
-      mesaActual = mesa;
+      setMesaActual(mesa);
       if (typeof updMesaBtn === 'function') updMesaBtn();
     }
   }
@@ -384,11 +365,10 @@ function nuevaVenta() {
       fecha: new Date(),
       esPresupuesto: false,
     });
-    ticketCounter++;
-    localStorage.setItem('pos_ticket_counter', ticketCounter);
+    incrementTicketCounter();
   }
-  cart = [];
-  currentTicketNro = null;
+  clearCart();
+  setCurrentTicketNro(null);
   updUI();
   updBtnGuardar();
   if (updMesaBtn) updMesaBtn();
@@ -434,7 +414,7 @@ function updBtnGuardar() {
 function goDividir() {
   const total = calcTotal();
   if (!total) { toast('Agregá productos primero'); return; }
-  divPagos = [];
+  clearDivPagos();
   divChgCount(0, 2);
   goTo('scDividir');
 }
@@ -531,7 +511,7 @@ function dividirHecho() {
 }
 
 function openDivMethodSheet(i) {
-  divMethodIdx = i;
+  setDivMethodIdx(i);
   const sheet = document.getElementById('catSheetContent');
   let html = '';
   PAY_METHODS.forEach(m => {
@@ -553,9 +533,9 @@ function pickDivMethod(el) {
 
 function openDivNumpad(i) {
   if (divPagos[i].cobrado) return;
-  divNpIdx = i;
-  npCtx = 'div';
-  npVal = String(divPagos[i].monto);
+  setDivNpIdx(i);
+  setNpCtx('div');
+  setNpVal(String(divPagos[i].monto));
   document.getElementById('npLbl').textContent = 'Monto pago ' + (i + 1);
   document.getElementById('npDisp').textContent = gs(divPagos[i].monto);
   document.getElementById('billetesRow').classList.remove('show');
@@ -564,9 +544,9 @@ function openDivNumpad(i) {
 
 function openDivNPComp(i) {
   if (divPagos[i].cobrado) return;
-  divNpIdx = i;
-  npCtx = 'divComp';
-  npVal = divPagos[i].comprobante || '';
+  setDivNpIdx(i);
+  setNpCtx('divComp');
+  setNpVal(divPagos[i].comprobante || '');
   document.getElementById('npLbl').textContent = 'Nro. Comprobante - Pago ' + (i + 1);
   document.getElementById('npDisp').textContent = npVal || '—';
   document.getElementById('billetesRow').classList.remove('show');

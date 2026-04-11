@@ -103,7 +103,7 @@ function abrirDescTicket() {
   if (val === null) return;
 
   const pct = Math.min(100, Math.max(0, parseFloat(val) || 0));
-  ticketDescuento = pct;
+  setTicketDescuento(pct);
   updUI();
 
   const t       = calcTotal();
@@ -141,8 +141,8 @@ function abrirDescTicket() {
  * @param {string} ctx
  */
 function openNP(ctx) {
-  npCtx = ctx;
-  npVal = '';
+  setNpCtx(ctx);
+  setNpVal('');
 
   const labels = {
     shift:       'Efectivo inicial',
@@ -156,20 +156,20 @@ function openNP(ctx) {
 
   if (ctx === 'comprobante') {
     const cur = document.getElementById('compDisplay').textContent;
-    npVal = (cur === '—' || cur === '') ? '' : cur;
+    setNpVal((cur === '—' || cur === '') ? '' : cur);
   }
 
   if (ctx === 'cierreTotal') {
-    npVal = cierreTotal > 0 ? String(cierreTotal) : '';
+    setNpVal(cierreTotal > 0 ? String(cierreTotal) : '');
     document.getElementById('npLbl').textContent = 'Total de valores contados';
   } else if (ctx.startsWith('cierre_')) {
     const m = ctx.replace('cierre_', '');
     cierreNpMetodo = m;
     if (m === 'TOTAL') {
-      npVal = cierreTotal > 0 ? String(cierreTotal) : '';
+      setNpVal(cierreTotal > 0 ? String(cierreTotal) : '');
       document.getElementById('npLbl').textContent = 'Total contado';
     } else {
-      npVal = cierreMetodos[m] && cierreMetodos[m].contado > 0 ? String(cierreMetodos[m].contado) : '';
+      setNpVal(cierreMetodos[m] && cierreMetodos[m].contado > 0 ? String(cierreMetodos[m].contado) : '');
       document.getElementById('npLbl').textContent = 'Conteo ' + m;
     }
   }
@@ -194,19 +194,19 @@ function npOutside(e) {
 function npP(d) {
   const esTexto = npCtx === 'comprobante' || npCtx === 'divComp' || npCtx === 'ruc';
   if (esTexto) {
-    npVal += d;
-    if (npVal.length > 15) npVal = npVal.slice(0, 15);
+    setNpVal(npVal + d);
+    if (npVal.length > 15) setNpVal(npVal.slice(0, 15));
     document.getElementById('npDisp').textContent = npVal || '—';
   } else {
-    if (npVal === '0' && d !== '000') npVal = d; else npVal += d;
-    if (npVal.length > 10) npVal = npVal.slice(0, 10);
+    if (npVal === '0' && d !== '000') setNpVal(d); else setNpVal(npVal + d);
+    if (npVal.length > 10) setNpVal(npVal.slice(0, 10));
     document.getElementById('npDisp').textContent = gs(parseInt(npVal) || 0);
   }
 }
 
 /** Tecla borrar del numpad */
 function npD() {
-  npVal = npVal.slice(0, -1);
+  setNpVal(npVal.slice(0, -1));
   const esTexto = npCtx === 'comprobante' || npCtx === 'divComp' || npCtx === 'ruc';
   if (esTexto) {
     document.getElementById('npDisp').textContent = npVal || '—';
@@ -355,8 +355,8 @@ function updVuelto(entregado) {
  */
 function npBillete(val) {
   const current = parseInt(npVal) || 0;
-  npVal = String(current + val);
-  if (npVal.length > 10) npVal = npVal.slice(0, 10);
+  setNpVal(String(current + val));
+  if (npVal.length > 10) setNpVal(npVal.slice(0, 10));
   const total = parseInt(npVal);
   document.getElementById('npDisp').textContent = gs(total);
   document.getElementById('efecVal').textContent = gs(total);
@@ -376,8 +376,8 @@ function openNpTexto(ctx, inputEl) {
   if (window.innerWidth >= 700) return;
   inputEl.blur();
   setTimeout(function () { inputEl.blur(); }, 10);
-  npCtx = 'texto_' + ctx;
-  npVal = inputEl.value || '';
+  setNpCtx('texto_' + ctx);
+  setNpVal(inputEl.value || '');
   const labels = { ruc: 'RUC / C.I.', nombre: 'Razón Social / Nombre' };
   document.getElementById('npLbl').textContent = labels[ctx] || ctx;
   document.getElementById('npDisp').style.display = 'none';
@@ -399,13 +399,13 @@ function cerrarNpTexto() {
   if (ng) ng.style.display = '';
   const ti = document.getElementById('npTextInput');
   if (ti) { ti.style.display = 'none'; ti.value = ''; }
-  npCtx = '';
+  setNpCtx('');
 }
 
 /** Abre el numpad numérico para ingresar el RUC */
 function openNpRuc() {
-  npCtx = 'ruc';
-  npVal = document.getElementById('factRuc').value.trim() || '';
+  setNpCtx('ruc');
+  setNpVal(document.getElementById('factRuc').value.trim() || '');
   document.getElementById('npLbl').textContent  = 'RUC / C.I.';
   document.getElementById('npDisp').textContent = npVal || '—';
   document.getElementById('billetesRow').classList.remove('show');
@@ -415,8 +415,8 @@ function openNpRuc() {
 /** Abre el numpad para ingresar el monto del delivery */
 function openNpDelivery() {
   const existing = cart.find(function (i) { return i.esDelivery; });
-  npCtx = 'delivery';
-  npVal = existing ? String(existing.price) : '';
+  setNpCtx('delivery');
+  setNpVal(existing ? String(existing.price) : '');
   document.getElementById('npLbl').textContent  = 'Monto del envío (Delivery)';
   document.getElementById('npDisp').textContent = existing ? gs(existing.price) : '₲0';
   document.getElementById('billetesRow').classList.remove('show');
@@ -788,8 +788,8 @@ async function confirmarPago() {
     : document.querySelector('.pay-btn.sel')?.textContent?.trim() || 'Efectivo';
 
   // Número de ticket — avanzar contador si es nuevo
-  const nroTicket = currentTicketNro !== null ? currentTicketNro : ticketCounter++;
-  localStorage.setItem('pos_ticket_counter', ticketCounter);
+  const nroTicket = currentTicketNro !== null ? currentTicketNro : ticketCounter;
+  if (currentTicketNro === null) incrementTicketCounter();
 
   // ── Validaciones de factura ────────────────────────────────
   if (facturaActiva) {
@@ -823,10 +823,10 @@ async function confirmarPago() {
   }
 
   // ── Limpiar estado ─────────────────────────────────────────
-  ticketDescuento = 0;
+  resetTicketDescuento();
   cart.forEach(i => { delete i.desc; });
   // Limpiar divPagos para que no contamine la próxima venta normal
-  if(typeof divPagos !== 'undefined') divPagos.length = 0;
+  clearDivPagos();
 
   // Capturar supabasePedidoId ANTES de limpiar pendientes
   // para poder marcar el pedido satélite como cobrado en Supabase
@@ -835,14 +835,14 @@ async function confirmarPago() {
     const idx = pendientes.findIndex(p => p.nro === currentTicketNro);
     if (idx >= 0) {
       _supabasePedidoId = pendientes[idx].supabasePedidoId || null;
-      pendientes.splice(idx, 1);
+      removePendiente(idx);
     }
-    currentTicketNro = null;
+    setCurrentTicketNro(null);
   }
   try { localStorage.setItem('pos_pendientes', JSON.stringify(pendientes)); } catch (e) {}
 
-  cart    = [];
-  showTkt = false;
+  clearCart();
+  setShowTkt(false);
   updUI();
   updBtnGuardar();
 
@@ -895,9 +895,8 @@ async function confirmarPago() {
 
 /** Cierra el recibo, limpia la mesa y vuelve a ventas */
 function finalizarRecibo() {
-  mesaActual = null;
+  clearMesaActual();
   updMesaBtn();
-  tipoPedido = 'llevar';
   setTipoPedido('llevar');
   goTo('scSale');
 }

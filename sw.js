@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260331-2060';
+const CACHE = 'ampersand-pos-v20260408-refactor';
 
 const ASSETS = [
   '/',
@@ -7,9 +7,22 @@ const ASSETS = [
   '/icon.png',
   '/icon-192.png',
   '/icon-512.png',
+  '/css/pos.css',
+  '/js/config.js',
+  '/js/state.js',
+  '/js/selectors.js',
   '/js/ui.js',
   '/js/ventas.js',
   '/js/cobro.js',
+  '/js/pedidos.js',
+  '/js/impresion.js',
+  '/js/turno.js',
+  '/js/productos.js',
+  '/js/sync.js',
+  '/js/licencia.js',
+  '/js/mesas.js',
+  '/js/app.js',
+  '/js/init.js',
 ];
 
 self.addEventListener('install', e => {

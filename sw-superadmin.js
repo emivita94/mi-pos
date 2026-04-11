@@ -1,5 +1,12 @@
-const CACHE = 'ampersand-superadmin-v1773947046';
-const ASSETS = ['/super-admin.html', '/manifest-superadmin.json', '/icon.png', '/icon-192.png'];
+const CACHE = 'ampersand-superadmin-v20260408-refactor';
+
+const ASSETS = [
+  '/super-admin.html',
+  '/manifest-superadmin.json',
+  '/icon.png',
+  '/icon-192.png',
+  '/js/config.js',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(

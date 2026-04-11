@@ -424,9 +424,11 @@ body{font-family:Barlow,sans-serif;background:var(--bg);color:#fff;min-height:10
 
 <div class="toast" id="toast"></div>
 
+<script src="js/config.js"></script>
 <script>
-const SURL  = 'https://kmreiniqgcvqgdtzvmel.supabase.co';
-const SKEY  = 'sb_publishable_j6btNHo1o3tSprmYUJITPw_8AsYgcvJ';
+// SUPA_URL y SUPA_ANON vienen de js/config.js
+const SURL  = SUPA_URL;
+const SKEY  = SUPA_ANON;
 const PASS  = 'admin2025';
 
 function toggleSB(){
