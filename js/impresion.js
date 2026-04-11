@@ -2132,7 +2132,7 @@ async function imprimirBluetooth(device, htmlContent, size){
 // Servidor local en http://127.0.0.1:8080
 // ══════════════════════════════════════════════════════════════════
 // ── USB Print Server (local — puerto 9200) ──────────────────────────────────
-const USBPrinter = {
+var USBPrinter = {
   BASE: 'http://127.0.0.1:9200',
   TIMEOUT_MS: 4000,
 
@@ -2198,7 +2198,7 @@ const USBPrinter = {
   }
 };
 
-const BTPrinter = {
+var BTPrinter = {
   BASE: 'http://127.0.0.1:8080',
   TIMEOUT_MS: 5000,
 
