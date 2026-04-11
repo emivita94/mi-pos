@@ -434,17 +434,24 @@ async function doActivar(){
   document.getElementById('activadoNegocio').value='';
   // Mostrar spinner mientras buscamos config previa
   const btnEntrar = document.getElementById('scActivado');
-  // Intentar recuperar config de ESTE dispositivo específico
+  // Intentar recuperar config de ESTE dispositivo específico (solo por device_id exacto)
   try{
-    const deviceId = await licGetDeviceIdAsync();
-    const cfg = await recuperarConfigTerminalSupabase(); // ya usa el deviceId correcto
-    if(cfg && cfg.terminal && cfg.sucursal){
-      // ✅ Este dispositivo ya fue configurado antes — entrar directo
-      aplicarConfigTerminal(cfg);
-      console.log('[Activar] Terminal restaurada:', cfg.terminal, '/', cfg.sucursal);
-      document.getElementById('scActivado').style.display='none';
-      await iniciarApp();
-      return;
+    var deviceId = await licGetDeviceIdAsync();
+    if(deviceId){
+      var cfgRows = await supaGet('pos_config',
+        'licencia_email=eq.'+encodeURIComponent(email)
+        +'&clave=eq.terminal_config_'+encodeURIComponent(deviceId)
+        +'&select=valor&limit=1');
+      if(cfgRows && cfgRows[0]){
+        var cfg = JSON.parse(cfgRows[0].valor);
+        if(cfg && cfg.terminal && cfg.sucursal){
+          aplicarConfigTerminal(cfg);
+          console.log('[Activar] Terminal restaurada por device_id exacto:', cfg.terminal, '/', cfg.sucursal);
+          document.getElementById('scActivado').style.display='none';
+          await iniciarApp();
+          return;
+        }
+      }
     }
   }catch(e){ console.warn('[Activar] No se pudo recuperar config:', e.message); }
   // Este dispositivo no tiene config → mostrar formulario de setup
