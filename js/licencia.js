@@ -461,11 +461,36 @@ function licShowError(msg){
   el.style.display='block';
 }
 
+// ── Selector de modo en pantalla de activación ──
+function selModoActivacion(modo){
+  var btnCaja = document.getElementById('btnModoCaja');
+  var btnSat  = document.getElementById('btnModoSatelite');
+  var input   = document.getElementById('activadoModo');
+  if(!btnCaja || !btnSat) return;
+  input.value = modo;
+  if(modo === 'caja'){
+    btnCaja.style.borderColor = '#4caf50';
+    btnCaja.style.background  = 'rgba(76,175,80,.12)';
+    btnCaja.style.color       = '#4caf50';
+    btnSat.style.borderColor  = '#444';
+    btnSat.style.background   = 'transparent';
+    btnSat.style.color        = '#888';
+  } else {
+    btnSat.style.borderColor  = '#534AB7';
+    btnSat.style.background   = 'rgba(83,74,183,.12)';
+    btnSat.style.color        = '#534AB7';
+    btnCaja.style.borderColor = '#444';
+    btnCaja.style.background  = 'transparent';
+    btnCaja.style.color       = '#888';
+  }
+}
+
 async function doEntrar(){
-  const negocio  = document.getElementById('activadoNegocio').value.trim();
-  const terminal = document.getElementById('activadoTerminal').value.trim() || 'Terminal 1';
-  const sucursal = document.getElementById('activadoSucursal').value.trim() || 'Principal';
-  const deposito = document.getElementById('activadoDeposito').value.trim() || 'Depósito Principal';
+  var negocio  = document.getElementById('activadoNegocio').value.trim();
+  var terminal = document.getElementById('activadoTerminal').value.trim() || 'Terminal 1';
+  var sucursal = document.getElementById('activadoSucursal').value.trim() || 'Principal';
+  var deposito = document.getElementById('activadoDeposito').value.trim() || 'Depósito Principal';
+  var modo     = (document.getElementById('activadoModo') || {}).value || 'caja';
 
   if(!negocio){ alert('Ingresá el nombre del negocio'); return; }
   if(!sucursal){ alert('Ingresá el nombre de la sucursal'); return; }
@@ -476,13 +501,17 @@ async function doEntrar(){
   localStorage.setItem('pos_terminal', terminal);
   localStorage.setItem('pos_sucursal', sucursal);
   localStorage.setItem('pos_deposito', deposito);
+  localStorage.setItem('pos_modo_terminal', modo);
+  MODO_TERMINAL = modo;
   cookieSet('pos_terminal', terminal, 365);
   cookieSet('pos_sucursal', sucursal, 365);
   cookieSet('pos_deposito', deposito, 365);
+  cookieSet('pos_modo_terminal', modo, 365);
   if(db){
     await dbSaveConfig('terminal', terminal);
     await dbSaveConfig('sucursal', sucursal);
     await dbSaveConfig('deposito', deposito);
+    await dbSaveConfig('modo_terminal', modo);
   }
   if(typeof configData !== 'undefined'){
     configData.terminal = terminal;
@@ -501,8 +530,13 @@ async function doEntrar(){
         p_terminal:  terminal,
         p_sucursal:  sucursal,
       });
+      // Guardar modo en activaciones
+      await supaFetch('PATCH',
+        'activaciones?device_id=eq.' + encodeURIComponent(licGetDeviceId()),
+        { modo: modo }
+      );
       // Obtener licencia_id desde activaciones
-      const activ = await supaFetch('GET', 'activaciones?device_id=eq.'+licGetDeviceId()+'&select=licencia_id');
+      var activ = await supaFetch('GET', 'activaciones?device_id=eq.'+licGetDeviceId()+'&select=licencia_id');
       const activData = await activ.json();
       if(activData && activData[0]){
         const licId = activData[0].licencia_id;
