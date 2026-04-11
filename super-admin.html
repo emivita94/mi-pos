@@ -1093,6 +1093,7 @@ function renderTer(lista){
           <div style="font-size:11px;color:var(--muted);">${g.email} · ${g.items.length} terminal${g.items.length!==1?'es':''} · ${g.plan}</div>
         </div>
         <span class="tag tag-g" style="flex-shrink:0;">${g.items.filter(t=>t.activa).length} activas</span>
+        ${g.items.length > 3 ? '<button onclick="limpiarDuplicadas(\'' + g.email + '\')" style="background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:10px;font-weight:800;padding:4px 8px;cursor:pointer;flex-shrink:0;">LIMPIAR DUPLICADAS</button>' : ''}
       </div>
       <!-- Terminales de esta empresa -->
       ${g.items.map(function(t){ return buildTerCard(t, g, hoy); }).join('')}
@@ -1162,6 +1163,57 @@ async function cambiarModoTer(id, nuevoModo, nombreTerminal, modoActual){
     filtrTer(); // re-renderizar sin recargar de Supabase
   } catch(e){
     toast('Error al cambiar modo: ' + e.message);
+  }
+}
+
+async function limpiarDuplicadas(email){
+  // Agrupar terminales por device_id
+  var ters = allTer.filter(function(t){ return t.email === email && !t.deleted_at; });
+  var porDevice = {};
+  ters.forEach(function(t){
+    var did = t.device_id || 'sin-device-' + t.id;
+    if(!porDevice[did]) porDevice[did] = [];
+    porDevice[did].push(t);
+  });
+
+  // Encontrar duplicadas: para cada device_id, quedarse con la mas reciente
+  var aEliminar = [];
+  Object.keys(porDevice).forEach(function(did){
+    var grupo = porDevice[did];
+    if(grupo.length <= 1) return;
+    // Ordenar por ultima_consulta desc, o created_at desc
+    grupo.sort(function(a, b){
+      var fa = a.ultima_consulta || a.created_at || '';
+      var fb = b.ultima_consulta || b.created_at || '';
+      return fb.localeCompare(fa);
+    });
+    // La primera es la que queda, el resto se elimina
+    for(var i = 1; i < grupo.length; i++){
+      aEliminar.push(grupo[i]);
+    }
+  });
+
+  if(!aEliminar.length){
+    toast('No hay terminales duplicadas para ' + email);
+    return;
+  }
+
+  if(!confirm('Se van a eliminar ' + aEliminar.length + ' terminales duplicadas de ' + email + '.\n\n' +
+    'Se conserva la mas reciente de cada dispositivo.\n\n¿Continuar?')) return;
+
+  try {
+    var ahora = new Date().toISOString();
+    for(var i = 0; i < aEliminar.length; i++){
+      await fetch(SURL + '/rest/v1/activaciones?id=eq.' + aEliminar[i].id, {
+        method: 'PATCH',
+        headers: {'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json'},
+        body: JSON.stringify({ activa: false, deleted_at: ahora })
+      });
+    }
+    toast('Eliminadas ' + aEliminar.length + ' duplicadas. Quedan ' + (ters.length - aEliminar.length) + ' terminales.');
+    await loadTer();
+  } catch(e){
+    toast('Error: ' + e.message);
   }
 }
 
