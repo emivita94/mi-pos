@@ -1129,8 +1129,8 @@
   @media(min-width:700px){
     .search-bar { display:flex !important; }
     .fsearch { display:none !important; }
-    #prodView { flex:1 1 0 !important; min-width:0 !important; max-width:calc(100% - 420px) !important; }
-    .tablet-right { width:420px !important; flex-shrink:0 !important; min-width:420px !important; }
+    #prodView { flex:1 1 0 !important; min-width:0 !important; }
+    .tablet-right { flex-shrink:0 !important; }
   }
   .cat-item.sel { color:var(--green); }
 
@@ -1505,11 +1505,14 @@
   /* ── TABLET RIGHT PANEL (siempre en DOM, oculto en móvil) ── */
   .tablet-right {
     display: none;
-    width: 420px;
+    width: 280px;
     flex-shrink: 0;
     flex-direction: column;
     background: var(--bg-card);
     border-left: 1px solid var(--border);
+  }
+  @media (min-width:1000px) {
+    .tablet-right { width: 380px; }
   }
   /* Header nro ticket + tipo pedido */
   .tab-ticket-header {
