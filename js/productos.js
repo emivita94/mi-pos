@@ -280,7 +280,7 @@ let artColorManual = false;
 let artCatSel = 'Comidas';
 let artIvaSel = '10';
 let artImagenBase64 = null; // imagen del producto actual en edición
-let nextProdId = 100;
+var nextProdId = 100;
 
 function getProductColor(prod){
   if(prod.colorPropio) return prod.color;
@@ -1698,4 +1698,149 @@ function selCfgMitad(val){
 function loadCfgMitad(){
   const val = localStorage.getItem('pos_precio_mitad') || 'mas_caro';
   selCfgMitad(val);
+}
+
+// ── Carga desde Supabase (nube → memoria + IndexedDB) ───────────────────────
+
+async function supaLoadProductos(){
+  if(USAR_DEMO) return;
+  var email = localStorage.getItem(SK.email);
+  if(!email) return;
+  try {
+    var data = await supaGet('pos_productos',
+      'licencia_email=eq.'+encodeURIComponent(email)+'&order=nombre.asc&select=*'
+    );
+    if(!data || !data.length) return;
+
+    var itemLibre = PRODS.find(function(p){ return p.itemLibre; });
+    var newProds  = [];
+    if(itemLibre) newProds.push(itemLibre);
+
+    data.forEach(function(p){
+      newProds.push({
+        id:             p.id,
+        prodId:         p.id,
+        name:           p.nombre,
+        price:          p.precio || 0,
+        precioVariable: p.precio_variable || false,
+        costo:          p.costo || 0,
+        codigo:         p.codigo || '',
+        cat:            p.categoria || 'Sin categoría',
+        iva:            p.iva || '10',
+        color:          p.color || '#546e7a',
+        colorPropio:    p.color_propio || false,
+        mitad:          p.mitad || false,
+        inventario:     p.inventario || false,
+        comanda:        p.comanda || false,
+        itemLibre:      false,
+        activo:         p.activo !== false && p.activo !== 0,
+        imagen:         p.imagen || null,
+      });
+    });
+
+    PRODS.length = 0;
+    newProds.forEach(function(p){ PRODS.push(p); });
+
+    var maxId = Math.max.apply(null, PRODS.filter(function(p){return !p.itemLibre;}).map(function(p){return p.id;}).concat([0]));
+    nextProdId = maxId + 1;
+    console.log('[Supabase] Productos cargados:', PRODS.length - 1);
+    curCat = 'Todos los artículos';
+    var catLblEl = document.getElementById('catLbl');
+    if(catLblEl) catLblEl.textContent = 'Todos los artículos';
+    renderCatPills();
+    filterP();
+    try { await cargarDescuentosConfig(); } catch(ed){ console.warn('[Desc]', ed.message); }
+
+    // Cachear imágenes en IndexedDB para uso offline
+    if(db){
+      var prodsConImg = newProds.filter(function(p){ return p.imagen && p.imagen.startsWith('http'); });
+      for(var i = 0; i < prodsConImg.length; i++){
+        var pi = prodsConImg[i];
+        try {
+          var cached = await db.config.get('img_cache_' + pi.imagen);
+          if(!cached){
+            var r = await fetch(pi.imagen);
+            if(r.ok){
+              var blob = await r.blob();
+              var b64  = await new Promise(function(res){
+                var fr = new FileReader();
+                fr.onload = function(){ res(fr.result); };
+                fr.readAsDataURL(blob);
+              });
+              await db.config.put({ clave:'img_cache_' + pi.imagen, valor: b64 });
+            }
+          }
+        } catch(ei){/* imagen cache — no crítico */}
+      }
+      if(prodsConImg.length) console.log('[Imagen] Cache offline:', prodsConImg.length, 'imágenes');
+    }
+
+    // Persistir en IndexedDB para uso offline
+    if(db){
+      try {
+        var rows = data.map(function(p){
+          return {
+            id:              p.id,
+            nombre:          p.nombre,
+            precio:          p.precio || 0,
+            precio_variable: p.precio_variable || false,
+            costo:           p.costo || 0,
+            codigo:          p.codigo || '',
+            categoria:       p.categoria || 'Sin categoría',
+            iva:             p.iva || '10',
+            color:           p.color || '#546e7a',
+            color_propio:    p.color_propio || false,
+            mitad:           p.mitad || false,
+            inventario:      p.inventario || false,
+            comanda:         p.comanda || false,
+            item_libre:      false,
+            activo:          p.activo !== false && p.activo !== 0,
+            imagen:          p.imagen || null,
+            updatedAt:       new Date().toISOString(),
+          };
+        });
+        await db.productos.bulkPut(rows);
+        console.log('[DB] Productos cacheados offline:', rows.length);
+      } catch(ed){ console.warn('[DB] Cache productos:', ed.message); }
+    }
+  } catch(e){
+    if(!(e.message && e.message.includes('Failed to fetch')))
+      console.warn('[Supabase] Productos:', e.message);
+  }
+}
+
+async function supaLoadCategorias(){
+  if(USAR_DEMO) return;
+  var email = localStorage.getItem(SK.email);
+  if(!email) return;
+  try {
+    var data = await supaGet('pos_categorias',
+      'licencia_email=eq.'+encodeURIComponent(email)+'&order=nombre.asc&select=*'
+    );
+    if(!data || !data.length) return;
+    var newCats = data.map(function(c){ return { id:c.id, nombre:c.nombre, color:c.color||'#546e7a' }; });
+    CATEGORIAS.length = 0;
+    newCats.forEach(function(c){ CATEGORIAS.push(c); });
+    var maxId = Math.max.apply(null, CATEGORIAS.map(function(c){return c.id;}).concat([0]));
+    nextCatId = maxId + 1;
+    console.log('[Supabase] Categorías cargadas:', CATEGORIAS.length);
+
+    if(db){
+      try {
+        var rows = data.map(function(c){
+          return {
+            id:        c.id,
+            nombre:    c.nombre,
+            color:     c.color || '#546e7a',
+            updatedAt: new Date().toISOString(),
+          };
+        });
+        await db.categorias.bulkPut(rows);
+        console.log('[DB] Categorías cacheadas offline:', rows.length);
+      } catch(ed){ console.warn('[DB] Cache categorías:', ed.message); }
+    }
+  } catch(e){
+    if(!e.message.includes('Failed to fetch'))
+      console.warn('[Supabase] Categorías:', e.message);
+  }
 }

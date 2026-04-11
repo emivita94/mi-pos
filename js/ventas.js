@@ -552,3 +552,43 @@ function openDivNPComp(i) {
   document.getElementById('billetesRow').classList.remove('show');
   document.getElementById('npOverlay').classList.add('open');
 }
+
+// ── Render Tablet Ticket (panel lateral de items) ───────────────────────────
+
+function renderTabletTicket(){
+  var tl = document.getElementById('tabTlist');
+  var empty = document.getElementById('tabEmpty');
+  if(!tl) return;
+  if(!cart.length){
+    if(empty) empty.style.display='flex';
+    Array.from(tl.children).forEach(function(c){ if(c.id!=='tabEmpty') c.remove(); });
+    return;
+  }
+  if(empty) empty.style.display='none';
+  Array.from(tl.children).forEach(function(c){ if(c.id!=='tabEmpty') c.remove(); });
+  cart.forEach(function(i){
+    var div = document.createElement('div');
+    div.className='tab-titem';
+    if(i.esDelivery){
+      div.style.cssText='border-left:3px solid var(--orange);background:rgba(255,152,0,.06)';
+      div.innerHTML=
+        '<div style="width:7px;height:7px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>'+
+        '<div class="tab-tiname" style="color:var(--orange)">'+i.name+'</div>'+
+        '<div class="tab-tictrl">'+
+          '<button class="tab-qbtn" onclick="quitarItemDelivery();setTipoPedido(\'local\')" title="Quitar delivery" style="background:var(--orange);color:#fff">\u2715</button>'+
+        '</div>'+
+        '<div class="tab-tiprice" style="color:var(--orange);font-weight:800">'+gs(i.price)+'</div>';
+    } else {
+      div.innerHTML=
+        '<div style="width:7px;height:7px;border-radius:50%;background:'+i.color+';flex-shrink:0"></div>'+
+        '<div class="tab-tiname">'+i.name+(i.obs?'<div class="tab-tiobs">'+i.obs+'</div>':'')+'</div>'+
+        '<div class="tab-tictrl">'+
+          '<button class="tab-qbtn" onclick="chgQty('+i.lineId+',-1)">\u2212</button>'+
+          '<span class="tab-qnum">'+i.qty+'</span>'+
+          '<button class="tab-qbtn" onclick="chgQty('+i.lineId+',1)">+</button>'+
+        '</div>'+
+        '<div class="tab-tiprice">'+gs(i.price*i.qty)+'</div>';
+    }
+    tl.appendChild(div);
+  });
+}
