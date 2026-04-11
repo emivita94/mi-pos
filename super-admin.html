@@ -1167,39 +1167,44 @@ async function cambiarModoTer(id, nuevoModo, nombreTerminal, modoActual){
 }
 
 async function limpiarDuplicadas(email){
-  // Agrupar terminales por device_id
   var ters = allTer.filter(function(t){ return t.email === email && !t.deleted_at; });
-  var porDevice = {};
-  ters.forEach(function(t){
-    var did = t.device_id || 'sin-device-' + t.id;
-    if(!porDevice[did]) porDevice[did] = [];
-    porDevice[did].push(t);
+
+  // Ordenar por ultima_consulta desc (las mas recientes primero)
+  ters.sort(function(a, b){
+    var fa = a.ultima_consulta || a.created_at || '';
+    var fb = b.ultima_consulta || b.created_at || '';
+    return fb.localeCompare(fa);
   });
 
-  // Encontrar duplicadas: para cada device_id, quedarse con la mas reciente
-  var aEliminar = [];
-  Object.keys(porDevice).forEach(function(did){
-    var grupo = porDevice[did];
-    if(grupo.length <= 1) return;
-    // Ordenar por ultima_consulta desc, o created_at desc
-    grupo.sort(function(a, b){
-      var fa = a.ultima_consulta || a.created_at || '';
-      var fb = b.ultima_consulta || b.created_at || '';
-      return fb.localeCompare(fa);
-    });
-    // La primera es la que queda, el resto se elimina
-    for(var i = 1; i < grupo.length; i++){
-      aEliminar.push(grupo[i]);
-    }
-  });
+  // Mostrar lista para que el usuario elija cuantas conservar
+  var resumen = ters.slice(0, 10).map(function(t, i){
+    var nombre = t.nombre_terminal || 'Sin nombre';
+    var ultima = t.ultima_consulta ? new Date(t.ultima_consulta).toLocaleDateString('es-PY') : 'nunca';
+    var modo = (t.modo || 'caja').toUpperCase();
+    return (i + 1) + '. ' + nombre + ' (' + modo + ') — visto: ' + ultima;
+  }).join('\n');
+  if(ters.length > 10) resumen += '\n... y ' + (ters.length - 10) + ' mas';
 
-  if(!aEliminar.length){
-    toast('No hay terminales duplicadas para ' + email);
+  var conservar = prompt(
+    email + ' tiene ' + ters.length + ' terminales.\n\n' +
+    'Las mas recientes:\n' + resumen + '\n\n' +
+    '¿Cuantas conservar? (las mas recientes).\n' +
+    'Ej: 2 = conserva las 2 mas recientes, elimina el resto.'
+  );
+  if(!conservar) return;
+  var n = parseInt(conservar);
+  if(isNaN(n) || n < 1){
+    toast('Numero invalido');
+    return;
+  }
+  if(n >= ters.length){
+    toast('Ya tiene ' + ters.length + ' terminales, nada que limpiar');
     return;
   }
 
-  if(!confirm('Se van a eliminar ' + aEliminar.length + ' terminales duplicadas de ' + email + '.\n\n' +
-    'Se conserva la mas reciente de cada dispositivo.\n\n¿Continuar?')) return;
+  var aEliminar = ters.slice(n); // las mas viejas
+  if(!confirm('Se van a eliminar ' + aEliminar.length + ' terminales viejas.\n' +
+    'Se conservan las ' + n + ' mas recientes.\n\n¿Continuar?')) return;
 
   try {
     var ahora = new Date().toISOString();
@@ -1210,7 +1215,7 @@ async function limpiarDuplicadas(email){
         body: JSON.stringify({ activa: false, deleted_at: ahora })
       });
     }
-    toast('Eliminadas ' + aEliminar.length + ' duplicadas. Quedan ' + (ters.length - aEliminar.length) + ' terminales.');
+    toast('Eliminadas ' + aEliminar.length + ' terminales. Quedan ' + n + '.');
     await loadTer();
   } catch(e){
     toast('Error: ' + e.message);
