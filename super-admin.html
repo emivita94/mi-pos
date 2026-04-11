@@ -731,8 +731,9 @@ async function guardarL(){
 
 // ── CLIENTES ─────────────────────────────────────────────
 async function loadCli(){
-  var DEMO_EMAILS=['demo@test.com','pro@test.com','full@test.com','emivitta94@gmail.com'];
-  var esDemoEmail=function(e){ return !e||e.includes('@test.com')||e.includes('demo')||DEMO_EMAILS.includes(e.toLowerCase()); };
+  var REAL_EMAILS=['demo@test.com'];
+  var DEMO_EMAILS=['pro@test.com','full@test.com','emivitta94@gmail.com'];
+  var esDemoEmail=function(e){ if(!e) return true; var el=e.toLowerCase(); if(REAL_EMAILS.includes(el)) return false; return el.includes('@test.com')||el.includes('demo')||DEMO_EMAILS.includes(el); };
 
   try{
     // Traer licencias con datos completos
@@ -863,8 +864,9 @@ async function loadCli(){
 let allTer = [];
 
 async function loadTer(){
-  var DEMO_EMAILS=['demo@test.com','pro@test.com','full@test.com','emivitta94@gmail.com'];
-  var esDemoEmail=function(e){ return !e||e.includes('@test.com')||e.includes('demo')||DEMO_EMAILS.includes((e||'').toLowerCase()); };
+  var REAL_EMAILS=['demo@test.com'];
+  var DEMO_EMAILS=['pro@test.com','full@test.com','emivitta94@gmail.com'];
+  var esDemoEmail=function(e){ if(!e) return true; var el=e.toLowerCase(); if(REAL_EMAILS.includes(el)) return false; return el.includes('@test.com')||el.includes('demo')||DEMO_EMAILS.includes(el); };
 
   try{
     allTer = await sg('activaciones','select=*,licencias(clave,nombre_cliente,plan_id,planes(nombre))&deleted_at=is.null&order=nombre_negocio.asc');
