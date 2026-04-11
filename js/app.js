@@ -1,6 +1,6 @@
 // ── App: PRODS, utilidades, config negocio, carrito, drawer, configuración, print UI ──
 
-const PRODS = [
+var PRODS = [
   // El ítem libre siempre existe (id:99) — no se guarda en Supabase
   {id:99,name:'ÍTEM LIBRE',price:0,color:'#546e7a',cat:'Otros',
    precioVariable:true,itemLibre:true,iva:'10',colorPropio:false},
@@ -1237,7 +1237,7 @@ function cerrarPreviewCierre(){
 
 
 // ── CONFIGURACIÓN ────────────────────────────────────────────────────────────
-let configData = {
+var configData = {
   negocio:      localStorage.getItem('an')       || 'MI NEGOCIO',
   direccion:    localStorage.getItem('ad')       || 'ASUNCION',
   ciudad:       localStorage.getItem('ciudad')   || '',
@@ -1254,7 +1254,7 @@ let configData = {
   deposito_id:  localStorage.getItem('pos_deposito_id') || null,
 };
 
-let printers = {
+var printers = {
   ticket:  { type: null, name: null, device: null, size: '58' }, // type: 'bt'|'pc'
   comanda: { type: null, name: null, device: null, size: '58' },
 };
@@ -2238,7 +2238,7 @@ async function imprimirUSBLocal(htmlContent, size){
 // Servidor local en http://127.0.0.1:8080
 // ══════════════════════════════════════════════════════════════════
 // ── USB Print Server (local — puerto 9200) ──────────────────────────────────
-const USBPrinter = {
+var USBPrinter = {
   BASE: 'http://127.0.0.1:9200',
   TIMEOUT_MS: 4000,
 
@@ -2304,7 +2304,7 @@ const USBPrinter = {
   }
 };
 
-const BTPrinter = {
+var BTPrinter = {
   BASE: 'http://127.0.0.1:8080',
   TIMEOUT_MS: 5000,
 

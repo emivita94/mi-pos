@@ -105,7 +105,7 @@ function imprimirComandaActual(){
 // ══════════════════════════════════════════════════════
 
 // Guardar último recibo para reimprimir
-let ultimoReciboData = null;
+var ultimoReciboData = null;
 
 // Obtener tamaño de papel configurado
 function getPaperSize(tipo){ return (printers[tipo] && printers[tipo].size) || localStorage.getItem('printerSize_'+tipo) || '58'; }

@@ -5,7 +5,7 @@
 // ══════════════════════════════════════════════════════════
 
 // Inicializar base de datos
-let db;
+var db;
 
 async function initDB(){
   // Esperar hasta 3 segundos a que Dexie cargue

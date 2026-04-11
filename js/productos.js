@@ -8,7 +8,7 @@ const COLORES_TILE = [
 ];
 let CATEGORIAS = [];
 let nextCatId  = 1;
-const CATEGORIAS_DEFAULT = CATEGORIAS.map(c => c.nombre);
+var CATEGORIAS_DEFAULT = CATEGORIAS.map(c => c.nombre);
 
 // Descuentos (igual que productos pero categoría especial)
 let DESCUENTOS = []; // {id, name, tipo:'%'|'monto', valor:null|number, color:'#e53935'}

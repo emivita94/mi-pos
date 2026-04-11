@@ -1,7 +1,7 @@
 // ── Licencia, sesion, login, activacion ──
 
 // SUPA_URL y SUPA_ANON vienen de js/config.js
-const APP_VERSION = 'v1.9.0 (2026-04-08)';
+var APP_VERSION = 'v1.9.0 (2026-04-08)';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MODO TERMINAL — 'caja' (default) o 'satelite'
@@ -33,7 +33,7 @@ let MODO_TERMINAL = localStorage.getItem('pos_modo_terminal') || 'caja';
 
 // supaRPC viene de js/config.js
 
-const SK = {
+var SK = {
   token:'lic_token', email:'lic_email', negocio:'lic_negocio',
   plan:'lic_plan', vence:'lic_vence', nextCheck:'lic_next_check',
   activated:'lic_activated', deviceId:'lic_device_id', fallos:'lic_fallos'
@@ -44,7 +44,7 @@ const DEMO_KEYS = {
   'PRO-2025-YYYY':  { plan:'Pro',      vence:'2026-12-31' },
   'FULL-2025-ZZZZ': { plan:'Completo', vence:'2027-12-31' },
 };
-const USAR_DEMO = (SUPA_URL === 'https://XXXXXXXXXXXXXXXX.supabase.co');
+var USAR_DEMO = (SUPA_URL === 'https://XXXXXXXXXXXXXXXX.supabase.co');
 
 // Cookie helpers para device_id (sobrevive borrar caché en algunos casos)
 function cookieSet(name, val, days){
