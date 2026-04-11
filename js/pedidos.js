@@ -151,14 +151,19 @@ async function sateliteEnviarPedido(){
     }
   }
 
-  // ── Imprimir comanda en cocina ───────────────────────────────────────────
-  // Reutiliza imprimirComandaPreCobro() que ya existe:
-  //   - Filtra items con enviado:false
-  //   - Imprime con el formato de comanda existente (número de orden, mesa, tipo)
-  //   - Marca los items como enviado:true en memoria
-  // Si es pedido adicional, el encabezado de la comanda ya incluye el tipo
-  // ('adicional') que la función de impresión tomará de tipoPedido si lo pasamos
-  imprimirComandaPreCobro();
+  // ── Imprimir comanda en cocina (solo si hay impresora configurada) ────────
+  // En satelite sin impresora, no abrir ventana de impresion del navegador
+  var tieneImpresora = isAndroidAPK()
+    || localStorage.getItem('printerType_comanda')
+    || localStorage.getItem('printerType_ticket')
+    || localStorage.getItem('btps_mac');
+  if(tieneImpresora){
+    imprimirComandaPreCobro();
+  } else {
+    // Marcar items como enviados sin imprimir
+    cart.forEach(function(i){ i.enviado = true; });
+    console.log('[Satelite] Sin impresora — comanda no impresa, items marcados como enviados');
+  }
 
   // ── Guardar backup local en pendientes[] ─────────────────────────────────
   // Permite que el satélite funcione sin internet y que el panel de mesas
