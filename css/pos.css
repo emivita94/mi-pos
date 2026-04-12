@@ -1096,7 +1096,7 @@
 
   /* CATEGORY SHEET */
   /* ── CATEGORY OVERLAY ── */
-  .cat-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; align-items:flex-end; justify-content:center; }
+  .cat-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:500; align-items:flex-end; justify-content:center; }
   .cat-overlay.open { display:flex; }
   .cat-sheet {
     background:var(--bg-card);

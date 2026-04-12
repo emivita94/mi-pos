@@ -2,18 +2,45 @@
 
 // ── WAKE LOCK — mantener pantalla encendida ──────────────
 var _wakeLock = null;
+var _wakeLockVideo = null;
 
 async function solicitarWakeLock(){
-  if(!('wakeLock' in navigator)) return;
-  try {
-    _wakeLock = await navigator.wakeLock.request('screen');
-    _wakeLock.addEventListener('release', function(){ _wakeLock = null; });
-  } catch(e){ /* usuario denegó o no soportado */ }
+  // Método 1: Screen Wake Lock API (Chrome 84+, requiere HTTPS)
+  if('wakeLock' in navigator){
+    try {
+      _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', function(){ _wakeLock = null; });
+      console.log('[WakeLock] API nativa activada');
+      return;
+    } catch(e){ console.warn('[WakeLock] API nativa falló:', e.message); }
+  }
+  // Método 2: Fallback — video invisible en loop (funciona en HTTP y WebView)
+  if(!_wakeLockVideo){
+    try {
+      var v = document.createElement('video');
+      v.setAttribute('playsinline','');
+      v.setAttribute('muted','');
+      v.setAttribute('loop','');
+      v.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
+      // Video mínimo base64 (1 frame negro, 1 segundo, webm)
+      v.src = 'data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwH/////////FUmpZpkq17GDD0JATYCGQ2hyb21lV0WGQ2hyb21lFlSua7+uvdeBAXPFh4YJYmFzZUBIYXNzZWRfVjEAAAAAAACnAQAAAAAAABJUh4EBY3OBAaN/AACnAQAAAAAAABJUh4EBY3OBAaN/AAAAAAAAAAAAAAAA';
+      v.muted = true;
+      document.body.appendChild(v);
+      v.play().then(function(){ _wakeLockVideo = v; console.log('[WakeLock] Fallback video activado'); })
+        .catch(function(){ v.remove(); });
+    } catch(e){ /* no soportado */ }
+  }
+}
+
+function liberarWakeLock(){
+  if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock = null; }
+  if(_wakeLockVideo){ _wakeLockVideo.pause(); _wakeLockVideo.remove(); _wakeLockVideo = null; }
 }
 
 // Re-adquirir wake lock al volver a la app (se pierde al minimizar)
 document.addEventListener('visibilitychange', function(){
-  if(document.visibilityState === 'visible' && !_wakeLock) solicitarWakeLock();
+  if(document.visibilityState === 'visible') solicitarWakeLock();
+  else liberarWakeLock();
 });
 
 // ── FUNCIÓN CENTRAL DE INICIO ─────────────────────────────
