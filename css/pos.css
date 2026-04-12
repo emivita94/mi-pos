@@ -690,35 +690,90 @@
     background: var(--bg-dark); color: var(--muted);
   }
 
-  /* ── BOTONES DE ACCIÓN (rediseñados) ────────────────────────── */
+  /* ── BOTONES DE ACCIÓN (rediseñados con jerarquía clara) ───── */
   .recibo-acciones {
     padding: 0 16px 16px;
-    display: flex; flex-direction: column; gap: 10px;
+    display: flex; flex-direction: column; gap: 12px;
     flex-shrink: 0;
   }
   .recibo-btn {
-    border-radius: 12px; padding: 18px 14px;
     font-family: 'Barlow', sans-serif;
-    font-size: 17px; font-weight: 900;
-    letter-spacing: .5px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    transition: transform .1s, filter .15s;
+    font-weight: 900; letter-spacing: .5px;
+    cursor: pointer; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .1s, filter .15s, box-shadow .15s;
+    border: none;
   }
-  .recibo-btn:active { transform: scale(.98); filter: brightness(.9); }
-  .recibo-btn.primary {
-    background: var(--green); border: none; color: #fff;
-    box-shadow: 0 4px 16px rgba(76,175,80,.3);
+  .recibo-btn:active { transform: scale(.98); filter: brightness(.92); }
+
+  /* COMBO — botón grande primario (doble icono + subtítulo) */
+  .recibo-btn.btn-combo {
+    background: linear-gradient(135deg, var(--green) 0%, #388e3c 100%);
+    color: #fff; padding: 20px 18px;
+    gap: 16px;
+    box-shadow: 0 6px 22px rgba(76,175,80,.45), inset 0 1px 0 rgba(255,255,255,.15);
+    position: relative; overflow: hidden;
   }
-  .recibo-btn.primary-combo {
-    background: var(--green); border: none; color: #fff;
-    box-shadow: 0 4px 16px rgba(76,175,80,.3);
+  .recibo-btn.btn-combo::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #fff 0%, #ffcc80 100%);
+    opacity: .6;
   }
-  .recibo-btn.secondary-comanda {
+  .btn-combo-icons {
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn-combo-plus {
+    font-size: 22px; font-weight: 900;
+    color: rgba(255,255,255,.8);
+  }
+  .btn-combo-texts {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  }
+  .btn-combo-main {
+    font-size: 18px; font-weight: 900; line-height: 1.1;
+    letter-spacing: .3px;
+  }
+  .btn-combo-sub {
+    font-size: 11px; font-weight: 600;
+    color: rgba(255,255,255,.75);
+    letter-spacing: .4px; text-transform: uppercase;
+  }
+
+  /* Fila con los 2 botones solo (ticket / cocina) */
+  .recibo-btns-row {
+    display: flex; gap: 10px;
+  }
+  .recibo-btns-row .recibo-btn {
+    flex: 1; min-width: 0;
+    padding: 14px 10px; gap: 8px;
+    font-size: 13px;
+  }
+  .btn-ticket-solo {
+    background: rgba(76,175,80,.1);
+    border: 2px solid rgba(76,175,80,.45) !important;
+    color: var(--green);
+  }
+  .btn-ticket-solo:active { background: rgba(76,175,80,.18); }
+  .btn-comanda-solo {
     background: rgba(255,152,0,.1);
-    border: 2px solid var(--orange);
+    border: 2px solid rgba(255,152,0,.5) !important;
     color: var(--orange);
-    font-size: 15px; padding: 14px 12px;
   }
+  .btn-comanda-solo:active { background: rgba(255,152,0,.18); }
+
+  /* Cuando NO hay comandas (retail), el SOLO TICKET se vuelve
+     el botón primario grande */
+  .recibo-acciones.no-resto .btn-ticket-solo {
+    background: var(--green);
+    border: none !important;
+    color: #fff;
+    padding: 20px 18px;
+    font-size: 17px;
+    box-shadow: 0 6px 22px rgba(76,175,80,.45);
+  }
+  .recibo-acciones.no-resto .recibo-btns-row { gap: 0; }
+
   .recibo-skip {
     display: block; text-align: center;
     background: transparent; border: none;

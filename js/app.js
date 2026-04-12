@@ -902,12 +902,16 @@ function renderReciboResumen(data){
     elItems.textContent = totalQty + ' ítem' + (totalQty !== 1 ? 's' : '');
   }
 
-  // Mostrar/ocultar botones de comanda según config
+  // Mostrar/ocultar botones de comanda según config.
+  // Si NO hay comandas → marcar .recibo-acciones con clase "no-resto"
+  // para que CSS haga al SOLO TICKET el botón primario grande.
   var hayComandas = typeof comandasHabilitadas === 'function' && comandasHabilitadas();
   var btnSolo = document.getElementById('btnComandaRecibo');
   var btnCombo = document.getElementById('btnTicketComanda');
+  var acciones = document.querySelector('#scRecibo .recibo-acciones');
   if(btnSolo)  btnSolo.style.display  = hayComandas ? '' : 'none';
   if(btnCombo) btnCombo.style.display = hayComandas ? '' : 'none';
+  if(acciones) acciones.classList.toggle('no-resto', !hayComandas);
 
   // Iniciar countdown de auto-dismiss
   iniciarCountdownNuevaVenta(8);
