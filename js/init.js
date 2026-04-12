@@ -1,47 +1,93 @@
 // ── Init: arranque, iniciarApp, reporte ventas ──
 
 // ── WAKE LOCK — mantener pantalla encendida ──────────────
+// Usa Screen Wake Lock API (HTTPS) o fallback con video invisible (HTTP/WebView).
+// El fallback requiere interacción del usuario (autoplay policy), por eso se
+// activa en el primer toque en vez de al cargar la página.
 var _wakeLock = null;
 var _wakeLockVideo = null;
+var _wakeLockActivo = false;
 
 async function solicitarWakeLock(){
+  if(_wakeLockActivo) return;
+
   // Método 1: Screen Wake Lock API (Chrome 84+, requiere HTTPS)
   if('wakeLock' in navigator){
     try {
       _wakeLock = await navigator.wakeLock.request('screen');
-      _wakeLock.addEventListener('release', function(){ _wakeLock = null; });
+      _wakeLock.addEventListener('release', function(){
+        _wakeLock = null;
+        _wakeLockActivo = false;
+      });
+      _wakeLockActivo = true;
       console.log('[WakeLock] API nativa activada');
       return;
     } catch(e){ console.warn('[WakeLock] API nativa falló:', e.message); }
   }
-  // Método 2: Fallback — video invisible en loop (funciona en HTTP y WebView)
-  if(!_wakeLockVideo){
-    try {
-      var v = document.createElement('video');
-      v.setAttribute('playsinline','');
-      v.setAttribute('muted','');
-      v.setAttribute('loop','');
-      v.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
-      // Video mínimo base64 (1 frame negro, 1 segundo, webm)
-      v.src = 'data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwH/////////FUmpZpkq17GDD0JATYCGQ2hyb21lV0WGQ2hyb21lFlSua7+uvdeBAXPFh4YJYmFzZUBIYXNzZWRfVjEAAAAAAACnAQAAAAAAABJUh4EBY3OBAaN/AACnAQAAAAAAABJUh4EBY3OBAaN/AAAAAAAAAAAAAAAA';
-      v.muted = true;
-      document.body.appendChild(v);
-      v.play().then(function(){ _wakeLockVideo = v; console.log('[WakeLock] Fallback video activado'); })
-        .catch(function(){ v.remove(); });
-    } catch(e){ /* no soportado */ }
-  }
+
+  // Método 2: Fallback — video invisible en loop
+  _iniciarVideoWakeLock();
+}
+
+function _iniciarVideoWakeLock(){
+  if(_wakeLockVideo) return;
+  try {
+    var v = document.createElement('video');
+    v.setAttribute('playsinline','');
+    v.setAttribute('loop','');
+    v.muted = true;
+    v.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
+    // MP4 mínimo válido — 1 frame negro, ~0.1s, compatible con todos los browsers
+    v.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAA'
+      + 'NBtZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjY0MyA1YzY1NzA0IC'
+      + '0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudm'
+      + 'lkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MC'
+      + 'BhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peG'
+      + 'VkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZ'
+      + 'WFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9v'
+      + 'a2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2Vk'
+      + 'PTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0y'
+      + 'IGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIg'
+      + 'a2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29r'
+      + 'YWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02'
+      + 'OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAADaWWIhAAz//727L4FNf2f0JcRLMXa'
+      + 'SnA+AAAAMAAAMAAAHgAAAMTBAAAAMAAADABMAAAA0CAAAMABEAAAAxAAADAAADAAADAAADAAADAAADAAAAZG'
+      + 'tsAAAH0bW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAA';
+    document.body.appendChild(v);
+    var playPromise = v.play();
+    if(playPromise !== undefined){
+      playPromise.then(function(){
+        _wakeLockVideo = v;
+        _wakeLockActivo = true;
+        console.log('[WakeLock] Fallback video activado');
+      }).catch(function(e){
+        console.warn('[WakeLock] Video play bloqueado:', e.message);
+        v.remove();
+      });
+    }
+  } catch(e){ /* no soportado */ }
 }
 
 function liberarWakeLock(){
   if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock = null; }
   if(_wakeLockVideo){ _wakeLockVideo.pause(); _wakeLockVideo.remove(); _wakeLockVideo = null; }
+  _wakeLockActivo = false;
 }
 
-// Re-adquirir wake lock al volver a la app (se pierde al minimizar)
+// Re-adquirir wake lock al volver a la app
 document.addEventListener('visibilitychange', function(){
-  if(document.visibilityState === 'visible') solicitarWakeLock();
-  else liberarWakeLock();
+  if(document.visibilityState === 'visible' && !_wakeLockActivo) solicitarWakeLock();
 });
+
+// Activar en el PRIMER toque del usuario (necesario para autoplay policy)
+document.addEventListener('touchstart', function _wlTouch(){
+  if(!_wakeLockActivo) solicitarWakeLock();
+  document.removeEventListener('touchstart', _wlTouch);
+}, { once: true });
+document.addEventListener('click', function _wlClick(){
+  if(!_wakeLockActivo) solicitarWakeLock();
+  document.removeEventListener('click', _wlClick);
+}, { once: true });
 
 // ── FUNCIÓN CENTRAL DE INICIO ─────────────────────────────
 async function iniciarApp(){
