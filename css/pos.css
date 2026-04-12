@@ -1130,7 +1130,7 @@
     .search-bar { display:flex !important; }
     .fsearch { display:none !important; }
     #prodView .filter-bar { display:flex !important; }
-    #prodView { flex:1 1 0 !important; min-width:0 !important; }
+    #prodView { flex:1 1 0 !important; min-width:0 !important; min-height:0 !important; }
     .tablet-right { flex-shrink:0 !important; }
   }
   .cat-item.sel { color:var(--green); }

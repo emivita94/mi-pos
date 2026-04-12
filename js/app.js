@@ -469,7 +469,7 @@ function openCat(){
     const sel = curCat===nombre;
     const colorStyle = color ? 'color:'+color+';border-left-color:'+color+';' : '';
     const ic = color ? 'background:'+color+';' : '';
-    return '<div class="cat-item'+(sel?' sel':'')+'\" onclick="pickCat(this)" style="'+colorStyle+'">'
+    return '<div class="cat-item'+(sel?' sel':'')+'" onclick="pickCat(this)" style="'+colorStyle+'">'
       +'<div class="cat-item-ic" style="'+ic+'"></div>'
       +nombre
       +(sel?'<svg style="margin-left:auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>':'')
@@ -507,7 +507,7 @@ function renderP(list){
   const g=document.getElementById('pgrid');
   if(!g) return;
   if(!list.length){
-    g.innerHTML='<div style="grid-column:span 3;padding:40px;text-align:center;color:#555;font-size:14px;">Sin resultados</div>';
+    g.innerHTML='<div style="grid-column:1/-1;padding:40px;text-align:center;color:#999;font-size:14px;">Sin resultados</div>';
     return;
   }
   g.innerHTML = list.map(p => _tileProd(p)).join('');
@@ -539,7 +539,10 @@ function _filterPInternal(){
 
   // Productos normales — excluir inactivos e ítem libre
   // NO filtrar por cat=Descuentos ya que eso rompe productos mal categorizados
-  let l = (curCat==='Todos los artículos' ? PRODS : PRODS.filter(p=>p.cat===curCat))
+  // Normalización trim+lowercase para tolerar drift en datos legacy (espacios, mayúsculas)
+  const _normCat = function(s){ return (s||'').toString().trim().toLowerCase(); };
+  const _cur = _normCat(curCat);
+  let l = (curCat==='Todos los artículos' ? PRODS : PRODS.filter(p=>_normCat(p.cat)===_cur))
            .filter(p=>!p.itemLibre && p.activo!==false && p.activo!==0);
   if(q) l = l.filter(p=>p.name.toLowerCase().includes(q));
 

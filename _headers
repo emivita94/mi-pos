@@ -3,6 +3,7 @@
 # Permitir conexion a servidor local USB (mixed content exception para 127.0.0.1)
 /*
   Content-Security-Policy: connect-src 'self' https: http://127.0.0.1:9200 http://127.0.0.1:8080
+  Permissions-Policy: screen-wake-lock=(self)
 
 
 # Service Workers — CRÍTICO: deben ser application/javascript
