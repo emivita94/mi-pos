@@ -142,8 +142,22 @@ function loadGeneralConfigInputs(){
     chkCom.checked = !!hab;
     configData.comandasHabilitadas = !!hab;
   }
+  // Checkbox de sonidos — activo por defecto (mute === '0' o null)
+  const chkSnd = document.getElementById('cfgSonidos');
+  if(chkSnd){
+    chkSnd.checked = typeof sonidoMuteGet === 'function' ? !sonidoMuteGet() : true;
+  }
   // Cargar config precio mitad
   if(typeof loadCfgMitad === 'function') loadCfgMitad();
+}
+
+// Toggle de sonidos con feedback auditivo instantáneo
+function toggleSonidosConfig(){
+  var chk = document.getElementById('cfgSonidos');
+  if(!chk || typeof sonidoMuteSet !== 'function') return;
+  sonidoMuteSet(!chk.checked);
+  // Reproducir un tap al activar para confirmar que funciona
+  if(chk.checked && typeof sndTap === 'function') sndTap();
 }
 
 function presupuestosHabilitados(){

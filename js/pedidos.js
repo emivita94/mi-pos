@@ -376,8 +376,11 @@ async function cajaSyncPedidosSatelite(){
     if(satelites.length > 0 && typeof renderMesasScreen === 'function') renderMesasScreen();
 
     var diff = pendientes.length - antes;
-    if(diff > 0 && typeof toast === 'function')
-      toast(diff + ' pedido' + (diff > 1 ? 's' : '') + ' nuevo' + (diff > 1 ? 's' : '') + ' de mesa');
+    if(diff > 0){
+      if(typeof toast === 'function')
+        toast(diff + ' pedido' + (diff > 1 ? 's' : '') + ' nuevo' + (diff > 1 ? 's' : '') + ' de mesa');
+      if(typeof sndPedido === 'function') sndPedido();
+    }
 
     console.log('[CajaSync] Satelite pendientes:', satelites.length, '| Total:', pendientes.length);
   } catch(e){ console.warn('[CajaSync] Error:', e.message); }

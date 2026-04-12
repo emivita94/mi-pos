@@ -386,6 +386,18 @@
           </label>
         </div>
       </div>
+      <div class="general-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);">Sonidos</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Feedback auditivo al tocar productos, nuevos pedidos y cobros</div>
+          </div>
+          <label class="toggle-switch" style="flex-shrink:0;">
+            <input type="checkbox" id="cfgSonidos" onchange="toggleSonidosConfig()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
       <div class="general-field" style="border-bottom:none;">
         <div>
           <div style="font-size:14px;font-weight:600;color:var(--text);">Precio pizza por mitad</div>
@@ -1726,22 +1738,23 @@
   }
 })();
 </script>
-<script src="js/config.js?v=20260412101"></script>
-<script src="js/state.js?v=20260412101"></script>
-<script src="js/selectors.js?v=20260412101"></script>
-<script src="js/ui.js?v=20260412101"></script>
-<script src="js/ventas.js?v=20260412101"></script>
-<script src="js/cobro.js?v=20260412102"></script>
-<script src="js/pedidos.js?v=20260412101"></script>
-<script src="js/impresion.js?v=20260412101"></script>
-<script src="js/turno.js?v=20260412101"></script>
-<script src="js/productos.js?v=20260412101"></script>
-<script src="js/sync.js?v=20260412101"></script>
-<script src="js/licencia.js?v=20260412101"></script>
-<script src="js/mesas.js?v=20260412101"></script>
+<script src="js/config.js?v=20260412103"></script>
+<script src="js/state.js?v=20260412103"></script>
+<script src="js/selectors.js?v=20260412103"></script>
+<script src="js/sounds.js?v=20260412103"></script>
+<script src="js/ui.js?v=20260412103"></script>
+<script src="js/ventas.js?v=20260412103"></script>
+<script src="js/cobro.js?v=20260412103"></script>
+<script src="js/pedidos.js?v=20260412103"></script>
+<script src="js/impresion.js?v=20260412103"></script>
+<script src="js/turno.js?v=20260412103"></script>
+<script src="js/productos.js?v=20260412103"></script>
+<script src="js/sync.js?v=20260412103"></script>
+<script src="js/licencia.js?v=20260412103"></script>
+<script src="js/mesas.js?v=20260412103"></script>
 
-<script src="js/app.js?v=20260412101"></script>
-<script src="js/init.js?v=20260412101"></script>
+<script src="js/app.js?v=20260412103"></script>
+<script src="js/init.js?v=20260412103"></script>
 
 <script>
 if('serviceWorker' in navigator){

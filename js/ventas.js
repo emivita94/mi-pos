@@ -56,6 +56,7 @@ function addCart(id, tileEl){
     cart.push({lineId:Date.now()*1000+Math.floor(Math.random()*1000), ...p, qty:1, obs:'', enviado:false});
   }
   updUI(); updBtnGuardar(); toast('+'+p.name.substring(0,16));
+  if(typeof sndTap === 'function') sndTap();
   if(showTkt)renderTkt();
   if(tileEl) animAddToCart(tileEl, getProductColor(p));
 }

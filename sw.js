@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260412-v102';
+const CACHE = 'ampersand-pos-v20260412-sounds';
 
 const ASSETS = [
   '/',
@@ -11,6 +11,7 @@ const ASSETS = [
   '/js/config.js',
   '/js/state.js',
   '/js/selectors.js',
+  '/js/sounds.js',
   '/js/ui.js',
   '/js/ventas.js',
   '/js/cobro.js',
