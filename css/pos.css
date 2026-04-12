@@ -953,15 +953,16 @@
   .products-grid {
     display:grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 1fr;
     gap:3px; padding:4px 4px; overflow-y:auto; flex:1;
     background:var(--bg); align-content:start;
     min-height:0; /* evita colapso en flexbox */
-    will-change:contents; /* evita repaint parcial */
   }
   .ptile {
     aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
     text-align:center; padding:8px 6px; cursor:pointer; border-radius:0;
     transition:filter .1s,transform .1s; user-select:none;
+    position:relative; overflow:hidden; /* contiene el ripple de animAddToCart */
   }
   .ptile:active { filter:brightness(.78); transform:scale(.95); }
   .pname {

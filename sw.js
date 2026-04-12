@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260412-sounds';
+const CACHE = 'ampersand-pos-v20260412-gridfix';
 
 const ASSETS = [
   '/',

@@ -98,20 +98,24 @@ window.addEventListener('popstate', function(e) {
  * @param {string}      color  — Color de fondo del producto
  */
 function animAddToCart(tileEl, color) {
+  if (!tileEl || !tileEl.isConnected) return;
   const rect   = tileEl.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  // Ripple — usa tamaño relativo al tile, no sobredimensionado
   const ripple = document.createElement('div');
-  const sz     = Math.max(rect.width, rect.height) * 2;
+  const sz     = Math.max(rect.width, rect.height);
 
   ripple.style.cssText =
     'position:absolute;border-radius:50%;background:rgba(255,255,255,0.3);pointer-events:none;' +
     'transform:scale(0);animation:_ripple 0.45s ease-out forwards;' +
     'width:' + sz + 'px;height:' + sz + 'px;' +
-    'left:' + (rect.width / 2 - sz / 2) + 'px;' +
-    'top:'  + (rect.height / 2 - sz / 2) + 'px;';
+    'left:' + ((rect.width - sz) / 2) + 'px;' +
+    'top:'  + ((rect.height - sz) / 2) + 'px;';
 
-  tileEl.style.overflow = 'hidden';
+  // El .ptile ya tiene position:relative + overflow:hidden en CSS
   tileEl.appendChild(ripple);
-  setTimeout(() => ripple.remove(), 500);
+  setTimeout(() => { if (ripple.parentNode) ripple.remove(); }, 500);
 
   const badge = document.querySelector('.tbadge');
   if (!badge) return;
