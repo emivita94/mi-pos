@@ -464,6 +464,7 @@ function pickCat(el){
 }
 function openCat(){
   const sheet = document.getElementById('catSheetContent');
+  if(!sheet){ toast('ERROR: catSheetContent no existe'); return; }
   const todos = 'Todos los artículos';
   function catItem(nombre, color){
     const sel = curCat===nombre;
@@ -476,9 +477,20 @@ function openCat(){
       +'</div>';
   }
   let html = catItem(todos);
-  CATEGORIAS.forEach(c => { html += catItem(c.nombre, c.color||null); });
+  // DEBUG: mostrar cuántas categorías hay
+  var _numCats = (typeof CATEGORIAS !== 'undefined' && Array.isArray(CATEGORIAS)) ? CATEGORIAS.length : -1;
+  console.log('[openCat] CATEGORIAS.length =', _numCats, 'PRODS.length =', (typeof PRODS !== 'undefined' ? PRODS.length : -1));
+  if(_numCats === 0){
+    html += '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">No hay categorías cargadas. Verificá que tengas conexión o creá categorías en Configuración.</div>';
+  } else if(_numCats > 0){
+    CATEGORIAS.forEach(c => { html += catItem(c.nombre, c.color||null); });
+  } else {
+    html += '<div style="padding:20px;text-align:center;color:#e53935;font-size:13px;">ERROR: CATEGORIAS no definido</div>';
+  }
   sheet.innerHTML = html;
-  document.getElementById('catOv').classList.add('open');
+  var ov = document.getElementById('catOv');
+  if(!ov){ toast('ERROR: catOv no existe'); return; }
+  ov.classList.add('open');
 }
 
 function _getImgSrcSync(p){
@@ -539,10 +551,7 @@ function _filterPInternal(){
 
   // Productos normales — excluir inactivos e ítem libre
   // NO filtrar por cat=Descuentos ya que eso rompe productos mal categorizados
-  // Normalización trim+lowercase para tolerar drift en datos legacy (espacios, mayúsculas)
-  const _normCat = function(s){ return (s||'').toString().trim().toLowerCase(); };
-  const _cur = _normCat(curCat);
-  let l = (curCat==='Todos los artículos' ? PRODS : PRODS.filter(p=>_normCat(p.cat)===_cur))
+  let l = (curCat==='Todos los artículos' ? PRODS : PRODS.filter(p=>p.cat===curCat))
            .filter(p=>!p.itemLibre && p.activo!==false && p.activo!==0);
   if(q) l = l.filter(p=>p.name.toLowerCase().includes(q));
 
