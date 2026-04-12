@@ -1810,14 +1810,18 @@ async function supaLoadProductos(){
 }
 
 async function supaLoadCategorias(){
-  if(USAR_DEMO) return;
+  if(USAR_DEMO){ console.log('[supaLoadCategorias] Modo demo, skip'); return; }
   var email = localStorage.getItem(SK.email);
-  if(!email) return;
+  if(!email){ console.warn('[supaLoadCategorias] Sin email en localStorage (SK.email='+SK.email+')'); return; }
   try {
     var data = await supaGet('pos_categorias',
       'licencia_email=eq.'+encodeURIComponent(email)+'&order=nombre.asc&select=*'
     );
-    if(!data || !data.length) return;
+    console.log('[supaLoadCategorias] Supabase devolvió', (data||[]).length, 'categorías para email:', email);
+    if(!data || !data.length){
+      console.warn('[supaLoadCategorias] No hay categorías en Supabase para este email');
+      return;
+    }
     var newCats = data.map(function(c){ return { id:c.id, nombre:c.nombre, color:c.color||'#546e7a' }; });
     CATEGORIAS.length = 0;
     newCats.forEach(function(c){ CATEGORIAS.push(c); });

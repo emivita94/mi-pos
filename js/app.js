@@ -477,20 +477,47 @@ function openCat(){
       +'</div>';
   }
   let html = catItem(todos);
-  // DEBUG: mostrar cuántas categorías hay
   var _numCats = (typeof CATEGORIAS !== 'undefined' && Array.isArray(CATEGORIAS)) ? CATEGORIAS.length : -1;
-  console.log('[openCat] CATEGORIAS.length =', _numCats, 'PRODS.length =', (typeof PRODS !== 'undefined' ? PRODS.length : -1));
-  if(_numCats === 0){
-    html += '<div style="padding:20px;text-align:center;color:#999;font-size:13px;">No hay categorías cargadas. Verificá que tengas conexión o creá categorías en Configuración.</div>';
-  } else if(_numCats > 0){
+  var _email   = localStorage.getItem('lic_email') || '(no guardado)';
+  var _online  = navigator.onLine;
+  console.log('[openCat] CATEGORIAS.length =', _numCats, 'PRODS.length =', (typeof PRODS !== 'undefined' ? PRODS.length : -1), 'email =', _email, 'online =', _online);
+
+  if(_numCats > 0){
     CATEGORIAS.forEach(c => { html += catItem(c.nombre, c.color||null); });
   } else {
-    html += '<div style="padding:20px;text-align:center;color:#e53935;font-size:13px;">ERROR: CATEGORIAS no definido</div>';
+    // Estado vacío con diagnóstico y botón para recargar
+    html += '<div style="padding:24px 20px;text-align:center;">'
+      + '<div style="color:#999;font-size:13px;margin-bottom:8px;">No hay categorías cargadas.</div>'
+      + '<div style="color:#666;font-size:11px;margin-bottom:16px;line-height:1.6;">'
+      + 'Email: '+_email+'<br>'
+      + 'Conexión: '+(_online?'online':'offline')
+      + '</div>'
+      + '<button onclick="recargarCategoriasAhora()" style="background:var(--green);border:none;border-radius:6px;color:#fff;padding:12px 24px;font-family:\'Barlow\',sans-serif;font-size:13px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;">Recargar desde Supabase</button>'
+      + '</div>';
   }
   sheet.innerHTML = html;
   var ov = document.getElementById('catOv');
   if(!ov){ toast('ERROR: catOv no existe'); return; }
   ov.classList.add('open');
+}
+
+// Recarga manual de categorías — para diagnóstico y recovery
+async function recargarCategoriasAhora(){
+  toast('Recargando categorías...');
+  try {
+    if(typeof supaLoadCategorias === 'function'){
+      await supaLoadCategorias();
+    }
+    if(typeof supaLoadProductos === 'function'){
+      await supaLoadProductos();
+    }
+    toast('✓ '+CATEGORIAS.length+' categorías cargadas');
+    openCat(); // re-renderizar el sheet
+    filterP();
+  } catch(e){
+    toast('Error: '+e.message);
+    console.error('[recargarCategorias] Error:', e);
+  }
 }
 
 function _getImgSrcSync(p){
