@@ -39,14 +39,14 @@
 /*.html
   Cache-Control: no-cache, no-store, must-revalidate
 
-# JS modules — cache corto para que se actualicen rápido tras deploy
+# JS modules — sin cache HTTP para que siempre traiga la última versión
 /js/*.js
-  Cache-Control: public, max-age=3600, must-revalidate
+  Cache-Control: no-cache, no-store, must-revalidate
   Content-Type: application/javascript
 
-# CSS — cache corto
+# CSS — sin cache HTTP
 /css/*.css
-  Cache-Control: public, max-age=3600, must-revalidate
+  Cache-Control: no-cache, no-store, must-revalidate
   Content-Type: text/css
 
 # Íconos — pueden cachearse
