@@ -335,6 +335,8 @@ document.addEventListener('keydown', function (e) {
  * Calcula y muestra el vuelto.
  * @param {number} entregado — monto en efectivo recibido
  */
+var _vueltoVozTimer = null;
+var _vueltoUltimo = 0;
 function updVuelto(entregado) {
   const total  = calcTotal();
   const vuelto = entregado - total;
@@ -342,8 +344,15 @@ function updVuelto(entregado) {
   if (vuelto > 0) {
     document.getElementById('vueltoAmt').textContent = gs(vuelto);
     row.classList.add('show');
+    // Voz anuncia el vuelto con debounce — evita hablar con cada tap de billetes rápidos
+    if (typeof hablarVuelto === 'function' && vuelto !== _vueltoUltimo) {
+      _vueltoUltimo = vuelto;
+      clearTimeout(_vueltoVozTimer);
+      _vueltoVozTimer = setTimeout(function(){ hablarVuelto(vuelto); }, 500);
+    }
   } else {
     row.classList.remove('show');
+    _vueltoUltimo = 0;
   }
 }
 
@@ -869,10 +878,8 @@ async function confirmarPago() {
     _supabasePedidoId, // UUID del pedido satélite (null si fue venta directa)
   });
 
-  // Voz anuncia el total PRIMERO — antes de imprimir, como confirmación de audio
-  // (útil para cámaras de seguridad con audio)
-  if(typeof hablarCobro === 'function') hablarCobro(totalVenta);
-  // Sonido de cobro exitoso (acompaña a la voz)
+  // Sonido de cobro exitoso — la voz del total ya se dijo al entrar a scCobrar,
+  // y la voz del vuelto (si hay) también se dijo al calcularlo
   if(typeof sndCobro === 'function') sndCobro();
 
   mesaLimpiarAlPagar();

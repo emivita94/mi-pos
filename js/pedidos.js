@@ -35,6 +35,8 @@ function goCobrar(){
     // _goCobrarSetup() actualiza ctotal y los controles antes de navegar
     if(typeof _goCobrarSetup === 'function') _goCobrarSetup();
     goTo('scCobrar');
+    // Voz anuncia el total al ENTRAR a la pantalla de cobro
+    if(typeof hablarCobro === 'function') hablarCobro(calcTotal());
   }
 }
 

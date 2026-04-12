@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260412-vozselect';
+const CACHE = 'ampersand-pos-v20260412-vozflow';
 
 const ASSETS = [
   '/',

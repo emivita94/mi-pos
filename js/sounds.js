@@ -215,6 +215,24 @@ function hablarCobro(monto){
   } catch(e){}
 }
 
+// Anuncia el vuelto al cliente ("Vuelto 70.000 guaraníes")
+function hablarVuelto(monto){
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance();
+    u.text = 'Vuelto ' + _formatMontoVoz(monto);
+    u.lang = 'es-PY';
+    u.rate = 1.05;
+    u.pitch = 1;
+    u.volume = 1;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
 // Probar una voz específica con un monto ejemplo
 function probarVoz(nombreVoz){
   if(!('speechSynthesis' in window)) return;
