@@ -79,10 +79,9 @@ function _tonoSweep(ctx, freqStart, freqEnd, startTime, duration, volume, type){
   osc.stop(startTime + duration + 0.02);
 }
 
-// ── TAP — beep de POS comercial (grave, tecnológico) ──
-// Pitch bend descendente 700Hz → 350Hz en 70ms, square wave.
-// Reforzado con un sub-bass a 180Hz para darle cuerpo.
-// Suena como scanner de supermercado / POS profesional.
+// ── TAP — beep de POS comercial clásico ──
+// Un solo tono square wave a 520Hz por 60ms.
+// Simple, grave, limpio — como un scanner de supermercado.
 function sndTap(){
   if(sonidoMuteGet()) return;
   if(document.visibilityState === 'hidden') return;
@@ -90,10 +89,7 @@ function sndTap(){
   if(!ctx) return;
   try {
     var t = ctx.currentTime;
-    // Capa principal: square wave con pitch descendente (el "beep tecnológico")
-    _tonoSweep(ctx, 700, 350, t, 0.07, 0.28, 'square');
-    // Capa grave: sub-bass breve para darle peso/cuerpo
-    _tono(ctx, 180, t, 0.05, 0.22, 'sine');
+    _tono(ctx, 520, t, 0.06, 0.30, 'square');
   } catch(e){}
 }
 
