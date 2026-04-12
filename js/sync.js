@@ -163,6 +163,10 @@ async function dbLoadProductos(){
     curCat = 'Todos los artículos';
     const lbl2 = document.getElementById('catLbl');
     if(lbl2) lbl2.textContent = 'Todos los artículos';
+    // Fallback: si CATEGORIAS está vacío, derivarlas de los productos recién cargados
+    if(typeof CATEGORIAS !== 'undefined' && CATEGORIAS.length === 0 && typeof derivarCategoriasDeProductos === 'function'){
+      derivarCategoriasDeProductos();
+    }
   } catch(e){ console.warn('[DB] Productos no disponibles aún:', e.message); }
 }
 

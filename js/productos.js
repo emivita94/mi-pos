@@ -1744,6 +1744,11 @@ async function supaLoadProductos(){
     var maxId = Math.max.apply(null, PRODS.filter(function(p){return !p.itemLibre;}).map(function(p){return p.id;}).concat([0]));
     nextProdId = maxId + 1;
     console.log('[Supabase] Productos cargados:', PRODS.length - 1);
+
+    // Fallback: si no hay categorías cargadas, derivarlas de los productos
+    if(CATEGORIAS.length === 0){
+      derivarCategoriasDeProductos();
+    }
     curCat = 'Todos los artículos';
     var catLblEl = document.getElementById('catLbl');
     if(catLblEl) catLblEl.textContent = 'Todos los artículos';
@@ -1806,6 +1811,31 @@ async function supaLoadProductos(){
   } catch(e){
     if(!(e.message && e.message.includes('Failed to fetch')))
       console.warn('[Supabase] Productos:', e.message);
+  }
+}
+
+// Deriva CATEGORIAS a partir de los valores únicos de PRODS.cat.
+// Fallback para cuando pos_categorias está vacía en Supabase pero los
+// productos tienen el campo categoria poblado.
+function derivarCategoriasDeProductos(){
+  if(!PRODS || !PRODS.length) return;
+  var vistas = {};
+  var COLORES = ['#e53935','#fb8c00','#fdd835','#43a047','#00acc1','#1e88e5','#5e35b1','#d81b60','#546e7a','#6d4c41'];
+  var idx = 0;
+  PRODS.forEach(function(p){
+    if(p.itemLibre) return;
+    var nom = (p.cat || '').toString().trim();
+    if(!nom || nom === 'Sin categoría' || nom === 'Descuentos') return;
+    if(!vistas[nom]){
+      vistas[nom] = { id: 10000 + idx, nombre: nom, color: COLORES[idx % COLORES.length] };
+      idx++;
+    }
+  });
+  var derivadas = Object.values(vistas).sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
+  if(derivadas.length){
+    CATEGORIAS.length = 0;
+    derivadas.forEach(function(c){ CATEGORIAS.push(c); });
+    console.log('[Fallback] Categorías derivadas de productos:', CATEGORIAS.length, '→', CATEGORIAS.map(function(c){return c.nombre;}).join(', '));
   }
 }
 

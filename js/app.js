@@ -476,6 +476,10 @@ function openCat(){
       +(sel?'<svg style="margin-left:auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>':'')
       +'</div>';
   }
+  // Si no hay categorías pero hay productos, derivarlas automáticamente
+  if(typeof CATEGORIAS !== 'undefined' && CATEGORIAS.length === 0 && typeof PRODS !== 'undefined' && PRODS.length > 1){
+    if(typeof derivarCategoriasDeProductos === 'function') derivarCategoriasDeProductos();
+  }
   let html = catItem(todos);
   var _numCats = (typeof CATEGORIAS !== 'undefined' && Array.isArray(CATEGORIAS)) ? CATEGORIAS.length : -1;
   var _email   = localStorage.getItem('lic_email') || '(no guardado)';
