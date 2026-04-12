@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260412-reciboux';
+const CACHE = 'ampersand-pos-v20260412-noautoprint';
 
 const ASSETS = [
   '/',

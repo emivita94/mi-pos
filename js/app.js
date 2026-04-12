@@ -825,31 +825,19 @@ function generarRecibo(data){
   const esFactura = data.factura && data.factura.timbrado;
   const size      = getPaperSize('ticket');
 
-  // Generar HTML para reimprimir si es necesario
+  // Generar HTML y dejar el preview listo para cuando el usuario decida
   const htmlImpresion = esFactura
     ? generarHTMLFactura(data, size)
     : generarHTMLTicket(data, size);
   mostrarPreviewRecibo(htmlImpresion, size);
 
-  // ── IMPRIMIR DIRECTO ────────────────────────────────────
-  const p        = printers['ticket'];
-  const btpsTipo = localStorage.getItem('printerType_ticket');
-  const btpsMac  = localStorage.getItem('btps_mac');
-
-  // Imprimir ticket automáticamente
-  // BTPS tiene su propio flujo; el resto usa imprimirTicketConf que maneja
-  // BT Web (Vizzion), APK nativo, reconexión, PC/USB, etc.
-  if(btpsTipo === 'btps' || btpsMac){
-    BTPrinter.imprimirRecibo(data);
-  } else {
-    // imprimirTicketConf maneja todos los casos: BT Web, APK, needsReconnect, PC/USB
-    imprimirTicketConf(htmlImpresion, 'ticket');
-  }
+  // NO imprimir automáticamente aquí — el usuario elige en scRecibo
+  // (tocando IMPRIMIR TICKET, TICKET+COMANDA, SOLO COMANDA u Omitir)
 
   // Rellenar el resumen de la pantalla de recibo
   renderReciboResumen(data);
 
-  // Mostrar pantalla de opciones para comanda / reimprimir / nueva venta
+  // Mostrar pantalla de opciones
   goTo('scRecibo');
 }
 
