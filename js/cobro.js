@@ -893,8 +893,16 @@ async function confirmarPago() {
 
 // ── RECIBO ───────────────────────────────────────────────────
 
-/** Cierra el recibo, limpia la mesa y vuelve a ventas */
+/** Cierra el recibo, limpia la mesa y vuelve a ventas.
+ *  Si todavía hay items en el cart (preview sin cobrar), NO resetea
+ *  el tipo de pedido ni borra el delivery — el usuario sigue trabajando
+ *  en esa venta. */
 function finalizarRecibo() {
+  if (cart && cart.length > 0) {
+    // Solo imprimió el preview, la venta sigue activa — no tocar nada
+    goTo('scSale');
+    return;
+  }
   clearMesaActual();
   updMesaBtn();
   setTipoPedido('llevar');
