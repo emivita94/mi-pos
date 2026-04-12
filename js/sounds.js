@@ -80,8 +80,9 @@ function _tono(ctx, freq, startTime, duration, volume, type){
 }
 
 // ── TAP — beep de scanner de supermercado ──
-// Sine wave a 2000Hz por 45ms. Limpio, agudo, sin armónicos ásperos.
-// Es el sonido clásico del scanner de código de barras.
+// Doble capa sine para mayor percepción de volumen:
+// - 2000Hz principal (el "beep" limpio)
+// - 2800Hz armónico superior (le da brillo y lo hace sentir más alto)
 function sndTap(){
   if(sonidoMuteGet()) return;
   if(document.visibilityState === 'hidden') return;
@@ -89,7 +90,8 @@ function sndTap(){
   if(!ctx) return;
   try {
     var t = ctx.currentTime;
-    _tono(ctx, 2000, t, 0.04, 0.6, 'sine');
+    _tono(ctx, 2000, t, 0.05, 0.95, 'sine');
+    _tono(ctx, 2800, t, 0.05, 0.6,  'sine');
   } catch(e){}
 }
 
@@ -117,6 +119,69 @@ function sndCobro(){
     _tono(ctx, 659.25, t + 0.10,   0.14, 0.55, 'triangle'); // E5
     _tono(ctx, 783.99, t + 0.20,   0.14, 0.55, 'triangle'); // G5
     _tono(ctx, 1046.5, t + 0.30,   0.35, 0.60, 'triangle'); // C6 sostenida
+  } catch(e){}
+}
+
+// ── VOZ SINTÉTICA — anuncia el total al cobrar ──
+// Usa Web Speech API (speechSynthesis) — disponible en Chrome/Android.
+// Se configura con la mejor voz española disponible en el dispositivo.
+
+function vozMuteGet(){
+  return localStorage.getItem('pos_voz_mute') === '1';
+}
+function vozMuteSet(v){
+  localStorage.setItem('pos_voz_mute', v ? '1' : '0');
+}
+
+var _vozEs = null;
+function _findVozEs(){
+  if(_vozEs) return _vozEs;
+  if(!('speechSynthesis' in window)) return null;
+  var voces = window.speechSynthesis.getVoices();
+  if(!voces || !voces.length) return null;
+  // Preferir es-PY, es-AR, luego cualquier español
+  var preferidas = ['es-PY','es-AR','es-MX','es-US','es-ES','es-CL','es-CO'];
+  for(var i=0; i<preferidas.length; i++){
+    var v = voces.find(function(x){ return x.lang === preferidas[i]; });
+    if(v){ _vozEs = v; return v; }
+  }
+  var fallback = voces.find(function(x){ return x.lang && x.lang.indexOf('es') === 0; });
+  _vozEs = fallback;
+  return fallback;
+}
+
+// Carga las voces al estar disponibles (lazy)
+if('speechSynthesis' in window){
+  window.speechSynthesis.addEventListener('voiceschanged', _findVozEs);
+}
+
+// Formatea un número grande en palabras simples para el TTS.
+// Ej: 75000 → "setenta y cinco mil guaraníes"
+// Mantenemos esto simple: dejamos que el TTS lea el número, solo le
+// ponemos "guaraníes" al final. El TTS moderno lee números bien.
+function _formatMontoVoz(n){
+  n = parseInt(n) || 0;
+  return n.toLocaleString('es-PY') + ' guaraníes';
+}
+
+function hablarCobro(monto){
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  try {
+    // Cancelar utterance anterior si estaba hablando
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance();
+    u.text = 'Total ' + _formatMontoVoz(monto);
+    u.lang = 'es-PY';
+    u.rate = 1.1;
+    u.pitch = 1;
+    u.volume = 1;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    // Esperar un poco al sonido del cobro antes de hablar
+    setTimeout(function(){
+      try { window.speechSynthesis.speak(u); } catch(e){}
+    }, 350);
   } catch(e){}
 }
 

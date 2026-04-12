@@ -147,6 +147,11 @@ function loadGeneralConfigInputs(){
   if(chkSnd){
     chkSnd.checked = typeof sonidoMuteGet === 'function' ? !sonidoMuteGet() : true;
   }
+  // Checkbox de voz — activo por defecto
+  const chkVoz = document.getElementById('cfgVoz');
+  if(chkVoz){
+    chkVoz.checked = typeof vozMuteGet === 'function' ? !vozMuteGet() : true;
+  }
   // Cargar config precio mitad
   if(typeof loadCfgMitad === 'function') loadCfgMitad();
 }
@@ -158,6 +163,15 @@ function toggleSonidosConfig(){
   sonidoMuteSet(!chk.checked);
   // Reproducir un tap al activar para confirmar que funciona
   if(chk.checked && typeof sndTap === 'function') sndTap();
+}
+
+// Toggle de voz con prueba instantánea
+function toggleVozConfig(){
+  var chk = document.getElementById('cfgVoz');
+  if(!chk || typeof vozMuteSet !== 'function') return;
+  vozMuteSet(!chk.checked);
+  // Reproducir un ejemplo al activar
+  if(chk.checked && typeof hablarCobro === 'function') hablarCobro(50000);
 }
 
 function presupuestosHabilitados(){

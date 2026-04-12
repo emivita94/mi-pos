@@ -872,8 +872,9 @@ async function confirmarPago() {
   mesaLimpiarAlPagar();
   resetFactura();
 
-  // Sonido de cobro exitoso
+  // Sonido de cobro exitoso + voz anunciando el total
   if(typeof sndCobro === 'function') sndCobro();
+  if(typeof hablarCobro === 'function') hablarCobro(totalVenta);
 
   generarRecibo({
     items:       itemsVenta,
