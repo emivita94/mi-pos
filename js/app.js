@@ -1040,6 +1040,10 @@ async function confirmarCierre(){
       });
       return m;
     })(),
+    totalContado:  totalContado,
+    saldoEsperado: saldoEsperado,
+    diff:          totalContado > 0 ? totalContado - saldoEsperado : null,
+    cierreMetodos: JSON.parse(JSON.stringify(cierreMetodos)),
   };
   turnoBorrar();
   turnoData = { fechaApertura: null, efectivoInicial: 0, ventas: [], egresos: [], ingresos: [] };
@@ -1177,47 +1181,11 @@ var cierreData = null;
 
 function imprimirCierre(){
   // NO regenerar — turnoData ya fue borrado en confirmarCierre
-  if(!cierreTicketHTML){ toast('Sin datos de cierre'); return; }
+  if(!cierreTicketHTML && !cierreData){ toast('Sin datos de cierre'); return; }
 
-  // Si hay BTPS configurado, imprimir via servidor
-  var btpsMac  = localStorage.getItem('btps_mac');
-  var btpsTipo = localStorage.getItem('printerType_ticket');
-  if(btpsMac || btpsTipo === 'btps'){
-    var txt = buildCierreBTPS();
-    if(txt){
-      BTPrinter.print(txt).then(function(r){
-        if(r.status === 'ok') toast('✓ Cierre impreso');
-        else toast('Error: ' + (r.message||'Error al imprimir'));
-      });
-      return;
-    }
-  }
-
-  // Fallback — ventana del navegador
-  var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
-  if(isPWA){
-    var iframe = document.getElementById('printFrame');
-    if(!iframe){
-      iframe = document.createElement('iframe');
-      iframe.id = 'printFrame';
-      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-      document.body.appendChild(iframe);
-    }
-    var doc = iframe.contentWindow.document;
-    doc.open(); doc.write(cierreTicketHTML); doc.close();
-    setTimeout(function(){
-      try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }
-      catch(e){ window.print(); }
-    }, 600);
-  } else {
-    var w = window.open('','_blank','width=420,height=800');
-    if(!w){ alert('Permitir ventanas emergentes para imprimir'); return; }
-    w.document.open();
-    w.document.write(cierreTicketHTML);
-    w.document.close();
-    w.focus();
-    setTimeout(function(){ w.print(); w.close(); }, 500);
-  }
+  // Usar imprimirCierreTurno() de impresion.js que maneja todos los canales
+  // (BTPS, Bluetooth, Android APK, navegador/USB)
+  imprimirCierreTurno(cierreData, cierreTicketHTML);
 }
 
 function compartirWhatsApp(){

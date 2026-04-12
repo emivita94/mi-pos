@@ -1311,14 +1311,6 @@
       <button class="hbtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
     </div>
   </header>
-  <div class="action-bar">
-    <button class="btn-left">GUARDAR</button>
-    <button class="btn-cobrar"><span>COBRAR</span><span class="camount">₲0</span></button>
-  </div>
-  <div class="filter-bar">
-    <div class="fdrop" onclick="openCat()"><span id="catLbl">Todos los artículos</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
-    <button class="fsearch"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
-  </div>
   <div class="ccontent">
     <div class="clock-ring">
       <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -1395,11 +1387,13 @@
 
     <!-- Products view -->
     <div id="prodView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-      <!-- Desktop pill bar -->
-  <div class="filter-bar">
+      <!-- Filter bar (mobile: dropdown, tablet: hidden) -->
+      <div class="filter-bar">
         <div class="fdrop" onclick="openCat()"><span id="catLbl">Todos los artículos</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
         <button class="fsearch" onclick="toggleSearch()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
       </div>
+      <!-- Category pill bar (tablet 700px+) -->
+      <div class="cat-pill-bar" id="catPillBar"></div>
       <div class="search-bar" id="sbar"><input class="sinput" id="sinput" placeholder="Buscar producto..." oninput="filterP()"></div>
 <div class="products-grid" id="pgrid"></div>
     </div>
@@ -1716,6 +1710,24 @@
 
 <div class="toast" id="toast"></div>
 
+<script>
+// Detección de navegador desactualizado (ES5 puro — debe funcionar en cualquier Chrome)
+(function(){
+  var m = navigator.userAgent.match(/Chrome\/(\d+)/);
+  var v = m ? parseInt(m[1],10) : 0;
+  if(v > 0 && v < 80){
+    document.body.innerHTML =
+      '<div style="padding:40px 24px;text-align:center;font-family:sans-serif;color:#fff;background:#2e2e2e;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
+      '<div style="width:64px;height:64px;border-radius:16px;background:#c62828;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:28px;">⚠</div>' +
+      '<h2 style="margin:0 0 12px;font-size:20px;">Navegador desactualizado</h2>' +
+      '<p style="margin:0 0 8px;color:#aaa;font-size:14px;line-height:1.5;max-width:320px;">Tu versión de Chrome (v' + v + ') es muy antigua para esta aplicación.</p>' +
+      '<p style="margin:0 0 24px;color:#aaa;font-size:14px;line-height:1.5;max-width:320px;">Actualizá <b>Google Chrome</b> o <b>Android System WebView</b> desde Play Store para continuar.</p>' +
+      '<p style="margin:0;color:#666;font-size:11px;">Versión mínima requerida: Chrome 80+</p>' +
+      '</div>';
+    throw new Error('Chrome ' + v + ' no soportado — se requiere 80+');
+  }
+})();
+</script>
 <script src="js/config.js"></script>
 <script src="js/state.js"></script>
 <script src="js/selectors.js"></script>
@@ -1748,25 +1760,79 @@ if('serviceWorker' in navigator){
 
 // ── PWA INSTALL PROMPT ──────────────────────────────────
 var _deferredInstallPrompt = null;
+var _pwaInstallDiagnosed = false;
+
 window.addEventListener('beforeinstallprompt', function(e){
   e.preventDefault();
   _deferredInstallPrompt = e;
-  // Mostrar botón de instalar en el header
   var btn = document.getElementById('btnInstalarApp');
   if(btn) btn.style.display = 'inline-flex';
   console.log('[PWA] Install prompt disponible');
 });
 
 function instalarApp(){
-  if(!_deferredInstallPrompt) return;
-  _deferredInstallPrompt.prompt();
-  _deferredInstallPrompt.userChoice.then(function(result){
-    console.log('[PWA] Usuario eligio:', result.outcome);
-    _deferredInstallPrompt = null;
-    var btn = document.getElementById('btnInstalarApp');
-    if(btn) btn.style.display = 'none';
-  });
+  // Si tenemos el prompt nativo, usarlo
+  if(_deferredInstallPrompt){
+    _deferredInstallPrompt.prompt();
+    _deferredInstallPrompt.userChoice.then(function(result){
+      console.log('[PWA] Usuario eligio:', result.outcome);
+      _deferredInstallPrompt = null;
+      var btn = document.getElementById('btnInstalarApp');
+      if(btn) btn.style.display = 'none';
+    });
+    return;
+  }
+  // Fallback: instrucciones manuales para navegadores que no disparan beforeinstallprompt
+  _mostrarInstruccionesInstalar();
 }
+
+function _mostrarInstruccionesInstalar(){
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var msg = isIOS
+    ? 'Para instalar la app:\n\n1. Tocá el botón Compartir (↑) en Safari\n2. Seleccioná "Agregar a pantalla de inicio"\n3. Tocá "Agregar"'
+    : 'Para instalar la app:\n\n1. Abrí esta página en Google Chrome\n2. Tocá el menú (⋮) arriba a la derecha\n3. Seleccioná "Instalar app" o "Agregar a pantalla de inicio"\n\nSi no aparece esa opción, tu navegador puede no soportar instalación de apps web.';
+  alert(msg);
+}
+
+// Diagnóstico: si pasaron 5s sin beforeinstallprompt, detectar por qué
+setTimeout(function(){
+  if(_deferredInstallPrompt || _pwaInstallDiagnosed) return;
+  _pwaInstallDiagnosed = true;
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.matchMedia('(display-mode: fullscreen)').matches
+    || window.navigator.standalone === true;
+  var isWebView = typeof window.AndroidPrint !== 'undefined'
+    || /; wv\)/.test(navigator.userAgent)
+    || /WebView/.test(navigator.userAgent);
+  var chromeMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+  var chromeVer = chromeMatch ? parseInt(chromeMatch[1],10) : 0;
+  var isChrome = chromeVer > 0 && !/EdgA?\//.test(navigator.userAgent);
+  var isHTTPS = location.protocol === 'https:';
+
+  if(isStandalone){
+    console.log('[PWA] Ya instalada como app standalone');
+  } else if(isWebView){
+    console.log('[PWA] Corriendo dentro de WebView/APK — beforeinstallprompt no se dispara en WebView');
+    // Mostrar botón que lleva a instrucciones manuales
+    var btn = document.getElementById('btnInstalarApp');
+    if(btn) btn.style.display = 'inline-flex';
+  } else if(!isHTTPS){
+    console.warn('[PWA] No HTTPS — install prompt requiere HTTPS');
+  } else if(!isChrome){
+    console.warn('[PWA] Navegador no es Chrome — install prompt solo funciona en Chrome/Edge/Samsung Internet');
+    var btn2 = document.getElementById('btnInstalarApp');
+    if(btn2) btn2.style.display = 'inline-flex';
+  } else if(chromeVer < 68){
+    console.warn('[PWA] Chrome ' + chromeVer + ' muy viejo para install prompt (requiere 68+)');
+    var btn3 = document.getElementById('btnInstalarApp');
+    if(btn3) btn3.style.display = 'inline-flex';
+  } else {
+    console.log('[PWA] Chrome ' + chromeVer + ' debería soportar install, verificar manifest/SW en DevTools > Application');
+    // Podría ser que Chrome no lo ofrece aún (heurística) — mostrar botón de todas formas
+    var btn4 = document.getElementById('btnInstalarApp');
+    if(btn4) btn4.style.display = 'inline-flex';
+  }
+}, 5000);
 
 window.addEventListener('appinstalled', function(){
   console.log('[PWA] App instalada');

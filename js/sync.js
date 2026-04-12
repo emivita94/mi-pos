@@ -281,14 +281,61 @@ async function dbQueueSync(tabla, operacion, datos){
 }
 
 // ── SINCRONIZACIÓN CON SUPABASE ───────────────────────────
-let syncEnProceso = false;
+var syncEnProceso = false;
+var _syncStartTime = 0;
+var _SYNC_TIMEOUT  = 45000; // 45 segundos — si sync supera esto, se fuerza reset del flag
+
+/** Verifica si syncEnProceso está trabado y lo resetea si pasaron más de 45s */
+function _syncCheckStuck(){
+  if(syncEnProceso && _syncStartTime > 0){
+    var elapsed = Date.now() - _syncStartTime;
+    if(elapsed > _SYNC_TIMEOUT){
+      console.warn('[Sync] Sync trabado por ' + Math.round(elapsed/1000) + 's — forzando reset');
+      syncEnProceso = false;
+      _syncStartTime = 0;
+    }
+  }
+}
+
+/** Determina si un error es de red/timeout (reintentable) vs error de API (no reintentar) */
+function _esErrorReintentar(err){
+  if(!err) return false;
+  // TypeError = error de red (Failed to fetch, NetworkError)
+  if(err.name === 'TypeError') return true;
+  // AbortError = timeout del AbortController
+  if(err.name === 'AbortError') return true;
+  // Mensajes conocidos de error de red
+  if(err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('ERR_INTERNET') || err.message.includes('aborted'))) return true;
+  return false;
+}
+
+/** Ejecuta fn() con retry exponencial para errores de red/timeout. No reintenta errores HTTP. */
+async function _conReintento(fn){
+  var delays = [5000, 15000, 45000]; // 5s, 15s, 45s
+  var intentos = 0;
+  while(true){
+    try {
+      return await fn();
+    } catch(err){
+      if(_esErrorReintentar(err) && intentos < delays.length){
+        console.log('[Sync] Error de red/timeout, reintento ' + (intentos+1) + '/' + delays.length + ' en ' + (delays[intentos]/1000) + 's...');
+        await new Promise(function(r){ setTimeout(r, delays[intentos]); });
+        intentos++;
+      } else {
+        throw err; // error de API o agotados los reintentos
+      }
+    }
+  }
+}
 
 async function syncConSupabase(){
+  _syncCheckStuck();
   if(syncEnProceso || !navigator.onLine) return;
   if(typeof SUPA_URL === 'undefined' || SUPA_URL.includes('XXXX')) return;
   if(!db){ console.warn('[Sync] Sin BD local, omitiendo sync'); return; }
 
   syncEnProceso = true;
+  _syncStartTime = Date.now();
   try {
     const pendientes = await db.sync_queue
       .where('sincronizado').equals(0)
@@ -308,13 +355,13 @@ async function syncConSupabase(){
         let supaId = null;
 
         if(item.operacion === 'delete'){
-          await supaFetch('DELETE', tabla, null, { id: 'eq.'+datos.id });
+          await _conReintento(function(){ return supaFetch('DELETE', tabla, null, { id: 'eq.'+datos.id }); });
         } else if(item.operacion === 'update'){
           const { id: itemId, ...datosUpdate } = datos;
-          await supaFetch('PATCH', tabla, datosUpdate, { id: 'eq.'+itemId });
+          await _conReintento(function(){ return supaFetch('PATCH', tabla, datosUpdate, { id: 'eq.'+itemId }); });
         } else {
           // insert — usar return=representation para obtener el ID asignado por Supabase
-          const res = await supaFetch('POST', tabla, datos, null, 'return=representation');
+          const res = await _conReintento(function(){ return supaFetch('POST', tabla, datos, null, 'return=representation'); });
           try {
             const inserted = await res.clone().json();
             if(inserted && inserted[0]) supaId = inserted[0].id;
@@ -381,6 +428,7 @@ async function syncConSupabase(){
     console.warn('[Sync] Error general:', e.message);
   }
   syncEnProceso = false;
+  _syncStartTime = 0;
 }
 
 async function supaFetch(method, tabla, body, params, prefer){
@@ -394,6 +442,7 @@ async function supaFetch(method, tabla, body, params, prefer){
     headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': prefer || 'return=minimal' }),
   };
   if(body) opts.body = JSON.stringify(body);
+  opts.signal = supaAbortSignal();
   const res = await fetch(url, opts);
   if(!res.ok) throw new Error(await res.text());
   return res;
@@ -424,10 +473,11 @@ window.addEventListener('online', () => {
     }).catch(()=>{ toast('📶 Conexión restaurada'); });
   }
   setTimeout(async () => {
+    _syncCheckStuck(); // forzar reset si sync anterior quedó trabada
     await syncConSupabase();
     await syncVentasPendientes();
     updSyncBadge();
-  }, 2000);
+  }, 3000);
 });
 
 window.addEventListener('offline', () => {

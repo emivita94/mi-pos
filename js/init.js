@@ -104,8 +104,9 @@ async function iniciarApp(){
       const terminal = localStorage.getItem('pos_terminal');
       const sucursal = localStorage.getItem('pos_sucursal');
           if(email && terminal){
-        // Buscar por terminal (licencia_email puede ser null en registros viejos)
+        // Buscar por terminal + email para aislar por tenant
         const query = 'estado=eq.abierto'
+          + '&licencia_email=eq.' + encodeURIComponent(email)
           + '&terminal=eq.' + encodeURIComponent(terminal)
           + '&order=fecha_apertura.desc&limit=1'
           + '&select=id,terminal,fecha_apertura,efectivo_inicial';

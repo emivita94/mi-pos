@@ -16,11 +16,21 @@ function supaHeaders(extra) {
 
 // ── Helpers de fetch para Supabase REST API ──
 
+var SUPA_FETCH_TIMEOUT = 30000; // 30 segundos
+
+/** Crea un AbortSignal con timeout */
+function supaAbortSignal() {
+  var ctrl = new AbortController();
+  setTimeout(function(){ ctrl.abort(); }, SUPA_FETCH_TIMEOUT);
+  return ctrl.signal;
+}
+
 // GET: supaGet('pos_productos', 'activo=eq.true&order=nombre.asc')
 async function supaGet(tabla, query) {
   var url = SUPA_URL + '/rest/v1/' + tabla + (query ? '?' + query : '');
   var r = await fetch(url, {
-    headers: supaHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' })
+    headers: supaHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
+    signal: supaAbortSignal()
   });
   if (!r.ok) {
     var txt = await r.text().catch(function(){ return ''; });
@@ -41,7 +51,8 @@ async function supaPost(tabla, data, conflictCol, minimal) {
   var r = await fetch(url, {
     method: 'POST',
     headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': prefer }),
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    signal: supaAbortSignal()
   });
   if (minimal) { if (!r.ok) throw new Error('HTTP ' + r.status); return; }
   var txt = await r.text();
@@ -54,7 +65,8 @@ async function supaPatch(tabla, filtro, data, minimal) {
   var r = await fetch(SUPA_URL + '/rest/v1/' + tabla + '?' + filtro, {
     method: 'PATCH',
     headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=' + (minimal ? 'minimal' : 'representation') }),
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    signal: supaAbortSignal()
   });
   if (minimal) { if (!r.ok) throw new Error('HTTP ' + r.status); return; }
   var txt = await r.text();
@@ -66,7 +78,8 @@ async function supaPatch(tabla, filtro, data, minimal) {
 async function supaDelete(tabla, filtro) {
   var r = await fetch(SUPA_URL + '/rest/v1/' + tabla + '?' + filtro, {
     method: 'DELETE',
-    headers: supaHeaders({ 'Prefer': 'return=minimal' })
+    headers: supaHeaders({ 'Prefer': 'return=minimal' }),
+    signal: supaAbortSignal()
   });
   if (!r.ok) {
     var txt = await r.text().catch(function(){ return ''; });
@@ -80,7 +93,8 @@ async function supaRPC(fn, params) {
   var r = await fetch(url, {
     method: 'POST',
     headers: supaHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
-    body: JSON.stringify(params)
+    body: JSON.stringify(params),
+    signal: supaAbortSignal()
   });
   var txt = await r.text();
   if (!r.ok) throw new Error('RPC ' + fn + ' HTTP ' + r.status + ': ' + txt.substring(0, 200));

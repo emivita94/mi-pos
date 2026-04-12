@@ -376,9 +376,9 @@
   .turno-btn-cierre:active { background:#b71c1c; }
 
   /* Modal egreso */
-  .egreso-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:300; align-items:flex-end; }
+  .egreso-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:300; align-items:flex-end; justify-content:center; }
   .egreso-modal.open { display:flex; }
-  .egreso-sheet { background:var(--bg-card); width:100%; border-radius:16px 16px 0 0; padding:20px; animation:su .25s ease; }
+  .egreso-sheet { background:var(--bg-card); width:100%; max-width:520px; border-radius:16px 16px 0 0; padding:20px; animation:su .25s ease; }
   .egreso-title { font-size:17px; font-weight:700; margin-bottom:16px; color:var(--text); }
 
   /* ── CATEGORIAS ── */
@@ -534,9 +534,9 @@
   .art-save-btn:active { background: var(--green-btn); }
 
   /* Precio variable en ventas */
-  .precio-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:400; align-items:flex-end; }
+  .precio-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:400; align-items:flex-end; justify-content:center; }
   .precio-modal-overlay.open { display:flex; }
-  .precio-modal { background:var(--bg-card); width:100%; border-radius:16px 16px 0 0; padding:20px; animation:su .25s ease; }
+  .precio-modal { background:var(--bg-card); width:100%; max-width:520px; border-radius:16px 16px 0 0; padding:20px; animation:su .25s ease; }
   .precio-modal-title { font-size:16px; font-weight:700; margin-bottom:4px; color:var(--text); }
   .libre-desc-input {
     width:100%; background:transparent; border:none;
@@ -1079,10 +1079,10 @@
 
   /* NUMPAD */
   .np-overlay {
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; align-items:flex-end;
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; align-items:flex-end; justify-content:center;
   }
   .np-overlay.open { display:flex; }
-  .np-sheet { background:var(--bg-card); width:100%; border-radius:16px 16px 0 0; padding:16px; animation:su .25s ease; }
+  .np-sheet { background:var(--bg-card); width:100%; max-width:520px; border-radius:16px 16px 0 0; padding:16px; animation:su .25s ease; }
   .np-lbl { font-size:13px; color:var(--label); margin-bottom:4px; }
   .np-disp { font-size:28px; font-weight:700; color:var(--text); margin-bottom:14px; border-bottom:1.5px solid var(--border2); padding-bottom:8px; }
   .np-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
@@ -1125,8 +1125,34 @@
   .cat-item-ic { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:background .15s; }
   .cat-item.sel .cat-item-ic { background:var(--green); }
 
-  /* Desktop: pill bar */
+  /* ── CATEGORY PILL BAR (tablet 700px+) ── */
+  .cat-pill-bar {
+    display: none; /* hidden on mobile */
+    gap: 6px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+  .cat-pill-bar::-webkit-scrollbar { display: none; }
+  .cat-pill {
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: 20px; color: var(--muted);
+    font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 600;
+    padding: 6px 14px; cursor: pointer; white-space: nowrap;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .cat-pill:active { background: rgba(255,255,255,.06); }
+  .cat-pill.sel {
+    background: rgba(76,175,80,.15); border-color: var(--green); color: var(--green);
+  }
+
+  /* Desktop/tablet: pill bar + search always visible, category dropdown hidden */
   @media(min-width:700px){
+    .cat-pill-bar { display: flex !important; }
+    #prodView .filter-bar { display: none !important; }
     .search-bar { display:flex !important; }
     .fsearch { display:none !important; }
     #prodView { flex:1 1 0 !important; min-width:0 !important; }
@@ -1179,7 +1205,7 @@
 
   /* SCREEN: GUARDAR TICKET */
   #scGuardar { background: var(--bg); }
-  .guard-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; gap: 0; }
+  .guard-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; gap: 0; overflow: hidden; min-height: 0; }
   .guard-nro-block {
     display: flex; align-items: center; justify-content: space-between;
     border-bottom: 1.5px solid var(--border2); padding-bottom: 10px; margin-bottom: 28px;
@@ -1499,7 +1525,18 @@
     /* El panel de ticket móvil se oculta en tablet */
     #tpanel { display: none !important; }
 
-    /* Detalle, guardar, cobrar, etc. igual que móvil */
+    /* ── Screens secundarios centrados en tablet ── */
+    #scGuardar, #scDetalle, #scCobrar, #scDividir,
+    #scRecibo, #scPendientes, #scShift, #scPreviewCierre {
+      left: 50%;
+      right: auto;
+      width: 100%;
+      max-width: 520px;
+      transform: translateX(-50%);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0,0,0,.2), 4px 0 24px rgba(0,0,0,.2);
+    }
   }
 
   /* ── TABLET RIGHT PANEL (siempre en DOM, oculto en móvil) ── */

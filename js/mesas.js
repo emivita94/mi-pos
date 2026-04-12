@@ -378,7 +378,7 @@ async function guardarSalon(salonId){
   try{
     if(salonId){
       // Solo editar nombre y color
-      await supaPatch('pos_salones', 'id=eq.'+salonId,
+      await supaPatch('pos_salones', 'id=eq.'+salonId+'&licencia_id=eq.'+licId,
         {nombre, color:mesaColorSel}, true);
     } else {
       // Crear salón y obtener su id
@@ -415,7 +415,8 @@ async function guardarSalon(salonId){
 async function eliminarSalon(id){
   if(!confirm('¿Borrar este salón y todas sus mesas?')) return;
   try{
-    await supaDelete('pos_salones', 'id=eq.'+id);
+    var _licId = parseInt(localStorage.getItem('ali'))||null;
+    await supaDelete('pos_salones', 'id=eq.'+id+(_licId ? '&licencia_id=eq.'+_licId : ''));
     await mesasCargar();
     if(mesaSalonSel===id) mesaSalonSel = (mesasSalones[0] && mesasSalones[0].id)||null;
     toast('✓ Salón eliminado');

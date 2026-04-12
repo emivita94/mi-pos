@@ -598,6 +598,187 @@ function generarHTMLComanda(data, size){
   return '<html><head><style>'+getCSSTermico(size)+'</style></head><body>'+lineas+'</body></html>';
 }
 
+// ── CIERRE DE TURNO (HTML térmico) ──────────────────────────
+// data = { fechaApertura, efInicial, totalVentas, totalEgresos, totalIngresos,
+//          cantVentas, metodos:{MET:{total,ops}}, egresos:[{desc,monto}],
+//          totalContado, saldoEsperado, diff, cierreMetodos:{MET:{esperado,contado}} }
+function generarHTMLCierreTurno(data, size){
+  size = size || '58';
+  var neg  = configData.negocio   || 'MI NEGOCIO';
+  var ruc  = configData.ruc       || '';
+  var dir  = configData.direccion || '';
+  var terminal = configData.terminal || 'CAJA1';
+
+  var pad2 = function(n){ return String(n).padStart(2,'0'); };
+  var fmtDT = function(d){
+    if(!d) return '-';
+    d = d instanceof Date ? d : new Date(d);
+    return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());
+  };
+  var ahora = new Date();
+  var saldoCaja = (data.efInicial||0) + (data.totalVentas||0) + (data.totalIngresos||0) - (data.totalEgresos||0);
+
+  var lineas = '';
+
+  // Cabecera
+  lineas += '<p class="c" style="font-size:14px;font-weight:900;letter-spacing:.5px;">'+neg+'</p>';
+  if(ruc) lineas += '<p class="c s">RUC: '+ruc+'</p>';
+  if(dir) lineas += '<p class="c s">'+dir+'</p>';
+  lineas += '<p class="hr"></p>';
+  lineas += '<p class="c b l">CIERRE DE CAJA</p>';
+  lineas += '<p class="hr"></p>';
+
+  // Datos del turno
+  lineas += '<p class="row s"><span class="l1">Terminal:</span><span class="l2">'+terminal+'</span></p>';
+  lineas += '<p class="row s"><span class="l1">Apertura:</span><span class="l2">'+fmtDT(data.fechaApertura)+'</span></p>';
+  lineas += '<p class="row s"><span class="l1">Cierre:</span><span class="l2">'+fmtDT(ahora)+'</span></p>';
+  lineas += '<p class="hr"></p>';
+
+  // Resumen
+  lineas += '<p class="b">RESUMEN</p>';
+  lineas += '<p class="hr"></p>';
+  lineas += '<p class="row s"><span class="l1">Efectivo inicial</span><span class="l2">'+gn(data.efInicial)+'</span></p>';
+  lineas += '<p class="row s"><span class="l1">Total ventas ('+data.cantVentas+')</span><span class="l2">'+gn(data.totalVentas)+'</span></p>';
+  if(data.totalEgresos > 0)
+    lineas += '<p class="row s"><span class="l1">Total egresos</span><span class="l2">-'+gn(data.totalEgresos)+'</span></p>';
+  if(data.totalIngresos > 0)
+    lineas += '<p class="row s"><span class="l1">Total ingresos</span><span class="l2">+'+gn(data.totalIngresos)+'</span></p>';
+  lineas += '<p class="row b"><span class="l1">SALDO EN CAJA</span><span class="l2">'+gn(saldoCaja)+'</span></p>';
+  lineas += '<p class="hr"></p>';
+
+  // Formas de pago
+  lineas += '<p class="b">FORMAS DE PAGO</p>';
+  lineas += '<p class="hr"></p>';
+  if(data.metodos){
+    Object.entries(data.metodos).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(e){
+      lineas += '<p class="row s"><span class="l1">'+e[0]+' ('+e[1].ops+')</span><span class="l2">'+gn(e[1].total)+'</span></p>';
+    });
+  }
+  lineas += '<p class="row s b"><span class="l1">TOTAL</span><span class="l2">'+gn(data.totalVentas)+'</span></p>';
+  lineas += '<p class="hr"></p>';
+
+  // Egresos detalle
+  if(data.egresos && data.egresos.length > 0){
+    lineas += '<p class="b">EGRESOS</p>';
+    lineas += '<p class="hr"></p>';
+    data.egresos.forEach(function(e){
+      lineas += '<p class="row s"><span class="l1">'+e.desc+'</span><span class="l2">-'+gn(e.monto)+'</span></p>';
+    });
+    lineas += '<p class="hr"></p>';
+  }
+
+  // Conteo de valores (si el cajero contó)
+  if(data.totalContado > 0 && data.cierreMetodos){
+    lineas += '<p class="b">CONTEO DE VALORES</p>';
+    lineas += '<p class="hr"></p>';
+    Object.entries(data.cierreMetodos).forEach(function(e){
+      var m = e[0], d = e[1];
+      if(d.contado > 0){
+        var dif = d.contado - d.esperado;
+        var difStr = dif === 0 ? ' OK' : dif > 0 ? ' +'+gn(dif) : ' -'+gn(Math.abs(dif));
+        lineas += '<p class="row s"><span class="l1">'+m+'</span><span class="l2">'+gn(d.contado)+'</span></p>';
+        lineas += '<p class="s" style="padding-left:8px;">Esperado: '+gn(d.esperado)+'  '+difStr+'</p>';
+      }
+    });
+    if(data.diff !== null && data.diff !== undefined){
+      if(data.diff === 0) lineas += '<p class="c b">CUADRE EXACTO</p>';
+      else if(data.diff > 0) lineas += '<p class="c b">SOBRANTE: +'+gn(data.diff)+'</p>';
+      else lineas += '<p class="c b">FALTANTE: -'+gn(Math.abs(data.diff))+'</p>';
+    }
+    lineas += '<p class="hr"></p>';
+  }
+
+  // Rendicion
+  lineas += '<p class="b">RENDICION DEL CAJERO</p>';
+  lineas += '<p class="hr"></p>';
+  lineas += '<p class="row s"><span class="l1">Saldo esperado:</span><span class="l2">'+gn(saldoCaja)+'</span></p>';
+  if(data.totalContado > 0){
+    lineas += '<p class="row s"><span class="l1">Total contado:</span><span class="l2">'+gn(data.totalContado)+'</span></p>';
+    var diferencia = data.totalContado - saldoCaja;
+    if(diferencia === 0) lineas += '<p class="c b">*** CUADRE EXACTO ***</p>';
+    else if(diferencia > 0) lineas += '<p class="row s b"><span class="l1">SOBRANTE:</span><span class="l2">+'+gn(diferencia)+'</span></p>';
+    else lineas += '<p class="row s b"><span class="l1">FALTANTE:</span><span class="l2">-'+gn(Math.abs(diferencia))+'</span></p>';
+  } else {
+    lineas += '<p class="row s"><span class="l1">Total contado:</span><span class="l2">(sin conteo)</span></p>';
+  }
+  lineas += '<p class="hr"></p>';
+
+  // Firma
+  lineas += '<p class="s">OBS:</p>';
+  lineas += '<p class="hr"></p>';
+  lineas += '<p style="margin:20px 0 0;">&nbsp;</p>';
+  lineas += '<p style="margin:0;border-top:1px solid #000;">&nbsp;</p>';
+  lineas += '<p class="c s">Firma - Aclaracion - CI</p>';
+  lineas += '<p class="hr"></p>';
+  lineas += '<p class="c s">*** FIN CIERRE ***</p>';
+  lineas += '<p style="margin:0;line-height:1.8;">&nbsp;</p>';
+  lineas += '<p style="margin:0;line-height:1.8;">&nbsp;</p>';
+  lineas += '<p style="margin:0;line-height:1.8;">&nbsp;</p>';
+
+  return '<html><head><style>'+getCSSTermico(size)+'</style></head><body>'+lineas+'</body></html>';
+}
+
+// ── IMPRIMIR CIERRE DE TURNO (despacho a todos los canales) ─
+function imprimirCierreTurno(data, html){
+  if(!html && !data){ toast('Sin datos de cierre'); return; }
+  var size = getPaperSize('ticket');
+
+  // Generar HTML si no se pasó ya construido
+  if(!html && data) html = generarHTMLCierreTurno(data, size);
+
+  // 1) BT Print Server
+  var btpsTipo = localStorage.getItem('printerType_ticket');
+  var btpsMac  = localStorage.getItem('btps_mac');
+  if(btpsTipo === 'btps' || btpsMac){
+    if(data){
+      var cols = size === '58' ? 32 : 42;
+      var txt = BTPrinter.buildCierreTurno(data, cols);
+      if(txt){
+        BTPrinter.print(txt).then(function(r){
+          if(r.status === 'ok') toast('Cierre impreso');
+          else toast('Error: '+(r.message||'Error al imprimir'));
+        });
+        return;
+      }
+    }
+    // Si no se pudo construir BTPS, seguir al fallback HTML
+  }
+
+  // 2) Android APK nativo
+  if(isAndroidAPK() && typeof window.AndroidPrint !== 'undefined'){
+    imprimirAndroidNativo(html, size);
+    return;
+  }
+
+  // 3) Bluetooth directo
+  var p = printers['ticket'];
+  if(p && p.type === 'bt' && p.device){
+    imprimirBluetooth(p.device, html, size);
+    return;
+  }
+
+  // 4) Navegador / PC / USB
+  var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if(isPWA){
+    var iframe = document.getElementById('printFrame');
+    if(!iframe){
+      iframe = document.createElement('iframe');
+      iframe.id = 'printFrame';
+      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+      document.body.appendChild(iframe);
+    }
+    var doc = iframe.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(function(){
+      try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }
+      catch(e){ window.print(); }
+    }, 600);
+  } else {
+    var widthPx = size === '58' ? '200px' : '280px';
+    abrirDialogoImpresion(html, widthPx);
+  }
+}
+
 // ── IMPRIMIR RECIBO (ticket o factura según si tiene timbrado) ──
 function imprimirTicketActual(){
   if(!cart || cart.length === 0){ toast('El ticket está vacío'); return; }
@@ -2492,6 +2673,129 @@ var BTPrinter = {
 
     toast('Error al imprimir, intenta de nuevo');
     return false;
+  },
+
+  buildCierreTurno(data, cols) {
+    if (!data) return null;
+    if (!cols) cols = 32;
+    var sep  = '='.repeat(cols);
+    var sep2 = '-'.repeat(cols);
+    var n    = '\n';
+    var cfg  = (typeof configData !== 'undefined') ? configData : {};
+
+    function pad(l, r) {
+      var sp = Math.max(1, cols - String(l).length - String(r).length);
+      return String(l) + ' '.repeat(sp) + String(r);
+    }
+    function ctr(t) {
+      t = String(t);
+      var sp = Math.max(0, Math.floor((cols - t.length) / 2));
+      return ' '.repeat(sp) + t;
+    }
+    function gs2(v) { return Math.round(v||0).toLocaleString('es-PY'); }
+    var pd2 = function(x){ return String(x).padStart(2,'0'); };
+    var fmtDT = function(d){
+      if(!d) return '-';
+      d = d instanceof Date ? d : new Date(d);
+      return pd2(d.getDate())+'/'+pd2(d.getMonth()+1)+'/'+d.getFullYear()+' '+pd2(d.getHours())+':'+pd2(d.getMinutes());
+    };
+    var ahora = new Date();
+    var saldoCaja = (data.efInicial||0) + (data.totalVentas||0) + (data.totalIngresos||0) - (data.totalEgresos||0);
+
+    var txt = '';
+
+    // Cabecera
+    if (cfg.negocio) txt += '[CENTER][BOLD]' + cfg.negocio.toUpperCase() + '[/BOLD][/CENTER]' + n;
+    if (cfg.ruc)     txt += '[CENTER]RUC: ' + cfg.ruc + '[/CENTER]' + n;
+    if (cfg.direccion) txt += '[CENTER]' + cfg.direccion + '[/CENTER]' + n;
+    txt += sep + n;
+    txt += '[CENTER][BOLD]CIERRE DE CAJA[/BOLD][/CENTER]' + n;
+    txt += sep + n;
+
+    // Datos turno
+    txt += pad('Terminal:', cfg.terminal || 'CAJA1') + n;
+    txt += pad('Apertura:', fmtDT(data.fechaApertura)) + n;
+    txt += pad('Cierre:', fmtDT(ahora)) + n;
+    txt += sep2 + n;
+
+    // Resumen
+    txt += '[BOLD]RESUMEN[/BOLD]' + n;
+    txt += sep2 + n;
+    txt += pad('Ef. Inicial:', gs2(data.efInicial)) + n;
+    txt += pad('Total ventas (' + data.cantVentas + '):', gs2(data.totalVentas)) + n;
+    if (data.totalEgresos > 0) txt += pad('Total egresos:', gs2(data.totalEgresos)) + n;
+    if (data.totalIngresos > 0) txt += pad('Total ingresos:', gs2(data.totalIngresos)) + n;
+    txt += '[BOLD]' + pad('SALDO EN CAJA:', gs2(saldoCaja)) + '[/BOLD]' + n;
+    txt += sep2 + n;
+
+    // Formas de pago
+    txt += '[BOLD]FORMAS DE PAGO[/BOLD]' + n;
+    txt += sep2 + n;
+    if (data.metodos) {
+      Object.entries(data.metodos).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(e){
+        txt += pad(e[0] + ' (' + e[1].ops + 'op):', gs2(e[1].total)) + n;
+      });
+    }
+    txt += '[BOLD]' + pad('TOTAL:', gs2(data.totalVentas)) + '[/BOLD]' + n;
+    txt += sep2 + n;
+
+    // Egresos
+    if (data.egresos && data.egresos.length) {
+      txt += '[BOLD]EGRESOS[/BOLD]' + n;
+      txt += sep2 + n;
+      data.egresos.forEach(function(e){
+        txt += pad('  ' + String(e.desc||'').substring(0, cols-14), gs2(e.monto)) + n;
+      });
+      txt += sep2 + n;
+    }
+
+    // Conteo
+    if (data.totalContado > 0 && data.cierreMetodos) {
+      txt += '[BOLD]CONTEO DE VALORES[/BOLD]' + n;
+      txt += sep2 + n;
+      Object.entries(data.cierreMetodos).forEach(function(e){
+        var m = e[0], d = e[1];
+        if (d.contado > 0) {
+          var dif = d.contado - d.esperado;
+          var difStr = dif === 0 ? ' OK' : dif > 0 ? ' +' + gs2(dif) : ' -' + gs2(Math.abs(dif));
+          txt += pad(m + ':', gs2(d.contado)) + n;
+          txt += '  Esperado: ' + gs2(d.esperado) + '  ' + difStr + n;
+        }
+      });
+      if (data.diff !== null && data.diff !== undefined) {
+        var dLabel = data.diff === 0 ? 'CUADRE EXACTO' : data.diff > 0 ? 'SOBRANTE: +' + gs2(data.diff) : 'FALTANTE: -' + gs2(Math.abs(data.diff));
+        txt += '[CENTER][BOLD]' + dLabel + '[/BOLD][/CENTER]' + n;
+      }
+      txt += sep2 + n;
+    }
+
+    // Rendicion
+    txt += '[BOLD]RENDICION DEL CAJERO[/BOLD]' + n;
+    txt += sep2 + n;
+    txt += pad('Saldo esperado:', gs2(saldoCaja)) + n;
+    if (data.totalContado > 0) {
+      txt += pad('Total contado:', gs2(data.totalContado)) + n;
+      var diferencia = data.totalContado - saldoCaja;
+      if (diferencia === 0) txt += '[CENTER][BOLD]*** CUADRE EXACTO ***[/BOLD][/CENTER]' + n;
+      else if (diferencia > 0) txt += '[BOLD]' + pad('SOBRANTE:', '+' + gs2(diferencia)) + '[/BOLD]' + n;
+      else txt += '[BOLD]' + pad('FALTANTE:', '-' + gs2(Math.abs(diferencia))) + '[/BOLD]' + n;
+    } else {
+      txt += pad('Total contado:', '(sin conteo)') + n;
+    }
+    txt += sep2 + n;
+
+    // Firma
+    txt += 'OBS: ' + n;
+    txt += sep2 + n;
+    txt += n;
+    txt += n;
+    txt += '[CENTER]______________________________[/CENTER]' + n;
+    txt += '[CENTER]Firma / Aclaracion / CI[/CENTER]' + n;
+    txt += sep + n;
+    txt += '[CENTER]*** FIN CIERRE ***[/CENTER]' + n;
+    txt += '[FEED:4]' + n;
+    txt += '[CUT]';
+    return txt;
   },
 
   _showError(msg) {

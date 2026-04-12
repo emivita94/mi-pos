@@ -274,7 +274,8 @@ function imprimirComandaActual(){
 function marcarPedidoSateliteCobrado(pedidoId){
   if(!pedidoId || USAR_DEMO) return;
   // PATCH en Supabase
-  supaPatch('pos_pedidos', 'id=eq.' + encodeURIComponent(pedidoId),
+  var _email = localStorage.getItem('lic_email');
+  supaPatch('pos_pedidos', 'id=eq.' + encodeURIComponent(pedidoId) + '&licencia_email=eq.' + encodeURIComponent(_email || ''),
     { estado: 'cobrado', updated_at: new Date().toISOString() }, true)
   .then(function(){
     console.log('[CajaSync] Pedido satélite marcado cobrado:', pedidoId);
