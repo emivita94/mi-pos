@@ -869,12 +869,14 @@ async function confirmarPago() {
     _supabasePedidoId, // UUID del pedido satélite (null si fue venta directa)
   });
 
+  // Voz anuncia el total PRIMERO — antes de imprimir, como confirmación de audio
+  // (útil para cámaras de seguridad con audio)
+  if(typeof hablarCobro === 'function') hablarCobro(totalVenta);
+  // Sonido de cobro exitoso (acompaña a la voz)
+  if(typeof sndCobro === 'function') sndCobro();
+
   mesaLimpiarAlPagar();
   resetFactura();
-
-  // Sonido de cobro exitoso + voz anunciando el total
-  if(typeof sndCobro === 'function') sndCobro();
-  if(typeof hablarCobro === 'function') hablarCobro(totalVenta);
 
   generarRecibo({
     items:       itemsVenta,

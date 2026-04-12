@@ -133,26 +133,59 @@ function vozMuteSet(v){
   localStorage.setItem('pos_voz_mute', v ? '1' : '0');
 }
 
-var _vozEs = null;
-function _findVozEs(){
-  if(_vozEs) return _vozEs;
-  if(!('speechSynthesis' in window)) return null;
-  var voces = window.speechSynthesis.getVoices();
-  if(!voces || !voces.length) return null;
-  // Preferir es-PY, es-AR, luego cualquier español
-  var preferidas = ['es-PY','es-AR','es-MX','es-US','es-ES','es-CL','es-CO'];
-  for(var i=0; i<preferidas.length; i++){
-    var v = voces.find(function(x){ return x.lang === preferidas[i]; });
-    if(v){ _vozEs = v; return v; }
-  }
-  var fallback = voces.find(function(x){ return x.lang && x.lang.indexOf('es') === 0; });
-  _vozEs = fallback;
-  return fallback;
+// Devuelve todas las voces en español disponibles en el dispositivo
+function listarVocesEs(){
+  if(!('speechSynthesis' in window)) return [];
+  var voces = window.speechSynthesis.getVoices() || [];
+  return voces.filter(function(v){ return v.lang && v.lang.indexOf('es') === 0; });
 }
 
-// Carga las voces al estar disponibles (lazy)
+// Heurística para detectar género por nombre conocido
+var _NOMBRES_FEM = ['sabina','helena','paulina','monica','lucia','isabel','marisol','esperanza','laura','sofia','carmen','angelica','conchita','soledad'];
+var _NOMBRES_MASC = ['raul','pablo','jorge','diego','carlos','miguel','javier','enrique','antonio','roberto','ricardo','juan','fernando','alberto'];
+
+function generoVoz(v){
+  if(!v || !v.name) return 'neutral';
+  var n = v.name.toLowerCase();
+  if(n.indexOf('female') >= 0 || n.indexOf('mujer') >= 0 || n.indexOf('femenin') >= 0) return 'female';
+  if(n.indexOf('male') >= 0 || n.indexOf('hombre') >= 0 || n.indexOf('masculin') >= 0) return 'male';
+  for(var i=0; i<_NOMBRES_FEM.length; i++) if(n.indexOf(_NOMBRES_FEM[i]) >= 0) return 'female';
+  for(var i=0; i<_NOMBRES_MASC.length; i++) if(n.indexOf(_NOMBRES_MASC[i]) >= 0) return 'male';
+  return 'neutral';
+}
+
+// Selección de voz guardada en localStorage
+function vozSeleccionadaGet(){
+  return localStorage.getItem('pos_voz_name') || '';
+}
+function vozSeleccionadaSet(nombre){
+  localStorage.setItem('pos_voz_name', nombre || '');
+}
+
+function _findVozEs(){
+  if(!('speechSynthesis' in window)) return null;
+  var voces = listarVocesEs();
+  if(!voces.length) return null;
+  // Si el usuario seleccionó una voz específica, usarla
+  var guardada = vozSeleccionadaGet();
+  if(guardada){
+    var v = voces.find(function(x){ return x.name === guardada; });
+    if(v) return v;
+  }
+  // Si no, preferencias por región
+  var preferidas = ['es-PY','es-AR','es-MX','es-US','es-ES','es-CL','es-CO'];
+  for(var i=0; i<preferidas.length; i++){
+    var v2 = voces.find(function(x){ return x.lang === preferidas[i]; });
+    if(v2) return v2;
+  }
+  return voces[0];
+}
+
+// Forzar carga inicial de voces (algunos browsers las cargan lazy)
 if('speechSynthesis' in window){
-  window.speechSynthesis.addEventListener('voiceschanged', _findVozEs);
+  window.speechSynthesis.addEventListener('voiceschanged', function(){});
+  // Trigger inicial
+  try { window.speechSynthesis.getVoices(); } catch(e){}
 }
 
 // Formatea un número grande en palabras simples para el TTS.
@@ -173,15 +206,31 @@ function hablarCobro(monto){
     var u = new SpeechSynthesisUtterance();
     u.text = 'Total ' + _formatMontoVoz(monto);
     u.lang = 'es-PY';
-    u.rate = 1.1;
+    u.rate = 1.05;
     u.pitch = 1;
     u.volume = 1;
     var v = _findVozEs();
     if(v) u.voice = v;
-    // Esperar un poco al sonido del cobro antes de hablar
-    setTimeout(function(){
-      try { window.speechSynthesis.speak(u); } catch(e){}
-    }, 350);
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+// Probar una voz específica con un monto ejemplo
+function probarVoz(nombreVoz){
+  if(!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance();
+    u.text = 'Total 75.000 guaraníes';
+    u.lang = 'es-PY';
+    u.rate = 1.05;
+    u.volume = 1;
+    if(nombreVoz){
+      var voces = listarVocesEs();
+      var v = voces.find(function(x){ return x.name === nombreVoz; });
+      if(v) u.voice = v;
+    }
+    window.speechSynthesis.speak(u);
   } catch(e){}
 }
 

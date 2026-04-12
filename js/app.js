@@ -151,6 +151,15 @@ function loadGeneralConfigInputs(){
   const chkVoz = document.getElementById('cfgVoz');
   if(chkVoz){
     chkVoz.checked = typeof vozMuteGet === 'function' ? !vozMuteGet() : true;
+    // Mostrar/ocultar selector de voz según estado del toggle
+    var selVoz = document.getElementById('cfgVozSelector');
+    if(selVoz) selVoz.style.display = chkVoz.checked ? 'block' : 'none';
+    // Poblar selector si está activo. Las voces pueden tardar en cargar,
+    // hacer un retry después de un momento si viene vacío
+    if(chkVoz.checked && typeof poblarSelectorVoces === 'function'){
+      poblarSelectorVoces('all');
+      setTimeout(function(){ poblarSelectorVoces(_vozFiltroActual || 'all'); }, 500);
+    }
   }
   // Cargar config precio mitad
   if(typeof loadCfgMitad === 'function') loadCfgMitad();
@@ -170,8 +179,68 @@ function toggleVozConfig(){
   var chk = document.getElementById('cfgVoz');
   if(!chk || typeof vozMuteSet !== 'function') return;
   vozMuteSet(!chk.checked);
-  // Reproducir un ejemplo al activar
-  if(chk.checked && typeof hablarCobro === 'function') hablarCobro(50000);
+  // Mostrar/ocultar selector de voz
+  var sel = document.getElementById('cfgVozSelector');
+  if(sel) sel.style.display = chk.checked ? 'block' : 'none';
+  if(chk.checked){
+    poblarSelectorVoces('all');
+    if(typeof hablarCobro === 'function') hablarCobro(50000);
+  }
+}
+
+// Estado del filtro actual (todas/masc/fem)
+var _vozFiltroActual = 'all';
+
+// Pobla el <select> con las voces disponibles, filtradas por género
+function poblarSelectorVoces(filtro){
+  _vozFiltroActual = filtro || 'all';
+  var sel = document.getElementById('cfgVozSelect');
+  if(!sel || typeof listarVocesEs !== 'function') return;
+  var voces = listarVocesEs();
+  if(!voces.length){
+    sel.innerHTML = '<option value="">No hay voces españolas instaladas</option>';
+    return;
+  }
+  var filtradas = voces;
+  if(filtro === 'male' || filtro === 'female'){
+    filtradas = voces.filter(function(v){ return generoVoz(v) === filtro; });
+    if(!filtradas.length) filtradas = voces; // fallback
+  }
+  var actual = typeof vozSeleccionadaGet === 'function' ? vozSeleccionadaGet() : '';
+  var html = '';
+  filtradas.forEach(function(v){
+    var g = generoVoz(v);
+    var icon = g === 'female' ? '♀ ' : (g === 'male' ? '♂ ' : '• ');
+    var selAttr = v.name === actual ? ' selected' : '';
+    html += '<option value="'+v.name+'"'+selAttr+'>'+icon+v.name+' ('+v.lang+')</option>';
+  });
+  sel.innerHTML = html;
+
+  // Resaltar botón de filtro activo
+  ['btnVozAll','btnVozM','btnVozF'].forEach(function(id){
+    var b = document.getElementById(id);
+    if(b){ b.style.background = 'var(--bg-dark)'; b.style.borderColor = 'var(--border)'; b.style.color = 'var(--text)'; }
+  });
+  var btnMap = { all:'btnVozAll', male:'btnVozM', female:'btnVozF' };
+  var btnActivo = document.getElementById(btnMap[_vozFiltroActual]);
+  if(btnActivo){ btnActivo.style.background = 'rgba(76,175,80,.15)'; btnActivo.style.borderColor = 'var(--green)'; btnActivo.style.color = 'var(--green)'; }
+}
+
+function filtrarVocesPorGenero(genero){
+  poblarSelectorVoces(genero);
+}
+
+function seleccionarVozDesdeConfig(){
+  var sel = document.getElementById('cfgVozSelect');
+  if(!sel || typeof vozSeleccionadaSet !== 'function') return;
+  vozSeleccionadaSet(sel.value);
+  if(typeof probarVoz === 'function') probarVoz(sel.value);
+}
+
+function probarVozSeleccionada(){
+  var sel = document.getElementById('cfgVozSelect');
+  if(!sel || typeof probarVoz !== 'function') return;
+  probarVoz(sel.value);
 }
 
 function presupuestosHabilitados(){

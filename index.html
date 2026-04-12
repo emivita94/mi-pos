@@ -402,12 +402,32 @@
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div>
             <div style="font-size:14px;font-weight:600;color:var(--text);">Voz al cobrar</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Anuncia el monto total con voz sintética al confirmar un cobro</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Anuncia el monto total con voz sintética al confirmar un cobro. Útil para cámaras de seguridad con audio.</div>
           </div>
           <label class="toggle-switch" style="flex-shrink:0;">
             <input type="checkbox" id="cfgVoz" onchange="toggleVozConfig()">
             <span class="toggle-slider"></span>
           </label>
+        </div>
+        <!-- Selector de voz -->
+        <div id="cfgVozSelector" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700;flex:1;">Voz seleccionada</span>
+            <button onclick="filtrarVocesPorGenero('all')" id="btnVozAll"
+              style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">TODAS</button>
+            <button onclick="filtrarVocesPorGenero('male')" id="btnVozM"
+              style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">♂ MASC</button>
+            <button onclick="filtrarVocesPorGenero('female')" id="btnVozF"
+              style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">♀ FEM</button>
+          </div>
+          <select id="cfgVozSelect" onchange="seleccionarVozDesdeConfig()"
+            style="width:100%;background:var(--bg-dark);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;padding:10px;outline:none;">
+            <option value="">Cargando voces...</option>
+          </select>
+          <button onclick="probarVozSeleccionada()"
+            style="margin-top:10px;width:100%;background:transparent;border:1.5px solid var(--green);border-radius:6px;color:var(--green);font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:10px;cursor:pointer;">
+            ▶ Probar voz
+          </button>
         </div>
       </div>
       <div class="general-field" style="border-bottom:none;">
@@ -1753,10 +1773,10 @@
 <script src="js/config.js?v=20260412103"></script>
 <script src="js/state.js?v=20260412103"></script>
 <script src="js/selectors.js?v=20260412103"></script>
-<script src="js/sounds.js?v=20260412108"></script>
+<script src="js/sounds.js?v=20260412109"></script>
 <script src="js/ui.js?v=20260412104"></script>
 <script src="js/ventas.js?v=20260412103"></script>
-<script src="js/cobro.js?v=20260412108"></script>
+<script src="js/cobro.js?v=20260412109"></script>
 <script src="js/pedidos.js?v=20260412103"></script>
 <script src="js/impresion.js?v=20260412103"></script>
 <script src="js/turno.js?v=20260412103"></script>
@@ -1765,7 +1785,7 @@
 <script src="js/licencia.js?v=20260412103"></script>
 <script src="js/mesas.js?v=20260412103"></script>
 
-<script src="js/app.js?v=20260412108"></script>
+<script src="js/app.js?v=20260412109"></script>
 <script src="js/init.js?v=20260412103"></script>
 
 <script>
