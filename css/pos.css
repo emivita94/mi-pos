@@ -1125,10 +1125,11 @@
   .cat-item-ic { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:background .15s; }
   .cat-item.sel .cat-item-ic { background:var(--green); }
 
-  /* Desktop/tablet: search always visible, dropdown filter stays */
+  /* Desktop/tablet: search + filter always visible */
   @media(min-width:700px){
     .search-bar { display:flex !important; }
     .fsearch { display:none !important; }
+    #prodView .filter-bar { display:flex !important; }
     #prodView { flex:1 1 0 !important; min-width:0 !important; }
     .tablet-right { flex-shrink:0 !important; }
   }
