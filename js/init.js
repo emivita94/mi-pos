@@ -301,7 +301,8 @@ async function recuperarConfigTerminalSupabase(){
 
 function aplicarConfigTerminal(cfg){
   if(!cfg) return false;
-  if(cfg.negocio)     { localStorage.setItem(SK.negocio,cfg.negocio);          if(typeof configData!=='undefined') configData.negocio=cfg.negocio; }
+  // negocio: solo aplicar como fallback si el usuario no tiene valor propio en 'an'
+  if(cfg.negocio)     { localStorage.setItem(SK.negocio,cfg.negocio);          if(typeof configData!=='undefined' && !localStorage.getItem('an')) configData.negocio=cfg.negocio; }
   if(cfg.terminal)    { localStorage.setItem('pos_terminal',cfg.terminal);      if(typeof configData!=='undefined') configData.terminal=cfg.terminal; }
   if(cfg.sucursal)    { localStorage.setItem('pos_sucursal',cfg.sucursal);      if(typeof configData!=='undefined') configData.sucursal=cfg.sucursal; }
   if(cfg.deposito)    { localStorage.setItem('pos_deposito',cfg.deposito);      if(typeof configData!=='undefined') configData.deposito=cfg.deposito; }

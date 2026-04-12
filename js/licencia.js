@@ -323,10 +323,12 @@ async function licInit(){
               localStorage.setItem(SK.fallos,    '0');
               localStorage.setItem(SK.nextCheck, String(Date.now() + 24*60*60*1000));
 
-              // Restaurar datos del negocio
+              // Restaurar datos del negocio — solo como fallback si el usuario no tiene valor propio
               if(activ.nombre_negocio){
                 localStorage.setItem(SK.negocio, activ.nombre_negocio);
-                if(typeof configData !== 'undefined') configData.negocio = activ.nombre_negocio;
+                // Solo aplicar a configData si el usuario NO tiene un valor guardado en 'an'
+                var _userNeg = localStorage.getItem('an');
+                if(!_userNeg && typeof configData !== 'undefined') configData.negocio = activ.nombre_negocio;
               }
 
               // Restaurar datos de terminal
