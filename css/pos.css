@@ -1125,34 +1125,8 @@
   .cat-item-ic { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:background .15s; }
   .cat-item.sel .cat-item-ic { background:var(--green); }
 
-  /* ── CATEGORY PILL BAR (tablet 700px+) ── */
-  .cat-pill-bar {
-    display: none; /* hidden on mobile */
-    gap: 6px;
-    padding: 8px 10px;
-    overflow-x: auto;
-    flex-shrink: 0;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    scrollbar-width: none;
-  }
-  .cat-pill-bar::-webkit-scrollbar { display: none; }
-  .cat-pill {
-    background: var(--bg-card); border: 1.5px solid var(--border);
-    border-radius: 20px; color: var(--muted);
-    font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 600;
-    padding: 6px 14px; cursor: pointer; white-space: nowrap;
-    transition: all .15s; flex-shrink: 0;
-  }
-  .cat-pill:active { background: rgba(255,255,255,.06); }
-  .cat-pill.sel {
-    background: rgba(76,175,80,.15); border-color: var(--green); color: var(--green);
-  }
-
-  /* Desktop/tablet: pill bar + search always visible, category dropdown hidden */
+  /* Desktop/tablet: search always visible, dropdown filter stays */
   @media(min-width:700px){
-    .cat-pill-bar { display: flex !important; }
-    #prodView .filter-bar { display: none !important; }
     .search-bar { display:flex !important; }
     .fsearch { display:none !important; }
     #prodView { flex:1 1 0 !important; min-width:0 !important; }

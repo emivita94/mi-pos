@@ -1,6 +1,26 @@
 // ── Init: arranque, iniciarApp, reporte ventas ──
+
+// ── WAKE LOCK — mantener pantalla encendida ──────────────
+var _wakeLock = null;
+
+async function solicitarWakeLock(){
+  if(!('wakeLock' in navigator)) return;
+  try {
+    _wakeLock = await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release', function(){ _wakeLock = null; });
+  } catch(e){ /* usuario denegó o no soportado */ }
+}
+
+// Re-adquirir wake lock al volver a la app (se pierde al minimizar)
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible' && !_wakeLock) solicitarWakeLock();
+});
+
 // ── FUNCIÓN CENTRAL DE INICIO ─────────────────────────────
 async function iniciarApp(){
+  // Mantener pantalla encendida
+  solicitarWakeLock();
+
   // Iniciar BT Print Server (verificar y reconectar si hay MAC guardada)
   setTimeout(() => { BTPrinter.iniciar(); btpsCargarMacGuardada(); USBPrinter.iniciar(); }, 2000);
 
