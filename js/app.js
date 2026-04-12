@@ -507,19 +507,58 @@ function openCat(){
 
 // Recarga manual de categorías — para diagnóstico y recovery
 async function recargarCategoriasAhora(){
-  toast('Recargando categorías...');
+  var email = localStorage.getItem('lic_email');
+  var sheet = document.getElementById('catSheetContent');
+  if(sheet){
+    sheet.innerHTML = '<div style="padding:20px;color:#fff;font-family:monospace;font-size:11px;line-height:1.6;">'
+      + '<div style="color:#4caf50;font-weight:bold;margin-bottom:8px;">DIAGNÓSTICO SUPABASE</div>'
+      + 'Email: '+email+'<br>'
+      + 'URL: '+SUPA_URL+'<br>'
+      + 'Probando...<br>'
+      + '</div>';
+  }
   try {
-    if(typeof supaLoadCategorias === 'function'){
-      await supaLoadCategorias();
+    // 1. Query DIRECTA sin helpers — ver qué responde Supabase crudo
+    var url = SUPA_URL + '/rest/v1/pos_categorias?licencia_email=eq.'
+      + encodeURIComponent(email) + '&select=*';
+    var r = await fetch(url, { headers: SUPA_HEADERS });
+    var txt = await r.text();
+    var data = null;
+    try { data = JSON.parse(txt); } catch(e) {}
+
+    // 2. Actualizar panel de diagnóstico con el resultado
+    if(sheet){
+      var resultHtml = '<div style="padding:20px;color:#fff;font-family:monospace;font-size:11px;line-height:1.6;">'
+        + '<div style="color:#4caf50;font-weight:bold;margin-bottom:8px;">DIAGNÓSTICO SUPABASE</div>'
+        + 'Email: '+email+'<br>'
+        + 'HTTP: '+r.status+' '+r.statusText+'<br>'
+        + 'Respuesta: '+txt.substring(0,300).replace(/</g,'&lt;')+'<br>'
+        + 'Array length: '+(Array.isArray(data) ? data.length : 'NO ES ARRAY')+'<br><br>';
+
+      if(Array.isArray(data) && data.length){
+        // Aplicar manualmente
+        CATEGORIAS.length = 0;
+        data.forEach(function(c){
+          CATEGORIAS.push({ id:c.id, nombre:c.nombre, color:c.color||'#546e7a' });
+        });
+        resultHtml += '<div style="color:#4caf50;">✓ '+CATEGORIAS.length+' categorías cargadas manualmente</div>'
+          + '<div style="margin-top:8px;">'+CATEGORIAS.map(function(c){return c.nombre;}).join(', ')+'</div>'
+          + '<button onclick="document.getElementById(\'catOv\').classList.remove(\'open\');filterP();" style="margin-top:16px;background:var(--green);border:none;border-radius:6px;color:#fff;padding:12px 24px;font-weight:800;cursor:pointer;">CERRAR Y APLICAR</button>';
+      } else {
+        resultHtml += '<div style="color:#ef5350;">⚠ Supabase devolvió ' + (Array.isArray(data) ? '0' : 'algo raro') + '</div>'
+          + '<div style="margin-top:8px;color:#999;">Posibles causas:<br>'
+          + '• Email no coincide con el de Supabase<br>'
+          + '• RLS policy bloquea SELECT en pos_categorias<br>'
+          + '• Tabla no tiene columna licencia_email<br>'
+          + '• No hay categorías para este email</div>';
+      }
+      resultHtml += '</div>';
+      sheet.innerHTML = resultHtml;
     }
-    if(typeof supaLoadProductos === 'function'){
-      await supaLoadProductos();
-    }
-    toast('✓ '+CATEGORIAS.length+' categorías cargadas');
-    openCat(); // re-renderizar el sheet
-    filterP();
   } catch(e){
-    toast('Error: '+e.message);
+    if(sheet){
+      sheet.innerHTML = '<div style="padding:20px;color:#ef5350;font-family:monospace;font-size:11px;">ERROR: '+e.message+'</div>';
+    }
     console.error('[recargarCategorias] Error:', e);
   }
 }
