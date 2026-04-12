@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260412-gridrevert';
+const CACHE = 'ampersand-pos-v20260412-scanner';
 
 const ASSETS = [
   '/',

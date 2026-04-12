@@ -42,6 +42,25 @@ function sonidoToggle(){
   return muted;
 }
 
+// Master gain + compressor para aumentar volumen percibido sin clipping
+var _masterGain = null;
+var _compressor = null;
+
+function _getMaster(ctx){
+  if(_masterGain && _compressor) return _masterGain;
+  _compressor = ctx.createDynamicsCompressor();
+  _compressor.threshold.value = -24;
+  _compressor.knee.value = 30;
+  _compressor.ratio.value = 12;
+  _compressor.attack.value = 0.003;
+  _compressor.release.value = 0.25;
+  _masterGain = ctx.createGain();
+  _masterGain.gain.value = 1.8; // boost global
+  _masterGain.connect(_compressor);
+  _compressor.connect(ctx.destination);
+  return _masterGain;
+}
+
 // Helper: tono con frecuencia fija + envelope ADSR
 function _tono(ctx, freq, startTime, duration, volume, type){
   var osc = ctx.createOscillator();
@@ -49,7 +68,7 @@ function _tono(ctx, freq, startTime, duration, volume, type){
   osc.type = type || 'sine';
   osc.frequency.value = freq;
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(_getMaster(ctx));
 
   var vol = volume || 0.15;
   gain.gain.setValueAtTime(0, startTime);
@@ -60,28 +79,9 @@ function _tono(ctx, freq, startTime, duration, volume, type){
   osc.stop(startTime + duration + 0.02);
 }
 
-// Helper: tono con pitch bend (frecuencia que cambia durante la duración)
-function _tonoSweep(ctx, freqStart, freqEnd, startTime, duration, volume, type){
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
-  osc.type = type || 'square';
-  osc.frequency.setValueAtTime(freqStart, startTime);
-  osc.frequency.exponentialRampToValueAtTime(freqEnd, startTime + duration);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-
-  var vol = volume || 0.25;
-  gain.gain.setValueAtTime(0, startTime);
-  gain.gain.linearRampToValueAtTime(vol, startTime + 0.003);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-
-  osc.start(startTime);
-  osc.stop(startTime + duration + 0.02);
-}
-
-// ── TAP — beep de POS comercial clásico ──
-// Un solo tono square wave a 520Hz por 60ms.
-// Simple, grave, limpio — como un scanner de supermercado.
+// ── TAP — beep de scanner de supermercado ──
+// Sine wave a 2000Hz por 45ms. Limpio, agudo, sin armónicos ásperos.
+// Es el sonido clásico del scanner de código de barras.
 function sndTap(){
   if(sonidoMuteGet()) return;
   if(document.visibilityState === 'hidden') return;
@@ -89,36 +89,34 @@ function sndTap(){
   if(!ctx) return;
   try {
     var t = ctx.currentTime;
-    _tono(ctx, 520, t, 0.06, 0.30, 'square');
+    _tono(ctx, 2000, t, 0.04, 0.6, 'sine');
   } catch(e){}
 }
 
 // ── PEDIDO SATÉLITE — campana triple ──
-// 3 tonos para llamar atención. Se reproduce incluso en background.
 function sndPedido(){
   if(sonidoMuteGet()) return;
   var ctx = _ensureAudioCtx();
   if(!ctx) return;
   try {
     var t = ctx.currentTime;
-    _tono(ctx, 880, t,          0.22, 0.40, 'triangle'); // A5
-    _tono(ctx, 880, t + 0.26,   0.22, 0.40, 'triangle');
-    _tono(ctx, 660, t + 0.52,   0.38, 0.40, 'triangle'); // E5 final
+    _tono(ctx, 1320, t,          0.22, 0.7, 'sine'); // E6
+    _tono(ctx, 1320, t + 0.26,   0.22, 0.7, 'sine');
+    _tono(ctx, 990,  t + 0.52,   0.38, 0.7, 'sine'); // B5 final
   } catch(e){}
 }
 
-// ── COBRO EXITOSO — acorde ascendente tipo caja registradora ──
-// C5 → E5 → G5 → C6 en square wave con volumen reforzado.
+// ── COBRO EXITOSO — acorde ascendente ──
 function sndCobro(){
   if(sonidoMuteGet()) return;
   var ctx = _ensureAudioCtx();
   if(!ctx) return;
   try {
     var t = ctx.currentTime;
-    _tono(ctx, 523.25, t,          0.12, 0.32, 'square'); // C5
-    _tono(ctx, 659.25, t + 0.09,   0.12, 0.30, 'square'); // E5
-    _tono(ctx, 783.99, t + 0.18,   0.12, 0.28, 'square'); // G5
-    _tono(ctx, 1046.5, t + 0.27,   0.32, 0.32, 'square'); // C6 sostenida
+    _tono(ctx, 523.25, t,          0.14, 0.55, 'triangle'); // C5
+    _tono(ctx, 659.25, t + 0.10,   0.14, 0.55, 'triangle'); // E5
+    _tono(ctx, 783.99, t + 0.20,   0.14, 0.55, 'triangle'); // G5
+    _tono(ctx, 1046.5, t + 0.30,   0.35, 0.60, 'triangle'); // C6 sostenida
   } catch(e){}
 }
 
