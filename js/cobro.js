@@ -911,6 +911,8 @@ async function confirmarPago() {
  *  el tipo de pedido ni borra el delivery — el usuario sigue trabajando
  *  en esa venta. */
 function finalizarRecibo() {
+  // Cancelar countdown si estaba activo
+  if (typeof cancelarCountdown === 'function') cancelarCountdown();
   if (cart && cart.length > 0) {
     // Solo imprimió el preview, la venta sigue activa — no tocar nada
     goTo('scSale');

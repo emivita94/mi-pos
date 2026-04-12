@@ -846,8 +846,124 @@ function generarRecibo(data){
     imprimirTicketConf(htmlImpresion, 'ticket');
   }
 
+  // Rellenar el resumen de la pantalla de recibo
+  renderReciboResumen(data);
+
   // Mostrar pantalla de opciones para comanda / reimprimir / nueva venta
   goTo('scRecibo');
+}
+
+// ── RENDER DEL RESUMEN DE RECIBO ─────────────────────────
+// Rellena la pantalla scRecibo con: total, método, vuelto, ítems, hora
+// y muestra/oculta los botones de comanda según la config del negocio.
+function renderReciboResumen(data){
+  if(!data) return;
+  // Total grande
+  var elTotal = document.getElementById('reciboTotal');
+  if(elTotal) elTotal.textContent = gs(data.total || 0);
+
+  // Título con nro ticket
+  var nro = data.nroTicket != null ? String(data.nroTicket).padStart(4,'0') : '';
+  var elTitulo = document.getElementById('reciboTitulo');
+  if(elTitulo) elTitulo.textContent = nro ? 'Ticket #' + nro : 'Comprobante';
+
+  // Hora del cobro
+  var elHora = document.getElementById('reciboHora');
+  if(elHora){
+    var f = data.fecha instanceof Date ? data.fecha : new Date();
+    var hh = String(f.getHours()).padStart(2,'0');
+    var mm = String(f.getMinutes()).padStart(2,'0');
+    elHora.textContent = hh + ':' + mm;
+  }
+
+  // Chip de método de pago
+  var elMetodo = document.getElementById('reciboMetodoChip');
+  if(elMetodo){
+    var met = data.metodo || '—';
+    // Si es pago dividido, mostrar cantidad de métodos
+    if(data.divPagos && data.divPagos.length > 1){
+      met = 'MIXTO (' + data.divPagos.length + ')';
+    }
+    elMetodo.textContent = met;
+  }
+
+  // Chip de vuelto (solo si hay)
+  var elVuelto = document.getElementById('reciboVueltoChip');
+  if(elVuelto){
+    var vuelto = 0;
+    if(typeof data.vuelto === 'string'){
+      // Puede venir como string "Gs. 5.000" — extraer el número
+      var m = data.vuelto.replace(/[^0-9]/g,'');
+      vuelto = parseInt(m) || 0;
+    } else {
+      vuelto = parseInt(data.vuelto) || 0;
+    }
+    if(vuelto > 0){
+      elVuelto.textContent = 'Vuelto ' + gs(vuelto);
+      elVuelto.style.display = '';
+    } else {
+      elVuelto.style.display = 'none';
+    }
+  }
+
+  // Chip de cantidad de ítems
+  var elItems = document.getElementById('reciboItemsChip');
+  if(elItems){
+    var items = data.items || [];
+    var totalQty = items.reduce(function(s,i){ return s + (i.qty || 0); }, 0);
+    elItems.textContent = totalQty + ' ítem' + (totalQty !== 1 ? 's' : '');
+  }
+
+  // Mostrar/ocultar botones de comanda según config
+  var hayComandas = typeof comandasHabilitadas === 'function' && comandasHabilitadas();
+  var btnSolo = document.getElementById('btnComandaRecibo');
+  var btnCombo = document.getElementById('btnTicketComanda');
+  if(btnSolo)  btnSolo.style.display  = hayComandas ? '' : 'none';
+  if(btnCombo) btnCombo.style.display = hayComandas ? '' : 'none';
+
+  // Iniciar countdown de auto-dismiss
+  iniciarCountdownNuevaVenta(8);
+}
+
+// ── COUNTDOWN AUTO-DISMISS ─────────────────────────────
+// Después de 8s sin interacción vuelve automáticamente a ventas.
+// Cualquier tap/click en la pantalla cancela el countdown.
+var _countdownTimer = null;
+var _countdownRemaining = 0;
+var _countdownAborted = false;
+
+function iniciarCountdownNuevaVenta(segundos){
+  cancelarCountdown();
+  _countdownRemaining = segundos || 8;
+  _countdownAborted = false;
+  var cont = document.getElementById('reciboCountdown');
+  if(cont) cont.textContent = '(' + _countdownRemaining + 's)';
+  _countdownTimer = setInterval(function(){
+    if(_countdownAborted){ cancelarCountdown(); return; }
+    _countdownRemaining--;
+    if(cont) cont.textContent = '(' + _countdownRemaining + 's)';
+    if(_countdownRemaining <= 0){
+      cancelarCountdown();
+      if(typeof finalizarRecibo === 'function') finalizarRecibo();
+    }
+  }, 1000);
+
+  // Cancelar countdown al tocar cualquier cosa en scRecibo
+  setTimeout(function(){
+    var sc = document.getElementById('scRecibo');
+    if(sc && !sc._countdownListener){
+      sc._countdownListener = function(){ _countdownAborted = true; var c=document.getElementById('reciboCountdown'); if(c) c.textContent=''; };
+      sc.addEventListener('touchstart', sc._countdownListener, { passive: true });
+      sc.addEventListener('click',      sc._countdownListener);
+    }
+  }, 50);
+}
+
+function cancelarCountdown(){
+  if(_countdownTimer){ clearInterval(_countdownTimer); _countdownTimer = null; }
+  _countdownRemaining = 0;
+  var cont = document.getElementById('reciboCountdown');
+  if(cont) cont.textContent = '';
 }
 
 function mostrarPreviewRecibo(html, size){

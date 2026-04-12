@@ -32,7 +32,7 @@
 })();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/pos.css?v=20260412107">
+<link rel="stylesheet" href="css/pos.css?v=20260412111">
 <body>
 
 <!-- ======== SCREEN: RECIBO ======== -->
@@ -58,42 +58,49 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div style="flex:1;font-size:17px;font-weight:700;" id="reciboTitulo">Comprobante</div>
+    <div id="reciboHora" style="font-size:13px;color:rgba(255,255,255,.85);font-weight:600;margin-right:8px;"></div>
   </div>
 
-  <!-- Resumen rápido de la venta -->
-  <div style="padding:16px 16px 0;text-align:center;">
-    <div id="reciboResumen" style="font-size:13px;color:var(--muted);margin-bottom:4px;"></div>
-    <div id="reciboTotal" style="font-size:32px;font-weight:900;color:var(--text);font-family:'Barlow',sans-serif;letter-spacing:-1px;"></div>
-    <div id="reciboMetodo" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
+  <!-- Resumen de la venta -->
+  <div class="recibo-resumen">
+    <div class="recibo-check">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      VENTA COBRADA
+    </div>
+    <div id="reciboTotal" class="recibo-total-big">Gs. 0</div>
+    <div class="recibo-chips">
+      <span id="reciboMetodoChip" class="recibo-chip chip-metodo">—</span>
+      <span id="reciboVueltoChip" class="recibo-chip chip-vuelto" style="display:none;">Vuelto 0</span>
+      <span id="reciboItemsChip" class="recibo-chip chip-items">0 ítems</span>
+    </div>
   </div>
 
-  <!-- Botones de acción principales -->
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:16px;gap:12px;">
+  <!-- Botones de acción -->
+  <div class="recibo-acciones">
 
-    <!-- TICKET -->
-    <button onclick="imprimirRecibo();setTimeout(finalizarRecibo,600);" style="background:var(--green);border:none;border-radius:14px;color:#fff;font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;padding:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;letter-spacing:.5px;box-shadow:0 4px 20px rgba(76,175,80,.4);">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      TICKET
-    </button>
-
-    <!-- COMANDA -->
-    <button onclick="imprimirComandaActual();setTimeout(finalizarRecibo,600);" id="btnComandaRecibo" style="background:rgba(255,152,0,.12);border:2px solid var(--orange);border-radius:14px;color:var(--orange);font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;padding:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;letter-spacing:.5px;">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>
-      COMANDA
-    </button>
-
-    <!-- TICKET + COMANDA -->
-    <button onclick="imprimirRecibo();setTimeout(imprimirComandaActual,800);setTimeout(finalizarRecibo,1400);" id="btnTicketComanda" style="background:rgba(33,150,243,.12);border:2px solid #2196f3;border-radius:14px;color:#2196f3;font-family:'Barlow',sans-serif;font-size:17px;font-weight:900;padding:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:.5px;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    <!-- TICKET + COMANDA (primario en restaurante, oculto si no es resto) -->
+    <button id="btnTicketComanda" class="recibo-btn primary-combo" style="display:none;" onclick="imprimirRecibo();setTimeout(imprimirComandaActual,800);setTimeout(finalizarRecibo,1400);">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>
       TICKET + COMANDA
     </button>
 
-    <!-- NO IMPRIMIR -->
-    <button onclick="finalizarRecibo()" style="background:transparent;border:1.5px solid #333;border-radius:14px;color:#666;font-family:'Barlow',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      NO IMPRIMIR — NUEVA VENTA
+    <!-- TICKET -->
+    <button class="recibo-btn primary" onclick="imprimirRecibo();setTimeout(finalizarRecibo,600);">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      IMPRIMIR TICKET
     </button>
 
+    <!-- SOLO COMANDA (oculto si no es resto) -->
+    <button id="btnComandaRecibo" class="recibo-btn secondary-comanda" style="display:none;" onclick="imprimirComandaActual();setTimeout(finalizarRecibo,600);">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>
+      SOLO COMANDA
+    </button>
+
+    <!-- Omitir -->
+    <a class="recibo-skip" onclick="finalizarRecibo()">
+      Omitir impresión · <span id="reciboCountdown"></span>
+    </a>
   </div>
 
   <!-- Preview oculto (se usa para WhatsApp/reimprimir si es necesario) -->
@@ -1776,8 +1783,8 @@
 <script src="js/sounds.js?v=20260412110"></script>
 <script src="js/ui.js?v=20260412104"></script>
 <script src="js/ventas.js?v=20260412103"></script>
-<script src="js/cobro.js?v=20260412110"></script>
-<script src="js/pedidos.js?v=20260412110"></script>
+<script src="js/cobro.js?v=20260412111"></script>
+<script src="js/pedidos.js?v=20260412111"></script>
 <script src="js/impresion.js?v=20260412103"></script>
 <script src="js/turno.js?v=20260412103"></script>
 <script src="js/productos.js?v=20260412103"></script>
@@ -1785,7 +1792,7 @@
 <script src="js/licencia.js?v=20260412103"></script>
 <script src="js/mesas.js?v=20260412103"></script>
 
-<script src="js/app.js?v=20260412109"></script>
+<script src="js/app.js?v=20260412111"></script>
 <script src="js/init.js?v=20260412103"></script>
 
 <script>

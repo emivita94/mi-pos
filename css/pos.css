@@ -648,6 +648,88 @@
   }
   .recibo-body { flex:1; overflow-y:auto; padding: 16px 12px; display:flex; flex-direction:column; align-items:center; }
 
+  /* ── RESUMEN DE VENTA (nuevo) ────────────────────────── */
+  .recibo-resumen {
+    margin: 16px; padding: 20px 16px 18px;
+    background: var(--bg-card); border-radius: 14px;
+    border: 1px solid var(--border);
+    text-align: center; flex-shrink: 0;
+  }
+  .recibo-check {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 800; color: var(--green);
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
+    background: rgba(76,175,80,.12);
+    margin-bottom: 12px;
+  }
+  .recibo-total-big {
+    font-family: 'Barlow', sans-serif;
+    font-size: 48px; font-weight: 900;
+    color: var(--text); letter-spacing: -1.5px;
+    line-height: 1; margin-bottom: 14px;
+  }
+  .recibo-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    justify-content: center;
+  }
+  .recibo-chip {
+    display: inline-block; padding: 6px 12px;
+    border-radius: 20px; font-size: 12px; font-weight: 700;
+    letter-spacing: .3px;
+  }
+  .chip-metodo {
+    background: rgba(76,175,80,.14); color: var(--green);
+    text-transform: uppercase;
+  }
+  .chip-vuelto {
+    background: rgba(255,152,0,.15); color: #ff9800;
+    border: 1px solid rgba(255,152,0,.3);
+  }
+  .chip-items {
+    background: var(--bg-dark); color: var(--muted);
+  }
+
+  /* ── BOTONES DE ACCIÓN (rediseñados) ────────────────────────── */
+  .recibo-acciones {
+    padding: 0 16px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0;
+  }
+  .recibo-btn {
+    border-radius: 12px; padding: 18px 14px;
+    font-family: 'Barlow', sans-serif;
+    font-size: 17px; font-weight: 900;
+    letter-spacing: .5px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: transform .1s, filter .15s;
+  }
+  .recibo-btn:active { transform: scale(.98); filter: brightness(.9); }
+  .recibo-btn.primary {
+    background: var(--green); border: none; color: #fff;
+    box-shadow: 0 4px 16px rgba(76,175,80,.3);
+  }
+  .recibo-btn.primary-combo {
+    background: var(--green); border: none; color: #fff;
+    box-shadow: 0 4px 16px rgba(76,175,80,.3);
+  }
+  .recibo-btn.secondary-comanda {
+    background: rgba(255,152,0,.1);
+    border: 2px solid var(--orange);
+    color: var(--orange);
+    font-size: 15px; padding: 14px 12px;
+  }
+  .recibo-skip {
+    display: block; text-align: center;
+    background: transparent; border: none;
+    color: var(--muted); font-family: 'Barlow', sans-serif;
+    font-size: 13px; font-weight: 600;
+    padding: 14px 8px 4px; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .recibo-skip:active { color: var(--label); }
+  #reciboCountdown { color: var(--muted); font-weight: 700; }
+
   /* Papel del recibo */
   .recibo-papel {
     background: #fff; color: #000;
