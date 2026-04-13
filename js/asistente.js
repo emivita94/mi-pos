@@ -400,42 +400,106 @@ function _asistSimilitud(a, b){
   return 1 - (_asistLevenshtein(a, b) / maxL);
 }
 
-var _ASIST_SINONIMOS = {
-  'coca':'gaseosa','cola':'gaseosa','bebida':'gaseosa','refresco':'gaseosa',
-  'chela':'cerveza','birra':'cerveza','rubia':'cerveza',
-  'piza':'pizza','pizzsa':'pizza',
-  'hamburger':'hamburguesa','burger':'hamburguesa','burguer':'hamburguesa',
-  'aguita':'agua','cafecito':'cafe'
-};
+// Sinónimos bidireccionales: grupos de palabras que significan lo mismo.
+// Se usan para EXPANDIR la búsqueda, no para reemplazar (mantiene la info
+// discriminante entre productos). Ej: si el usuario dice "coca", también
+// buscamos "gaseosa", "cola", "bebida" — pero el producto "Coca Cola" sigue
+// teniendo tokens ["coca", "cola"] intactos.
+var _ASIST_GRUPOS_SINONIMOS = [
+  ['coca','cola','gaseosa','bebida','refresco','soda'],
+  ['chela','birra','cerveza','rubia'],
+  ['pizza','piza','pizzsa'],
+  ['hamburguesa','hamburger','burger','burguer','hamburguesas'],
+  ['agua','aguita'],
+  ['cafe','cafecito','café'],
+  ['lomito','lomi','lomitos'],
+  ['papas','papa','fritas','papitas'],
+  ['milanesa','mila','milanesas'],
+  ['sandwich','sanguche','sanguich','sanguchito'],
+  ['empanada','empanadita','empanadas']
+];
+
+// Devuelve array de sinónimos para una palabra (incluyéndola misma)
+function _asistExpandirSinonimos(palabra){
+  for(var g = 0; g < _ASIST_GRUPOS_SINONIMOS.length; g++){
+    var grupo = _ASIST_GRUPOS_SINONIMOS[g];
+    if(grupo.indexOf(palabra) >= 0) return grupo;
+  }
+  return [palabra];
+}
 
 function _asistSingularizar(w){
-  if(w.length > 4 && /es$/.test(w)) return w.slice(0,-2);
-  if(w.length > 3 && /s$/.test(w))  return w.slice(0,-1);
+  // ES especial: palabras cortas o con patrones comunes
+  if(w.length <= 3) return w;
+  // Plurales en -es (meses, papas fritas, ...)
+  if(w.length > 5 && /ciones$/.test(w)) return w.slice(0,-4) + 'cion';
+  if(w.length > 4 && /ades$/.test(w))   return w.slice(0,-3) + 'ad';
+  if(w.length > 4 && /eses$/.test(w))   return w.slice(0,-2);
+  if(w.length > 4 && /nes$/.test(w))    return w.slice(0,-2);
+  // Plurales simples
+  if(w.length > 4 && /[aeiou]s$/.test(w)) return w.slice(0,-1);
   return w;
 }
 
+// Tokeniza SIN aplicar sinónimos — preserva info original del producto
 function _asistTokensProducto(texto){
   return _asistNormalizar(texto).split(/\s+/)
     .filter(function(w){ return w.length > 1; })
-    .map(function(w){ return _ASIST_SINONIMOS[w] || _asistSingularizar(w); });
+    .map(_asistSingularizar);
 }
 
-// Versión completa: devuelve { mejor, mejorScore, alternativas }
+// Tokeniza con EXPANSIÓN de sinónimos — usado solo en la búsqueda del usuario
+// Devuelve un array de arrays: [["coca","cola","gaseosa",...], ["500ml"]]
+// Cada sub-array son sinónimos de UN token.
+function _asistTokensBusquedaExpandido(texto){
+  return _asistNormalizar(texto).split(/\s+/)
+    .filter(function(w){ return w.length > 1; })
+    .map(function(w){
+      var sing = _asistSingularizar(w);
+      return _asistExpandirSinonimos(sing);
+    });
+}
+
+// ──────────────────────────────────────────────────────────────
+// BUSCADOR DE PRODUCTOS V3 — robusto y tolerante
+//
+// Estrategia (primero que matchea con mejor score gana):
+//   1. Alias aprendido del cajero (instantáneo)
+//   2. Match exacto de nombre normalizado
+//   3. El nombre del producto está CONTENIDO en el texto buscado
+//   4. El texto buscado está CONTENIDO en el nombre del producto
+//      (crítico: "coca" debe matchear "Coca Cola 500ml")
+//   5. Match de tokens con sinónimos expandidos
+//   6. Fuzzy Levenshtein por token
+//
+// Threshold bajó a 0.40 — es mejor ofrecer disambiguación
+// que decir "no encontré".
+// ──────────────────────────────────────────────────────────────
+var _ASIST_DEBUG = true; // toggle desde localStorage si querés
+
 function _buscarProductosConAlternativas(texto){
-  if(typeof PRODS === 'undefined' || !PRODS.length) return { mejor:null, mejorScore:0, alternativas:[] };
+  if(typeof PRODS === 'undefined' || !PRODS.length){
+    return { mejor:null, mejorScore:0, alternativas:[] };
+  }
   var buscado = _asistNormalizar(texto);
   if(!buscado) return { mejor:null, mejorScore:0, alternativas:[] };
+
+  // Log de diagnóstico
+  if(_ASIST_DEBUG) console.log('[Buscar] Buscando:', JSON.stringify(buscado));
 
   // 1) Alias aprendido (lookup instantáneo)
   var aliasProd = _asistAliasBuscar(buscado);
   if(aliasProd){
+    if(_ASIST_DEBUG) console.log('[Buscar] ✓ Alias:', aliasProd.name);
     return { mejor: aliasProd, mejorScore: 1, alternativas: [aliasProd], viaAlias: true };
   }
 
-  var tokensBuscados = _asistTokensProducto(texto);
+  var tokensBuscados = _asistTokensProducto(texto); // sin expandir (tokens crudos)
+  var tokensBuscadosExp = _asistTokensBusquedaExpandido(texto); // array de arrays
+
   if(!tokensBuscados.length) return { mejor:null, mejorScore:0, alternativas:[] };
 
-  var resultados = []; // { p, score }
+  var resultados = []; // { p, score, motivo }
   var exacto = null;
 
   for(var i = 0; i < PRODS.length; i++){
@@ -445,57 +509,174 @@ function _buscarProductosConAlternativas(texto){
     var tokensProd = _asistTokensProducto(p.name);
     if(!tokensProd.length) continue;
 
-    var score = 0;
-
+    // ── Estrategia 1: Match exacto ──
     if(nombreNorm === buscado){ exacto = p; break; }
-    if(buscado.indexOf(nombreNorm) >= 0){ score = Math.max(score, 0.95); }
 
-    var comunes = 0;
-    for(var t = 0; t < tokensProd.length; t++){
-      for(var u = 0; u < tokensBuscados.length; u++){
-        if(tokensProd[t] === tokensBuscados[u]){ comunes++; break; }
-        if(tokensProd[t].length >= 4 && tokensBuscados[u].length >= 4 &&
-           _asistSimilitud(tokensProd[t], tokensBuscados[u]) >= 0.8){
-          comunes += 0.85; break;
+    var score = 0;
+    var motivo = '';
+
+    // ── Estrategia 2: Nombre del producto contenido en texto buscado ──
+    // "agregar coca cola" debería matchear "Coca Cola"
+    if(buscado.indexOf(nombreNorm) >= 0){
+      score = Math.max(score, 0.98);
+      motivo = 'prod⊂busqueda';
+    }
+
+    // ── Estrategia 3: Texto buscado contenido en nombre del producto ──
+    // "coca" debería matchear "Coca Cola 500ml" (el caso que no funcionaba)
+    if(nombreNorm.indexOf(buscado) >= 0){
+      // Cuanto más larga la búsqueda vs el nombre, más específica
+      var ratioLen = buscado.length / nombreNorm.length;
+      // Mínimo 0.85, máximo 0.95 para que no pise match exacto
+      var sIncl = 0.85 + (ratioLen * 0.10);
+      if(sIncl > score){ score = sIncl; motivo = 'busqueda⊂prod'; }
+    }
+
+    // ── Estrategia 4: Token individual de búsqueda aparece en nombre ──
+    // Fallback muy permisivo para búsquedas de 1 palabra
+    if(tokensBuscados.length === 1){
+      var tokB = tokensBuscados[0];
+      // Búsqueda directa
+      for(var tt = 0; tt < tokensProd.length; tt++){
+        if(tokensProd[tt] === tokB ||
+           tokensProd[tt].indexOf(tokB) >= 0 ||
+           tokB.indexOf(tokensProd[tt]) >= 0){
+          var sTokDir = 0.88;
+          if(sTokDir > score){ score = sTokDir; motivo = 'token-directo'; }
+          break;
+        }
+      }
+      // Búsqueda por sinónimos expandidos
+      var expandido = tokensBuscadosExp[0];
+      for(var ee = 0; ee < expandido.length; ee++){
+        var sin = expandido[ee];
+        if(sin === tokB) continue; // ya probado
+        for(var tt2 = 0; tt2 < tokensProd.length; tt2++){
+          if(tokensProd[tt2] === sin ||
+             tokensProd[tt2].indexOf(sin) >= 0 ||
+             sin.indexOf(tokensProd[tt2]) >= 0){
+            var sSin = 0.78;
+            if(sSin > score){ score = sSin; motivo = 'sinonimo:' + sin; }
+            break;
+          }
         }
       }
     }
-    var coberturaProd = comunes / tokensProd.length;
-    var coberturaBusq = comunes / tokensBuscados.length;
-    var tokScore = (coberturaProd * 0.7) + (coberturaBusq * 0.3);
-    score = Math.max(score, tokScore);
 
-    if(tokensProd.length === 1 && tokensBuscados.length <= 2){
-      var simGlobal = 0;
-      for(var v = 0; v < tokensBuscados.length; v++){
-        var s = _asistSimilitud(tokensProd[0], tokensBuscados[v]);
-        if(s > simGlobal) simGlobal = s;
+    // ── Estrategia 5: Cobertura de tokens (para búsquedas multi-palabra) ──
+    var comunes = 0;
+    var usados = {};
+    for(var t = 0; t < tokensBuscadosExp.length; t++){
+      var sinonimos = tokensBuscadosExp[t]; // array de sinónimos del token t
+      for(var u = 0; u < tokensProd.length; u++){
+        if(usados[u]) continue;
+        var matcheo = false;
+        for(var s = 0; s < sinonimos.length; s++){
+          var sinW = sinonimos[s];
+          var prodW = tokensProd[u];
+          if(prodW === sinW){ matcheo = true; break; }
+          if(prodW.length >= 4 && sinW.length >= 4 &&
+             _asistSimilitud(prodW, sinW) >= 0.8){
+            matcheo = true; break;
+          }
+        }
+        if(matcheo){ comunes++; usados[u] = true; break; }
       }
-      if(simGlobal >= 0.75) score = Math.max(score, simGlobal);
+    }
+    if(comunes > 0){
+      var coberturaProd = comunes / tokensProd.length;
+      var coberturaBusq = comunes / tokensBuscados.length;
+      // Damos más peso a cobertura de búsqueda (el usuario dijo lo que quería)
+      var tokScore = (coberturaProd * 0.4) + (coberturaBusq * 0.6);
+      // Bonus si todos los tokens buscados se encontraron
+      if(coberturaBusq >= 0.99) tokScore = Math.min(tokScore + 0.1, 0.95);
+      if(tokScore > score){ score = tokScore; motivo = 'tokens(' + comunes + ')'; }
     }
 
-    if(score >= 0.55) resultados.push({ p: p, score: score });
+    // ── Estrategia 6: Levenshtein global del texto ──
+    if(tokensBuscados.length <= 2){
+      var simGlobal = _asistSimilitud(buscado, nombreNorm);
+      if(simGlobal >= 0.7){
+        if(simGlobal > score){ score = simGlobal; motivo = 'fuzzy:' + simGlobal.toFixed(2); }
+      }
+    }
+
+    if(score >= 0.40){
+      resultados.push({ p: p, score: score, motivo: motivo });
+    }
   }
 
   if(exacto){
+    if(_ASIST_DEBUG) console.log('[Buscar] ✓ Exacto:', exacto.name);
     return { mejor: exacto, mejorScore: 1, alternativas: [exacto], viaAlias: false };
   }
-  if(!resultados.length) return { mejor:null, mejorScore:0, alternativas:[] };
+  if(!resultados.length){
+    if(_ASIST_DEBUG) console.log('[Buscar] ✗ Sin matches');
+    return { mejor:null, mejorScore:0, alternativas:[] };
+  }
 
   resultados.sort(function(a,b){ return b.score - a.score; });
+
+  if(_ASIST_DEBUG){
+    console.log('[Buscar] Top 5:');
+    for(var rr = 0; rr < Math.min(5, resultados.length); rr++){
+      console.log('  ' + resultados[rr].score.toFixed(2) + ' ' +
+                  resultados[rr].p.name + ' [' + resultados[rr].motivo + ']');
+    }
+  }
+
   var top = resultados[0].score;
   var alternativas = [];
   for(var r = 0; r < resultados.length; r++){
     if(resultados[r].score >= top - 0.15) alternativas.push(resultados[r].p);
     if(alternativas.length >= 5) break;
   }
-  return { mejor: resultados[0].p, mejorScore: top, alternativas: alternativas, viaAlias: false };
+  return {
+    mejor: resultados[0].p,
+    mejorScore: top,
+    alternativas: alternativas,
+    viaAlias: false
+  };
 }
 
 // API original — devuelve solo el producto (o null)
 function _buscarProducto(texto){
   var r = _buscarProductosConAlternativas(texto);
   return r.mejor;
+}
+
+// Búsqueda PERMISIVA — devuelve el mejor candidato sin importar score
+// Se usa como "¿quisiste decir X?" cuando la búsqueda principal falla.
+function _asistBuscarPermisivo(texto){
+  if(typeof PRODS === 'undefined' || !PRODS.length) return null;
+  var buscado = _asistNormalizar(texto);
+  if(!buscado) return null;
+  var tokens = _asistTokensProducto(texto);
+  if(!tokens.length) return null;
+
+  var mejor = null, mejorScore = 0;
+  for(var i = 0; i < PRODS.length; i++){
+    var p = PRODS[i];
+    if(!p || !p.name || p.itemLibre) continue;
+    var nombreNorm = _asistNormalizar(p.name);
+    var tokensProd = _asistTokensProducto(p.name);
+    if(!tokensProd.length) continue;
+
+    // Similitud más suave: cualquier token que matchee cuenta
+    var score = _asistSimilitud(buscado, nombreNorm);
+    // Bonus si algún token buscado aparece en el nombre
+    for(var t = 0; t < tokens.length; t++){
+      if(nombreNorm.indexOf(tokens[t]) >= 0){ score += 0.15; break; }
+      // También probar sinónimos
+      var sinonimos = _asistExpandirSinonimos(tokens[t]);
+      for(var s = 0; s < sinonimos.length; s++){
+        if(nombreNorm.indexOf(sinonimos[s]) >= 0){ score += 0.12; break; }
+      }
+    }
+    if(score > mejorScore){ mejorScore = score; mejor = p; }
+  }
+  // Mínimo 0.25 para considerar como sugerencia
+  return mejorScore >= 0.25 ? mejor : null;
 }
 
 function _asistPantallaActiva(){
@@ -546,8 +727,8 @@ function _asistExtraerDelivery(texto){
 
 // ── INTENTS ──
 function _asistIntentAgregar(texto){
-  // Verbos de agregar incluyen "vendeme" (caso del usuario)
-  var verbosAdd = /^(agregar|agreg[aá]|agregame|agregale|a[nñ]adir|a[nñ]ade|poner|pon[eé]|poneme|traer|tra[eé]|traeme|sumar|sum[aá]|cargar|carg[aá]|meter|met[eé]|vamos?\s+con|dame|vendeme|venderme|vend[eé]me|cobrame)\s+/;
+  // Verbos de agregar — muy permisivo con voseo/tuteo/imperativo
+  var verbosAdd = /^(agregar|agreg[aá]|agregame|agregale|agregal[eé]|a[nñ]adir|a[nñ]ade|a[nñ]ad[ií]|poner|pon[eé]|poneme|ponele|ponel[eé]|traer|tra[eé]|traeme|traem[eé]|sumar|sum[aá]|sumale|cargar|carg[aá]|meter|met[eé]|vamos?\s+con|vamo\s+con|dame|d[aá]me|vendeme|venderme|vend[eé]me|vender|vend[eé]|vende|facturame|facturar|factur[aá]|cobrame|querer|quiero|quisiera|necesito|mete|mand[aá]me|mandame|mandale)\s+/;
   var tieneVerbo = verbosAdd.test(texto);
   var cuerpo = tieneVerbo ? texto.replace(verbosAdd,'') : texto;
 
@@ -586,7 +767,14 @@ function _asistIntentAgregar(texto){
     var busq = _buscarProductosConAlternativas(nombre);
     var prod = busq.mejor;
     if(!prod){
-      _asistHablar('No encontré ' + nombre);
+      // No encontró nada arriba del threshold — probar una búsqueda permisiva
+      // como último recurso: buscar el mejor match global (aunque score bajo)
+      var permisivo = _asistBuscarPermisivo(nombre);
+      if(permisivo){
+        _asistHablar('¿Quisiste decir ' + permisivo.name + '? Tocá la pantalla o volvé a pedir');
+      } else {
+        _asistHablar('No encontré ' + nombre + '. Probá con otro nombre');
+      }
       continue;
     }
     if(typeof addCart !== 'function'){
@@ -905,6 +1093,19 @@ function _asistIntentAyuda(texto){
   return true;
 }
 
+// Lista los primeros N productos activos
+function _asistIntentListarProductos(texto){
+  if(!/^(que\s+productos|listar?\s+productos|que\s+tenes|que\s+vend[eé]s|mostrar?\s+productos|cuales?\s+son\s+los\s+productos)/.test(texto)) return false;
+  if(typeof PRODS === 'undefined' || !PRODS.length){
+    _asistHablar('No hay productos cargados'); return true;
+  }
+  var activos = PRODS.filter(function(p){ return p && p.name && !p.itemLibre && p.activo !== false; });
+  if(!activos.length){ _asistHablar('No hay productos activos'); return true; }
+  var primeros = activos.slice(0, 8).map(function(p){ return p.name; });
+  _asistHablar('Tenés ' + activos.length + ' productos. Algunos son: ' + primeros.join(', '));
+  return true;
+}
+
 function _asistIntentAnular(texto){
   if(!/^(anular|anul[aá]|cancelar\s+(la\s+)?venta|cancelar\s+pedido)/.test(texto)) return false;
   if(typeof nuevaVenta === 'function'){ nuevaVenta(); _asistHablar('Venta cancelada'); }
@@ -923,6 +1124,7 @@ function _asistEjecutarComando(alternativas){
 
   var intents = [
     _asistIntentAyuda,
+    _asistIntentListarProductos,
     _asistIntentAnular,
     _asistIntentCobrar,
     _asistIntentTurno,
