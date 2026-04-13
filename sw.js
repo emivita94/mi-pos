@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260413-configfix2';
+const CACHE = 'ampersand-pos-v20260413-cobrar2col';
 
 const ASSETS = [
   '/',

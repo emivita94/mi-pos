@@ -154,37 +154,106 @@ function generoVoz(v){
   return 'neutral';
 }
 
-// Selección de voz guardada en localStorage
+// Selección de voz guardada en localStorage.
+// En Android Chrome, los .name de las voces pueden variar ligeramente entre
+// sesiones, por eso guardamos MÚLTIPLES identificadores: voiceURI (más estable),
+// name y lang. Al buscar, probamos en ese orden de especificidad.
 function vozSeleccionadaGet(){
-  return localStorage.getItem('pos_voz_name') || '';
+  // Retorna objeto {voiceURI, name, lang} o null
+  var raw = localStorage.getItem('pos_voz_data');
+  if(raw){
+    try { return JSON.parse(raw); } catch(e) {}
+  }
+  // Fallback legacy: solo nombre
+  var legacy = localStorage.getItem('pos_voz_name');
+  if(legacy) return { name: legacy, voiceURI: '', lang: '' };
+  return null;
 }
-function vozSeleccionadaSet(nombre){
-  localStorage.setItem('pos_voz_name', nombre || '');
+function vozSeleccionadaSet(voz){
+  if(!voz){
+    localStorage.removeItem('pos_voz_data');
+    localStorage.removeItem('pos_voz_name');
+    return;
+  }
+  // voz puede ser un objeto SpeechSynthesisVoice o solo un name string
+  if(typeof voz === 'string'){
+    var voces = listarVocesEs();
+    var match = voces.find(function(v){ return v.name === voz; });
+    if(match) voz = match;
+  }
+  var data = {
+    voiceURI: voz.voiceURI || '',
+    name:     voz.name     || '',
+    lang:     voz.lang     || '',
+  };
+  localStorage.setItem('pos_voz_data', JSON.stringify(data));
+  // Retrocompatibilidad
+  localStorage.setItem('pos_voz_name', data.name);
 }
 
 function _findVozEs(){
   if(!('speechSynthesis' in window)) return null;
   var voces = listarVocesEs();
   if(!voces.length) return null;
-  // Si el usuario seleccionó una voz específica, usarla
+  // Si el usuario seleccionó una voz específica, intentar matching multi-nivel
   var guardada = vozSeleccionadaGet();
   if(guardada){
-    var v = voces.find(function(x){ return x.name === guardada; });
-    if(v) return v;
+    // 1. Match exacto por voiceURI (más estable en Android Chrome)
+    if(guardada.voiceURI){
+      var v1 = voces.find(function(x){ return x.voiceURI === guardada.voiceURI; });
+      if(v1) return v1;
+    }
+    // 2. Match por name + lang (bastante estable)
+    if(guardada.name && guardada.lang){
+      var v2 = voces.find(function(x){ return x.name === guardada.name && x.lang === guardada.lang; });
+      if(v2) return v2;
+    }
+    // 3. Match solo por name
+    if(guardada.name){
+      var v3 = voces.find(function(x){ return x.name === guardada.name; });
+      if(v3) return v3;
+    }
+    // 4. Match por name parcial (por si el nombre cambió ligeramente)
+    if(guardada.name){
+      var nombreLower = guardada.name.toLowerCase();
+      var v4 = voces.find(function(x){
+        var xn = (x.name||'').toLowerCase();
+        return xn.indexOf(nombreLower) >= 0 || nombreLower.indexOf(xn) >= 0;
+      });
+      if(v4) return v4;
+    }
+    // 5. Match por lang solamente
+    if(guardada.lang){
+      var v5 = voces.find(function(x){ return x.lang === guardada.lang; });
+      if(v5) return v5;
+    }
   }
-  // Si no, preferencias por región
+  // Default: preferencias por región
   var preferidas = ['es-PY','es-AR','es-MX','es-US','es-ES','es-CL','es-CO'];
   for(var i=0; i<preferidas.length; i++){
-    var v2 = voces.find(function(x){ return x.lang === preferidas[i]; });
-    if(v2) return v2;
+    var vp = voces.find(function(x){ return x.lang === preferidas[i]; });
+    if(vp) return vp;
   }
   return voces[0];
 }
 
-// Forzar carga inicial de voces (algunos browsers las cargan lazy)
+// Forzar carga inicial de voces. En Chrome Android getVoices() retorna []
+// la primera vez — las voces llegan async vía el evento 'voiceschanged'.
+// Cuando las voces están disponibles, refrescamos el selector de config
+// si está visible (por si el usuario estaba esperando verlo).
+var _vocesYaCargadas = false;
 if('speechSynthesis' in window){
-  window.speechSynthesis.addEventListener('voiceschanged', function(){});
-  // Trigger inicial
+  window.speechSynthesis.addEventListener('voiceschanged', function(){
+    _vocesYaCargadas = true;
+    // Refrescar el selector de voces en config si está visible
+    if(typeof poblarSelectorVoces === 'function'){
+      var sel = document.getElementById('cfgVozSelect');
+      if(sel && sel.offsetParent !== null){
+        poblarSelectorVoces(typeof _vozFiltroActual !== 'undefined' ? _vozFiltroActual : 'all');
+      }
+    }
+  });
+  // Trigger inicial (algunos browsers necesitan esto para disparar voiceschanged)
   try { window.speechSynthesis.getVoices(); } catch(e){}
 }
 

@@ -206,7 +206,7 @@ function poblarSelectorVoces(filtro){
   if(!sel || typeof listarVocesEs !== 'function') return;
   var voces = listarVocesEs();
   if(!voces.length){
-    sel.innerHTML = '<option value="">No hay voces españolas instaladas</option>';
+    sel.innerHTML = '<option value="">Cargando voces... (esperá 1-2 segundos)</option>';
     return;
   }
   var filtradas = voces;
@@ -214,13 +214,20 @@ function poblarSelectorVoces(filtro){
     filtradas = voces.filter(function(v){ return generoVoz(v) === filtro; });
     if(!filtradas.length) filtradas = voces; // fallback
   }
-  var actual = typeof vozSeleccionadaGet === 'function' ? vozSeleccionadaGet() : '';
+  // La selección guardada ahora es un objeto {voiceURI, name, lang}
+  var actual = typeof vozSeleccionadaGet === 'function' ? vozSeleccionadaGet() : null;
+  var actualURI = actual && actual.voiceURI ? actual.voiceURI : '';
+  var actualName = actual && actual.name ? actual.name : '';
   var html = '';
-  filtradas.forEach(function(v){
+  filtradas.forEach(function(v, idx){
     var g = generoVoz(v);
     var icon = g === 'female' ? '♀ ' : (g === 'male' ? '♂ ' : '• ');
-    var selAttr = v.name === actual ? ' selected' : '';
-    html += '<option value="'+v.name+'"'+selAttr+'>'+icon+v.name+' ('+v.lang+')</option>';
+    // Usar el índice como value para poder mapear luego al objeto voz completo
+    var isSel = (actualURI && v.voiceURI === actualURI) ||
+                (!actualURI && actualName && v.name === actualName);
+    var selAttr = isSel ? ' selected' : '';
+    // Guardamos voiceURI como atributo data para recuperarlo después
+    html += '<option value="'+_escapeAttr(v.name)+'" data-uri="'+_escapeAttr(v.voiceURI||'')+'" data-lang="'+_escapeAttr(v.lang||'')+'"'+selAttr+'>'+icon+v.name+' ('+v.lang+')</option>';
   });
   sel.innerHTML = html;
 
@@ -234,6 +241,10 @@ function poblarSelectorVoces(filtro){
   if(btnActivo){ btnActivo.style.background = 'rgba(76,175,80,.15)'; btnActivo.style.borderColor = 'var(--green)'; btnActivo.style.color = 'var(--green)'; }
 }
 
+function _escapeAttr(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;');
+}
+
 function filtrarVocesPorGenero(genero){
   poblarSelectorVoces(genero);
 }
@@ -241,8 +252,24 @@ function filtrarVocesPorGenero(genero){
 function seleccionarVozDesdeConfig(){
   var sel = document.getElementById('cfgVozSelect');
   if(!sel || typeof vozSeleccionadaSet !== 'function') return;
-  vozSeleccionadaSet(sel.value);
-  if(typeof probarVoz === 'function') probarVoz(sel.value);
+  // Buscar el objeto voz completo usando name + voiceURI del option seleccionado
+  var opt = sel.options[sel.selectedIndex];
+  if(!opt) return;
+  var voces = typeof listarVocesEs === 'function' ? listarVocesEs() : [];
+  var match = voces.find(function(v){
+    return v.name === opt.value && v.voiceURI === opt.getAttribute('data-uri');
+  });
+  if(!match){
+    match = voces.find(function(v){ return v.name === opt.value; });
+  }
+  if(match){
+    vozSeleccionadaSet(match); // pasa el objeto completo con voiceURI
+    if(typeof probarVoz === 'function') probarVoz(match.name);
+  } else {
+    // Fallback al comportamiento anterior
+    vozSeleccionadaSet(sel.value);
+    if(typeof probarVoz === 'function') probarVoz(sel.value);
+  }
 }
 
 function probarVozSeleccionada(){

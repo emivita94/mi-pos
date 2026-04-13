@@ -1762,7 +1762,7 @@
     #tpanel { display: none !important; }
 
     /* ── Screens secundarios centrados en tablet ── */
-    #scGuardar, #scDetalle, #scCobrar, #scDividir,
+    #scGuardar, #scDetalle, #scDividir,
     #scRecibo, #scPendientes, #scShift, #scPreviewCierre {
       left: 50%;
       right: auto;
@@ -1772,6 +1772,78 @@
       border-left: 1px solid var(--border);
       border-right: 1px solid var(--border);
       box-shadow: -4px 0 24px rgba(0,0,0,.2), 4px 0 24px rgba(0,0,0,.2);
+    }
+
+    /* ── scCobrar en tablet: layout 2 columnas ── */
+    #scCobrar {
+      left: 50%;
+      right: auto;
+      width: 100%;
+      max-width: 920px;
+      transform: translateX(-50%);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0,0,0,.2), 4px 0 24px rgba(0,0,0,.2);
+    }
+    /* Total prominente en tablet */
+    #scCobrar .ctotal {
+      font-size: 56px;
+      margin-bottom: 4px;
+    }
+    #scCobrar .ctotal-lbl { margin-bottom: 20px; }
+    /* El cbody se vuelve un grid de 2 columnas DESPUÉS del total */
+    #scCobrar .cbody {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 24px;
+      row-gap: 14px;
+      padding: 24px 28px 16px;
+      align-content: start;
+    }
+    /* Total y descuento ocupan todo el ancho en la parte superior */
+    #scCobrar .ctotal { grid-column: 1 / -1; }
+    #scCobrar .ctotal-lbl { grid-column: 1 / -1; }
+    #scCobrar #descTicketRow { grid-column: 1 / -1; }
+    /* Columna izquierda: efectivo + billetes + vuelto */
+    #scCobrar .efec-sec {
+      grid-column: 1;
+      margin-bottom: 0;
+    }
+    /* Columna derecha: métodos de pago */
+    #scCobrar .pay-list {
+      grid-column: 2;
+      grid-row: auto;
+      flex-direction: column;
+      gap: 10px;
+      align-self: start;
+      margin-top: 0;
+    }
+    /* Comprobante debajo de la columna derecha */
+    #scCobrar .comp-sec {
+      grid-column: 2;
+      margin-top: 4px;
+    }
+    /* Factura section queda fuera del grid — ocupa todo el ancho debajo */
+    #scCobrar > div[style*="padding: 0 20px"] {
+      padding: 0 28px !important;
+    }
+    /* Vuelto más grande y destacado en tablet */
+    #scCobrar .vuelto-row {
+      padding: 14px 18px;
+      margin-top: 12px;
+    }
+    #scCobrar .vuelto-amt {
+      font-size: 28px;
+    }
+    /* Pay buttons en tablet — un poco más chicos porque están en columna */
+    #scCobrar .pay-btn {
+      padding: 16px 18px;
+      font-size: 14px;
+    }
+    /* Billetes rápidos más grandes en tablet porque hay más espacio */
+    #scCobrar .billete-quick-btn {
+      padding: 14px 6px;
+      font-size: 14px;
     }
   }
 
