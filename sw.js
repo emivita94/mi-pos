@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260413-pedidopatch';
+const CACHE = 'ampersand-pos-v20260413-asistente';
 
 const ASSETS = [
   '/',
@@ -12,6 +12,7 @@ const ASSETS = [
   '/js/state.js',
   '/js/selectors.js',
   '/js/sounds.js',
+  '/js/asistente.js',
   '/js/ui.js',
   '/js/ventas.js',
   '/js/cobro.js',

@@ -1,6 +1,67 @@
 /* ── POS App Styles ── */
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
+  /* ── ASISTENTE DE VOZ (FAB flotante) ─────────────── */
+  .asist-fab {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(76,175,80,.4), 0 2px 8px rgba(0,0,0,.3);
+    cursor: pointer;
+    z-index: 9500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .asist-fab:active { transform: scale(.94); }
+  .asist-fab svg { position: relative; z-index: 2; }
+
+  /* Ondas animadas cuando escucha */
+  .asist-ondas {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .asist-ondas > span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid rgba(76,175,80,.7);
+    animation: asistOnda 1.6s ease-out infinite;
+  }
+  .asist-ondas > span:nth-child(2) { animation-delay: .5s; }
+  .asist-ondas > span:nth-child(3) { animation-delay: 1s; }
+
+  .asist-fab.escuchando {
+    background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+    box-shadow: 0 4px 32px rgba(229,57,53,.6), 0 2px 12px rgba(0,0,0,.4);
+    animation: asistPulse 1.2s ease-in-out infinite;
+  }
+  .asist-fab.escuchando .asist-ondas { display: flex; }
+  .asist-fab.escuchando .asist-ondas > span { border-color: rgba(229,57,53,.8); }
+
+  @keyframes asistOnda {
+    0%   { transform: scale(1);   opacity: .8; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  @keyframes asistPulse {
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.08); }
+  }
+
+  /* Ocultar el FAB en ciertas pantallas donde molesta */
+  #scActivacion ~ .asist-fab,
+  #scBloqueado ~ .asist-fab,
+  .screen#scActivacion.active ~ .asist-fab { display: none !important; }
+
   /* ── SPLASH SCREEN ───────────────────────────────── */
   #splashScreen {
     position: fixed; inset: 0; z-index: 99999;
