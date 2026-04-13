@@ -56,6 +56,9 @@ var _asistAliasMem = false;        // true cuando falló IndexedDB y vamos en me
 // Bloqueo global: mientras el asistente habla o está procesando,
 // NO aceptar ningún input del micrófono
 var _asistBloqueado = false;
+// Flag anti-doble-procesamiento: si ya recibimos un resultado final,
+// ignorar los que vengan después (evita latencia del motor de silencio)
+var _asistYaProcesó = false;
 
 // Inicializa el reconocimiento de voz — sólo se ejecuta una vez
 function _initAsistente(){
@@ -67,14 +70,17 @@ function _initAsistente(){
   }
   _recognition = new SR();
   _recognition.lang = 'es-PY';
-  _recognition.continuous = false;    // ONE-SHOT: escucha 1 frase y cierra
-  _recognition.interimResults = false; // sin resultados interinos
+  // MODO CONTINUO con interim — más rápido que one-shot porque
+  // podemos detectar el primer final y cortar inmediatamente
+  _recognition.continuous = true;
+  _recognition.interimResults = true;
   _recognition.maxAlternatives = 3;
 
   _recognition.onstart = function(){
     _asistEscuchando = true;
     _asistMostrarOndas(true);
-    console.log('[Asistente] Escuchando (one-shot)...');
+    _asistYaProcesó = false;
+    console.log('[Asistente] Escuchando (rápido)...');
   };
 
   _recognition.onresult = function(e){
@@ -83,22 +89,32 @@ function _initAsistente(){
       console.log('[Asistente] Resultado ignorado (bloqueado/hablando)');
       return;
     }
-    if(!e.results || !e.results.length) return;
-    var res = e.results[0];
-    if(!res || !res.isFinal) return;
+    if(_asistYaProcesó) return;
 
+    // Buscar el primer resultado FINAL disponible
+    var finalRes = null;
+    for(var i = e.resultIndex; i < e.results.length; i++){
+      var r = e.results[i];
+      if(r && r.isFinal){ finalRes = r; break; }
+    }
+    if(!finalRes) return;
+
+    _asistYaProcesó = true;
     var alternativas = [];
-    for(var k = 0; k < res.length; k++) alternativas.push(res[k].transcript);
+    for(var k = 0; k < finalRes.length; k++) alternativas.push(finalRes[k].transcript);
     console.log('[Asistente] Escuché:', alternativas);
 
     var textoCrudo = _asistNormalizar(alternativas[0] || '');
     if(!textoCrudo){
       toast('No te escuché');
+      _asistBloqueado = false;
+      try { _recognition.abort(); } catch(e){}
       return;
     }
 
-    // Bloquear cualquier nuevo input hasta que termine de responder
+    // Cerrar el mic INMEDIATAMENTE — no esperar que el motor decida
     _asistBloqueado = true;
+    try { _recognition.abort(); } catch(e){}
 
     // ¿Estamos esperando respuesta de disambiguación?
     if(_asistDisambiguacion){
@@ -1187,7 +1203,7 @@ function _asistHablar(texto){
     var u = new SpeechSynthesisUtterance();
     u.text = texto;
     u.lang = 'es-PY';
-    u.rate = 1.08;
+    u.rate = 1.18;  // más rápido (antes 1.08)
     u.volume = 1;
     if(typeof _findVozEs === 'function'){
       var v = _findVozEs();
@@ -1196,9 +1212,8 @@ function _asistHablar(texto){
 
     var desbloquear = function(){
       _asistHablando = false;
-      // Delay extra para que el eco del TTS no se capture si el usuario
-      // toca el mic muy rápido
-      setTimeout(function(){ _asistBloqueado = false; }, 500);
+      // Delay corto (200ms) para evitar eco pero permitir siguiente tap rápido
+      setTimeout(function(){ _asistBloqueado = false; }, 200);
     };
 
     u.onend = desbloquear;
