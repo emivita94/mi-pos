@@ -397,12 +397,39 @@ function _asistMostrarOndas(activo){
 
 // Crear el FAB al cargar la página
 function _asistCrearFab(){
-  if(document.getElementById('asistFab')) return;
+  if(!document.body){
+    console.warn('[Asistente] document.body no disponible aún, reintentando...');
+    setTimeout(_asistCrearFab, 200);
+    return;
+  }
+  if(document.getElementById('asistFab')){
+    console.log('[Asistente] FAB ya existe');
+    return;
+  }
   var fab = document.createElement('button');
   fab.id = 'asistFab';
   fab.className = 'asist-fab';
-  fab.title = 'Asistente de voz';
-  fab.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'
+  fab.title = 'Asistente de voz (toca para hablar)';
+  // Estilos inline como fallback en caso de que el CSS no cargue
+  fab.style.cssText = [
+    'position:fixed',
+    'bottom:24px',
+    'right:24px',
+    'width:62px',
+    'height:62px',
+    'border-radius:50%',
+    'background:linear-gradient(135deg,#4caf50 0%,#2e7d32 100%)',
+    'border:3px solid rgba(255,255,255,.25)',
+    'color:#fff',
+    'box-shadow:0 6px 28px rgba(76,175,80,.6),0 2px 10px rgba(0,0,0,.4)',
+    'cursor:pointer',
+    'z-index:999999',
+    'display:flex',
+    'align-items:center',
+    'justify-content:center',
+    'padding:0',
+  ].join(';');
+  fab.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:2;">'
     + '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>'
     + '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>'
     + '<line x1="12" y1="19" x2="12" y2="23"/>'
@@ -411,10 +438,24 @@ function _asistCrearFab(){
     + '<span class="asist-ondas"><span></span><span></span><span></span></span>';
   fab.onclick = asistenteEscuchar;
   document.body.appendChild(fab);
+  console.log('[Asistente] FAB creado y agregado al body ✓');
 }
 
+// Intentar crear el FAB en múltiples momentos para asegurar que se renderiza
+console.log('[Asistente] Script cargado, estado DOM:', document.readyState);
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', _asistCrearFab);
 } else {
   _asistCrearFab();
 }
+// Backup: también al window.load (por si acaso)
+window.addEventListener('load', function(){
+  if(!document.getElementById('asistFab')) _asistCrearFab();
+});
+// Último backup: después de 2 segundos, si aún no existe, crearlo
+setTimeout(function(){
+  if(!document.getElementById('asistFab')){
+    console.warn('[Asistente] FAB no se creó en el flujo normal, forzando...');
+    _asistCrearFab();
+  }
+}, 2000);
