@@ -1775,7 +1775,10 @@
     }
 
     /* ── scCobrar en tablet: layout 2 columnas ── */
-    #scCobrar {
+    /* IMPORTANTE: usar #scCobrar.active (no solo #scCobrar) para no
+       romper el display:none de .screen. El ID gana en especificidad
+       sobre .screen si no se limita a .active. */
+    #scCobrar.active {
       left: 50%;
       right: auto;
       width: 100%;

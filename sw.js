@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260413-satfixvoz';
+const CACHE = 'ampersand-pos-v20260413-startupfix';
 
 const ASSETS = [
   '/',

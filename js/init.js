@@ -76,6 +76,16 @@ async function iniciarApp(){
   if(_vEl) _vEl.textContent = APP_VERSION + ' · by Nodo Informática';
   const _vCfg = document.getElementById('configVersion');
   if(_vCfg) _vCfg.textContent = APP_VERSION + ' · by Nodo Informática';
+
+  // ── Sanear hash de URL residual ──────────────────────────
+  // Si la URL tiene un hash como #scCobrar (porque la app se cerro
+  // en medio de un cobro), ignorarlo y limpiar para que el arranque
+  // decida correctamente a que pantalla ir.
+  if(window.location.hash){
+    try {
+      window.history.replaceState({}, '', window.location.pathname);
+    } catch(e){}
+  }
   // ─────────────────────────────────────────────────────────
   // ── PASO 0: Leer modo de terminal desde activaciones ─────
   // DEBE ejecutarse primero: determina si este dispositivo es
