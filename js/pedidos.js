@@ -127,35 +127,83 @@ async function sateliteEnviarPedido(){
     updated_at:      new Date().toISOString(),
   };
 
+  // ── Detectar si hay un pedido Supabase existente para ACTUALIZAR ──────────
+  // Si el mesero vuelve a entrar a la mesa y agrega items, el pendiente local
+  // tiene supabasePedidoId del pedido original. En ese caso hacemos PATCH
+  // para actualizar items y total, en vez de crear un POST nuevo que
+  // generaria dos pedidos separados para la misma mesa.
+  var existingSupabaseId = null;
+  if(currentTicketNro !== null){
+    var existente = pendientes.find(function(p){ return p.nro === currentTicketNro; });
+    if(existente && existente.supabasePedidoId && existente.esSatelite){
+      existingSupabaseId = existente.supabasePedidoId;
+    }
+  }
+
   // ── Intentar sincronizar con Supabase ────────────────────────────────────
   let supaOk = false;
-  let supabasePedidoId = null; // UUID devuelto por Supabase
+  let supabasePedidoId = existingSupabaseId; // preservar el UUID si hay uno
   if(navigator.onLine && email && !USAR_DEMO){
-    try{
-      const res = await fetch(SUPA_URL + '/rest/v1/pos_pedidos', {
-        method:  'POST',
-        headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
-        body: JSON.stringify(pedidoData),
-      });
-      supaOk = res.ok;
-      if(!res.ok){
-        const errText = await res.text();
-        console.warn('[Satélite] Error al enviar pedido a Supabase:', res.status, errText);
-        if(res.status === 404 || res.status === 400){
-          console.warn('[Satélite] Tabla pos_pedidos no encontrada. Ejecutar SQL de setup.');
+    if(existingSupabaseId){
+      // PATCH: actualizar el pedido existente
+      try {
+        var patchUrl = SUPA_URL + '/rest/v1/pos_pedidos?id=eq.' + encodeURIComponent(existingSupabaseId);
+        // En el PATCH NO cambiamos tipo_pedido — mantener el original.
+        // El "adicional" no aplica: es el MISMO pedido con mas items.
+        var patchBody = {
+          items:      pedidoData.items,
+          total:      pedidoData.total,
+          updated_at: new Date().toISOString(),
+        };
+        const resP = await fetch(patchUrl, {
+          method:  'PATCH',
+          headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+          body: JSON.stringify(patchBody),
+        });
+        supaOk = resP.ok;
+        if(resP.ok){
+          console.log('[Satélite] Pedido ' + existingSupabaseId + ' ACTUALIZADO (PATCH). Total:', pedidoData.total);
+        } else {
+          const errText = await resP.text();
+          console.warn('[Satélite] Error actualizando pedido:', resP.status, errText);
+          // Fallback: si el PATCH falla (404 = el row no existe o fue cobrado),
+          // crear un pedido NUEVO con POST
+          existingSupabaseId = null;
+          supabasePedidoId = null;
         }
-      } else {
-        // Capturar el UUID que asignó Supabase — crítico para reconciliación
-        try {
-          var inserted = await res.json();
-          if(inserted && inserted[0] && inserted[0].id){
-            supabasePedidoId = inserted[0].id;
-          }
-        } catch(ep){ console.warn('[Satélite] No se pudo leer UUID del response'); }
-        console.log('[Satélite] Pedido #' + nroOrden + ' sincronizado. ID:', supabasePedidoId);
+      } catch(e){
+        console.warn('[Satélite] Sin conexión al actualizar pedido:', e.message);
+        existingSupabaseId = null; // intentar POST como fallback
       }
-    } catch(e){
-      console.warn('[Satélite] Sin conexión al enviar pedido:', e.message);
+    }
+
+    if(!existingSupabaseId){
+      // POST: crear pedido nuevo
+      try{
+        const res = await fetch(SUPA_URL + '/rest/v1/pos_pedidos', {
+          method:  'POST',
+          headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+          body: JSON.stringify(pedidoData),
+        });
+        supaOk = res.ok;
+        if(!res.ok){
+          const errText = await res.text();
+          console.warn('[Satélite] Error al enviar pedido a Supabase:', res.status, errText);
+          if(res.status === 404 || res.status === 400){
+            console.warn('[Satélite] Tabla pos_pedidos no encontrada. Ejecutar SQL de setup.');
+          }
+        } else {
+          try {
+            var inserted = await res.json();
+            if(inserted && inserted[0] && inserted[0].id){
+              supabasePedidoId = inserted[0].id;
+            }
+          } catch(ep){ console.warn('[Satélite] No se pudo leer UUID del response'); }
+          console.log('[Satélite] Pedido #' + nroOrden + ' CREADO (POST). ID:', supabasePedidoId);
+        }
+      } catch(e){
+        console.warn('[Satélite] Sin conexión al enviar pedido:', e.message);
+      }
     }
   }
 
@@ -204,13 +252,16 @@ async function sateliteEnviarPedido(){
   guardarPendientesLocal();
 
   // ── Feedback al mesero ───────────────────────────────────────────────────
+  // Si se actualizo un pedido existente, el mensaje lo refleja.
+  var fueActualizacion = existingSupabaseId != null;
   const mesaMsg  = mesaNombre
-    ? (esAdicional ? 'Adicional Mesa ' + mesaNombre : 'Mesa ' + mesaNombre)
+    ? 'Mesa ' + mesaNombre
     : (tipo === 'delivery' ? 'Delivery' : 'Para llevar');
   const syncMsg  = supaOk
     ? ' — caja notificada'
     : ' — sin conexión, guardado local';
-  toast('Pedido #' + String(nro).padStart(4, '0') + ' enviado · ' + mesaMsg + syncMsg);
+  var verbo = fueActualizacion ? 'actualizado' : 'enviado';
+  toast('Pedido #' + String(nro).padStart(4, '0') + ' ' + verbo + ' · ' + mesaMsg + syncMsg);
 
   // ── Limpiar estado para próximo pedido ───────────────────────────────────
   clearCart();
