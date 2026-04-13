@@ -17,17 +17,25 @@ async function sincronizarConfigNegocio(){
       try {
         const val = JSON.parse(row.valor||'{}');
         if(row.clave === 'negocio_config'){
-          if(val.an)  configData.negocio   = val.an;
-          if(val.ar)  configData.ruc        = val.ar;
-          if(val.ad)  configData.direccion  = val.ad;
-          if(val.ciudad) configData.ciudad  = val.ciudad;
-          if(val.at)  configData.telefono   = val.at;
+          // IMPORTANTE: si el usuario ya tiene datos guardados localmente
+          // (localStorage), NO pisarlos con lo que venga de Supabase. Solo
+          // usar los datos de Supabase como fallback cuando no hay local.
+          // Esto evita que datos viejos/de otra cuenta sobreescriban lo
+          // que el usuario acaba de guardar.
+          if(val.an && !localStorage.getItem('an'))  configData.negocio   = val.an;
+          if(val.ar && !localStorage.getItem('ar'))  configData.ruc        = val.ar;
+          if(val.ad && !localStorage.getItem('ad'))  configData.direccion  = val.ad;
+          if(val.ciudad && !localStorage.getItem('ciudad')) configData.ciudad = val.ciudad;
+          if(val.at && !localStorage.getItem('at'))  configData.telefono   = val.at;
           if(val.email_negocio) configData.email = val.email_negocio;
-          if(val.pie_recibo)    configData.pie_recibo  = val.pie_recibo;
-          if(val.mostrar_ruc)   configData.mostrar_ruc = val.mostrar_ruc;
-          if(val.moneda)        configData.moneda = val.moneda;
-          Object.entries(val).forEach(([k,v])=>{ if(v) localStorage.setItem(k,v); });
-          console.log('[Config] Negocio:', configData.negocio, '| RUC:', configData.ruc);
+          if(val.pie_recibo && !localStorage.getItem('pie_recibo'))    configData.pie_recibo  = val.pie_recibo;
+          if(val.mostrar_ruc !== undefined && !localStorage.getItem('mostrar_ruc')) configData.mostrar_ruc = val.mostrar_ruc;
+          if(val.moneda && !localStorage.getItem('moneda')) configData.moneda = val.moneda;
+          // Solo persistir a localStorage las claves que NO existen aún
+          Object.entries(val).forEach(([k,v])=>{
+            if(v && !localStorage.getItem(k)) localStorage.setItem(k,v);
+          });
+          console.log('[Config] Negocio (sync Supabase):', configData.negocio, '| RUC:', configData.ruc);
         }
       } catch(e){ console.warn('[Config] Error parsing', row.clave, e.message); }
     });
@@ -1563,6 +1571,41 @@ function saveGeneralConfig(){
   localStorage.setItem('pos_comandas', configData.comandasHabilitadas ? '1' : '0');
   // Mostrar u ocultar botón comanda en cobro
   updBtnComandaCobro();
+  // Persistir también en Supabase (debounced para no spammear en cada tecla)
+  _guardarConfigSupabaseDebounced();
+}
+
+// Debounce de 1s para no mandar un POST a Supabase por cada tecla
+var _saveConfigTimer = null;
+function _guardarConfigSupabaseDebounced(){
+  clearTimeout(_saveConfigTimer);
+  _saveConfigTimer = setTimeout(_guardarConfigSupabase, 1000);
+}
+
+async function _guardarConfigSupabase(){
+  var email = localStorage.getItem('lic_email');
+  if(!email || typeof USAR_DEMO !== 'undefined' && USAR_DEMO) return;
+  if(typeof supaPost !== 'function') return;
+  try {
+    var payload = {
+      licencia_email: email,
+      clave: 'negocio_config',
+      valor: JSON.stringify({
+        an: configData.negocio || '',
+        ar: configData.ruc || '',
+        ad: configData.direccion || '',
+        at: configData.telefono || '',
+        ciudad: configData.ciudad || '',
+        pie_recibo: configData.pie_recibo || '',
+        mostrar_ruc: configData.mostrar_ruc || '',
+        moneda: configData.moneda || '',
+      }),
+    };
+    await supaPost('pos_config', payload, 'licencia_email,clave', true);
+    console.log('[Config] Guardado en Supabase ✓');
+  } catch(e){
+    console.warn('[Config] Error guardando en Supabase:', e.message);
+  }
 }
 
 // -- Modificadores: ver js/productos.js --
