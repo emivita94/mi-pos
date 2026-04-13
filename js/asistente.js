@@ -695,425 +695,289 @@ function _asistIrA(screenId){
   }
 }
 
-// ── EXTRAER DELIVERY de frases como "con delivery de 5 mil" ──
-// Devuelve {monto, textoLimpio} o null
-function _asistExtraerDelivery(texto){
-  // Patrones: "con delivery de X", "delivery X", "con envio de X", "envio de X"
-  var patrones = [
-    /\s+con\s+delivery\s+de\s+(.+)$/,
-    /\s+con\s+envio\s+de\s+(.+)$/,
-    /\s+delivery\s+(?:de\s+)?(.+)$/,
-    /\s+envio\s+(?:de\s+)?(.+)$/,
-    /\s+con\s+delivery\s*$/,
-    /\s+delivery\s*$/
-  ];
-  for(var i = 0; i < patrones.length; i++){
-    var m = texto.match(patrones[i]);
-    if(m){
-      var monto = null;
-      if(m[1]){
-        var info = _asistExtraerNumero(m[1]);
-        if(info) monto = info.valor;
-        else monto = _asistParsearNumeroHablado(m[1]);
-      }
-      return {
-        monto: monto && !isNaN(monto) ? monto : null,
-        textoLimpio: texto.replace(patrones[i], '').trim()
-      };
-    }
-  }
-  return null;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ASISTENTE CONSULTIVO — solo responde preguntas sobre el negocio
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// El asistente NO agrega productos ni navega. Responde preguntas sobre:
+//   - Ventas del turno (totales, cantidad, promedio, máxima)
+//   - Cobros por método de pago (efectivo, POS, transferencia)
+//   - Caja (saldo, efectivo inicial, egresos)
+//   - Productos más vendidos
+//   - Información del turno (inicio, duración)
+//   - Mesas ocupadas
+//   - Resumen general
+//
+// Si el usuario intenta operar (agregar/cobrar/navegar), responde que debe
+// usar los botones de la pantalla.
+
+// ── Helpers de cálculo ──
+function _asistTotalVentas(){
+  if(typeof turnoData === 'undefined' || !turnoData.ventas) return { total: 0, cantidad: 0 };
+  var ventas = turnoData.ventas.filter(function(v){ return !v.anulada; });
+  var total = ventas.reduce(function(s, v){ return s + (v.total || 0); }, 0);
+  return { total: total, cantidad: ventas.length };
 }
 
-// ── INTENTS ──
-function _asistIntentAgregar(texto){
-  // Verbos de agregar — muy permisivo con voseo/tuteo/imperativo
-  var verbosAdd = /^(agregar|agreg[aá]|agregame|agregale|agregal[eé]|a[nñ]adir|a[nñ]ade|a[nñ]ad[ií]|poner|pon[eé]|poneme|ponele|ponel[eé]|traer|tra[eé]|traeme|traem[eé]|sumar|sum[aá]|sumale|cargar|carg[aá]|meter|met[eé]|vamos?\s+con|vamo\s+con|dame|d[aá]me|vendeme|venderme|vend[eé]me|vender|vend[eé]|vende|facturame|facturar|factur[aá]|cobrame|querer|quiero|quisiera|necesito|mete|mand[aá]me|mandame|mandale)\s+/;
-  var tieneVerbo = verbosAdd.test(texto);
-  var cuerpo = tieneVerbo ? texto.replace(verbosAdd,'') : texto;
-
-  // Primero, extraer información de delivery si hay
-  var deliveryInfo = _asistExtraerDelivery(cuerpo);
-  if(deliveryInfo){
-    cuerpo = deliveryInfo.textoLimpio;
-  }
-
-  if(!tieneVerbo){
-    var primera = cuerpo.split(' ')[0];
-    var esNum = /^\d/.test(primera) || _asistParsearNumeroHablado(primera) > 0 ||
-                /^(un|una|uno)$/.test(primera);
-    if(!esNum && !deliveryInfo) return false;
-  }
-
-  // Split por conectores
-  var partes = cuerpo.split(/\s+(?:y|mas|más|tambien|también|luego|despues|después|,)\s+/);
-  var algoAgregado = false;
-  var resumen = [];
-
-  for(var i = 0; i < partes.length; i++){
-    var parte = partes[i].trim();
-    if(!parte) continue;
-
-    var cantidad = 1;
-    var nombre = parte;
-    var num = _asistExtraerNumero(parte);
-    if(num && num.inicio === 0 && num.valor < 100){
-      cantidad = num.valor;
-      nombre = parte.split(' ').slice(num.fin).join(' ').trim();
-      nombre = nombre.replace(/^de\s+/,'');
-    }
-    if(!nombre) continue;
-
-    var busq = _buscarProductosConAlternativas(nombre);
-    var prod = busq.mejor;
-    if(!prod){
-      // No encontró nada arriba del threshold — probar una búsqueda permisiva
-      // como último recurso: buscar el mejor match global (aunque score bajo)
-      var permisivo = _asistBuscarPermisivo(nombre);
-      if(permisivo){
-        _asistHablar('¿Quisiste decir ' + permisivo.name + '? Tocá la pantalla o volvé a pedir');
-      } else {
-        _asistHablar('No encontré ' + nombre + '. Probá con otro nombre');
-      }
-      continue;
-    }
-    if(typeof addCart !== 'function'){
-      _asistHablar('No puedo agregar en esta pantalla');
-      return true;
-    }
-
-    // ¿Hay varios candidatos muy cercanos? → disambiguar
-    if(busq.alternativas && busq.alternativas.length > 1 && !busq.viaAlias){
-      (function(cantFinal, nombreOrig, candidatos){
-        _asistPedirDisambiguacion(candidatos, nombreOrig, function(elegido){
-          if(!elegido) return;
-          _asistIrA('scSale');
-          for(var k = 0; k < cantFinal; k++) addCart(elegido.id);
-          _asistAliasGuardar(nombreOrig, elegido);
-          _asistHablar(_asistFrase('agregado', {n: cantFinal, p: elegido.name}));
-        });
-      })(cantidad, nombre, busq.alternativas);
-      algoAgregado = true;
-      // No pusheamos al resumen porque se responde desde el callback
-      continue;
-    }
-
-    _asistIrA('scSale');
-    for(var k = 0; k < cantidad; k++) addCart(prod.id);
-    // Guardar alias si el match no fue exacto
-    if(!busq.viaAlias && busq.mejorScore < 0.9){
-      _asistAliasGuardar(nombre, prod);
-    }
-    algoAgregado = true;
-    resumen.push(cantidad + ' ' + prod.name);
-  }
-
-  // Aplicar delivery si se detectó
-  if(deliveryInfo && algoAgregado){
-    setTimeout(function(){
-      if(typeof setTipoPedido === 'function') setTipoPedido('delivery');
-      if(deliveryInfo.monto != null && typeof agregarMontoDelivery === 'function'){
-        // agregarMontoDelivery lee del input, hay que setearlo primero
-        var inp = document.getElementById('tabDeliveryMonto');
-        if(inp){ inp.value = deliveryInfo.monto; }
-        agregarMontoDelivery();
-      }
-    }, 300);
-  }
-
-  if(algoAgregado && resumen.length){
-    var msgDelivery = deliveryInfo
-      ? ' con delivery' + (deliveryInfo.monto ? ' de ' + Number(deliveryInfo.monto).toLocaleString('es-PY') : '')
-      : '';
-    var msg = resumen.length === 1
-      ? _asistFrase('agregado', {n: resumen[0].split(' ')[0], p: resumen[0].split(' ').slice(1).join(' ')}) + msgDelivery
-      : 'Listo, agregué ' + resumen.join(' y ') + msgDelivery;
-    _asistHablar(msg);
-  }
-  return algoAgregado || tieneVerbo;
-}
-
-function _asistIntentQuitar(texto){
-  if(!/^(quitar|quit[aá]|sacar|sac[aá]|eliminar|elimin[aá]|borrar|borr[aá]|remover|remov[eé]|deshacer)\b/.test(texto)) return false;
-
-  if(/ultimo|anterior|deshacer/.test(texto)){
-    if(typeof cart !== 'undefined' && cart && cart.length && typeof chgQty === 'function'){
-      var last = cart[cart.length - 1];
-      chgQty(last.lineId || last.id, -1);
-      _asistHablar(_asistFrase('quitado', {p: last.name || 'el último'}));
-      return true;
-    }
-  }
-
-  var nombre = texto.replace(/^(quitar|quit[aá]|sacar|sac[aá]|eliminar|elimin[aá]|borrar|borr[aá]|remover|remov[eé])\s+/,'').trim();
-  if(!nombre){ _asistHablar('¿Qué querés quitar?'); return true; }
-
-  var prod = _buscarProducto(nombre);
-  if(!prod){ _asistHablar('No encontré ' + nombre); return true; }
-  if(typeof cart === 'undefined' || !cart || !cart.length){
-    _asistHablar('El carrito está vacío'); return true;
-  }
-  for(var i = cart.length - 1; i >= 0; i--){
-    if(cart[i].prodId === prod.id || cart[i].id === prod.id){
-      if(typeof chgQty === 'function'){
-        chgQty(cart[i].lineId || cart[i].id, -1);
-        _asistHablar(_asistFrase('quitado', {p: prod.name}));
-        return true;
-      }
-    }
-  }
-  _asistHablar('No tenés ' + prod.name + ' en el ticket');
-  return true;
-}
-
-function _asistIntentCobrar(texto){
-  if(/^(confirmar|confirm[aá]|finalizar|finaliz[aá]|aceptar|acept[aá])/.test(texto) ||
-     /confirmar\s+(pago|cobro|venta)/.test(texto)){
-    var sc = _asistPantallaActiva();
-    if(sc === 'scCobrar' && typeof confirmarPago === 'function'){
-      _asistHablar(_asistFrase('confirmado'));
-      setTimeout(function(){ confirmarPago(); }, 450);
+function _asistTotalPorMetodo(){
+  if(typeof turnoData === 'undefined' || !turnoData.ventas) return {};
+  var metodos = {};
+  turnoData.ventas.forEach(function(v){
+    if(v.anulada) return;
+    var acumular = function(m, monto){
+      m = (m || 'EFECTIVO').toUpperCase().trim();
+      metodos[m] = (metodos[m] || 0) + monto;
+    };
+    if(v.divPagos && v.divPagos.length > 0){
+      v.divPagos.forEach(function(p){ acumular(p.metodo, p.monto || 0); });
+    } else if(v.metodo && v.metodo.indexOf(' + ') >= 0){
+      var partes = v.metodo.split(' + ');
+      var montoParte = Math.round(v.total / partes.length);
+      partes.forEach(function(p, i){
+        var m = i === partes.length - 1 ? v.total - montoParte * (partes.length - 1) : montoParte;
+        acumular(p, m);
+      });
     } else {
-      _asistHablar('Primero andá a la pantalla de cobro');
+      acumular(v.metodo, v.total);
     }
-    return true;
-  }
-
-  if(/(efectivo\s+justo|^justo|monto\s+exacto|^exacto|pago\s+justo)/.test(texto) && !/cobrar/.test(texto)){
-    if(typeof setEfectivoJusto === 'function'){
-      setEfectivoJusto();
-      _asistHablar('Efectivo justo');
-      if(/ya|confirm/.test(texto) && typeof confirmarPago === 'function'){
-        setTimeout(function(){ confirmarPago(); }, 500);
-      }
-      return true;
-    }
-    return false;
-  }
-
-  var mRecibi = texto.match(/^(recibi|me\s+dio|me\s+pago|me\s+pag[oó]|pago\s+con|me\s+entreg[oó])\s+(.+)/);
-  if(mRecibi){
-    var monto = _asistParsearNumeroHablado(mRecibi[2]);
-    if(!isNaN(monto) && monto > 0){
-      if(_asistPantallaActiva() !== 'scCobrar' && typeof goCobrar === 'function'){
-        goCobrar();
-      }
-      setTimeout(function(){
-        if(typeof setEfectivoBillete === 'function'){
-          setEfectivoBillete(monto);
-          _asistHablar('Recibido ' + Number(monto).toLocaleString('es-PY'));
-        }
-      }, 400);
-      return true;
-    }
-  }
-
-  var mCobrar = texto.match(/^(cobrar|cobr[aá]|cobrame|pasar\s+a\s+cobro|ir\s+a\s+cobrar)\b(.*)$/);
-  if(!mCobrar) return false;
-  var resto = (mCobrar[2] || '').trim();
-
-  var metodo = null;
-  if(/\b(efectivo|plata|cash|billete|contado)\b/.test(resto))      metodo = 'efectivo';
-  else if(/\b(tarjeta|pos|debito|credito|crédito|débito|posnet)\b/.test(resto)) metodo = 'pos';
-  else if(/\b(transfer|transferencia|giro|qr|bancard|sipap)\b/.test(resto))     metodo = 'transferencia';
-
-  var numInfo = _asistExtraerNumero(resto);
-  var montoC  = numInfo ? numInfo.valor : null;
-  var esJusto = /\bjusto\b|\bexacto\b/.test(resto);
-  var confirmarAlFinal = /\bya\b|\bconfirmar?\b|\bfinaliz/.test(resto);
-
-  if(typeof calcTotal === 'function' && calcTotal() === 0){
-    _asistHablar(_asistFrase('vacio')); return true;
-  }
-  if(typeof goCobrar !== 'function'){
-    _asistHablar('No puedo cobrar desde esta pantalla'); return true;
-  }
-
-  goCobrar();
-  _asistHablar(_asistFrase('cobrando'));
-
-  setTimeout(function(){
-    if(metodo) _seleccionarMetodoPago(metodo);
-    if(esJusto && typeof setEfectivoJusto === 'function'){
-      setEfectivoJusto();
-    } else if(montoC && typeof setEfectivoBillete === 'function'){
-      setEfectivoBillete(montoC);
-    }
-    if(confirmarAlFinal && typeof confirmarPago === 'function'){
-      setTimeout(function(){ confirmarPago(); }, 500);
-    }
-  }, 450);
-  return true;
-}
-
-function _seleccionarMetodoPago(metodo){
-  if(typeof selPay !== 'function') return;
-  var btns = document.querySelectorAll('.pay-btn');
-  for(var i = 0; i < btns.length; i++){
-    var txt = _asistNormalizar(btns[i].textContent || '');
-    if(metodo === 'pos' && (txt.indexOf('pos') >= 0 || txt.indexOf('tarjeta') >= 0 || txt.indexOf('debito') >= 0 || txt.indexOf('credito') >= 0)){
-      selPay(btns[i], 'pos'); return;
-    }
-    if(metodo === 'transferencia' && (txt.indexOf('transfer') >= 0 || txt.indexOf('giro') >= 0)){
-      selPay(btns[i], 'transferencia'); return;
-    }
-    if(metodo === 'efectivo' && (txt.indexOf('efectivo') >= 0 || txt.indexOf('cash') >= 0)){
-      selPay(btns[i], 'efectivo'); return;
-    }
-  }
-}
-
-function _asistIntentMesa(texto){
-  if(/^(mostrar|ver|abrir|ir\s+a)\s+(las\s+)?mesas\b/.test(texto) ||
-     /^pantalla\s+de\s+mesas/.test(texto) || texto === 'mesas'){
-    _asistIrA('scMesas');
-    _asistHablar('Pantalla de mesas');
-    return true;
-  }
-  var m = texto.match(/\bmesa\s+(.+)$/);
-  if(!m) m = texto.match(/(?:pasame|pasar|cambiar|ir|abrir|abri)\s+a\s+la\s+mesa\s+(.+)$/);
-  if(m){
-    var info = _asistExtraerNumero(m[1]);
-    var nro = info ? info.valor : parseInt(m[1]);
-    if(isNaN(nro)){ _asistHablar('¿Qué mesa?'); return true; }
-    _abrirMesaPorVoz(nro);
-    return true;
-  }
-  return false;
-}
-
-function _abrirMesaPorVoz(nro){
-  if(typeof mesasMesas === 'undefined' || !mesasMesas.length){
-    _asistHablar('No hay mesas configuradas'); return;
-  }
-  var mesa = mesasMesas.find(function(m){
-    if(!m || !m.nombre) return false;
-    var n = String(m.nombre);
-    return n == String(nro) || n == ('Mesa ' + nro) ||
-           n.match(new RegExp('\\b' + nro + '\\b'));
   });
-  if(!mesa){ _asistHablar('No encontré la mesa ' + nro); return; }
-  if(typeof onMesaTap === 'function'){
-    onMesaTap(mesa.id);
-    _asistHablar('Abriendo mesa ' + nro);
-  }
+  return metodos;
 }
 
-function _asistIntentNavegacion(texto){
-  if(/^(ir\s+a\s+ventas|pantalla\s+de\s+ventas|^ventas$|nueva\s+venta|limpiar|vaciar\s+carrito)/.test(texto)){
-    if(/nueva\s+venta|limpiar|vaciar/.test(texto)){
-      if(typeof nuevaVenta === 'function'){ nuevaVenta(); _asistHablar('Nueva venta'); }
-      else if(typeof finalizarRecibo === 'function'){ finalizarRecibo(); _asistHablar('Nueva venta'); }
-      return true;
-    }
-    _asistIrA('scSale'); _asistHablar('Ventas'); return true;
-  }
-  if(/^(configuraci[oó]n|ajustes|config)\b/.test(texto)){
-    _asistIrA('scConfig'); _asistHablar('Configuración'); return true;
-  }
-  if(/^(ver\s+)?pendientes\b/.test(texto)){
-    _asistIrA('scPendientes'); _asistHablar('Pendientes'); return true;
-  }
-  if(/^(atras|atr[aá]s|volver|salir|cancelar)\b/.test(texto)){
-    if(typeof history !== 'undefined' && history.back){ history.back(); }
-    _asistHablar('Atrás'); return true;
-  }
-  return false;
+function _asistProductosVendidos(){
+  if(typeof turnoData === 'undefined' || !turnoData.ventas) return [];
+  var conteo = {};
+  turnoData.ventas.forEach(function(v){
+    if(v.anulada || !v.items) return;
+    v.items.forEach(function(i){
+      if(!i || !i.name || i.esDescuento || i.esDelivery) return;
+      var nombre = i.name;
+      if(!conteo[nombre]) conteo[nombre] = { cantidad: 0, total: 0 };
+      conteo[nombre].cantidad += (i.qty || 1);
+      conteo[nombre].total    += (i.price || 0) * (i.qty || 1);
+    });
+  });
+  var arr = Object.keys(conteo).map(function(k){
+    return { name: k, cantidad: conteo[k].cantidad, total: conteo[k].total };
+  });
+  arr.sort(function(a, b){ return b.cantidad - a.cantidad; });
+  return arr;
 }
 
-function _asistIntentTurno(texto){
-  if(/^(abrir|iniciar|comenzar)\s+(turno|caja)/.test(texto)){
-    _asistIrA('scShift'); _asistHablar('Pantalla de turno');
-    return true;
-  }
-  if(/^(cerrar|finalizar|terminar)\s+(turno|caja)/.test(texto)){
-    if(typeof cerrarTurno === 'function'){ cerrarTurno(); _asistHablar('Cerrando turno'); }
-    else { _asistHablar('No puedo cerrar el turno'); }
-    return true;
-  }
-  if(/(que\s+hay\s+en\s+(la\s+)?caja|saldo\s+(de\s+)?caja|cuanto\s+(hay|tengo)\s+en\s+caja|cuanto\s+efectivo)/.test(texto)){
-    if(typeof calcSaldoEsperado === 'function'){
-      var saldo = calcSaldoEsperado();
-      _asistHablar('En caja hay ' + Number(saldo||0).toLocaleString('es-PY') + ' guaraníes');
-    } else _asistHablar('No puedo calcular la caja');
-    return true;
-  }
-  return false;
+function _asistTotalEgresos(){
+  if(typeof turnoData === 'undefined' || !turnoData.egresos) return 0;
+  return turnoData.egresos.filter(function(e){ return !e.anulada; })
+    .reduce(function(s, e){ return s + (e.monto || 0); }, 0);
 }
 
-function _asistIntentConsulta(texto){
-  if(/(cuanto\s+vend[ií]|cuanto\s+llevo|cuantas\s+ventas|total\s+del\s+turno|total\s+de\s+ventas|llevo\s+vendido)/.test(texto)){
-    _responderTotalTurno(); return true;
-  }
-  return false;
+function _asistFmt(n){
+  return Number(Math.round(n || 0)).toLocaleString('es-PY');
 }
 
-function _responderTotalTurno(){
-  if(typeof turnoData === 'undefined' || !turnoData.ventas){
-    _asistHablar('No hay turno abierto'); return;
-  }
-  var total = turnoData.ventas.reduce(function(s,v){ return s + (v.total||0); }, 0);
-  var n = turnoData.ventas.length;
-  if(!n){ _asistHablar('Todavía no hay ventas en este turno'); return; }
-  _asistHablar('Llevás ' + n + ' ventas por ' + Number(total).toLocaleString('es-PY') + ' guaraníes');
-}
-
-function _asistIntentImprimir(texto){
-  if(!/(imprimir|imprim[íi]|reimprimir)/.test(texto)) return false;
-  if(/comanda/.test(texto)){
-    if(typeof imprimirComandaActual === 'function'){ imprimirComandaActual(); _asistHablar('Imprimiendo comanda'); return true; }
-  }
-  if(typeof imprimirTicketActual === 'function'){ imprimirTicketActual(); _asistHablar('Imprimiendo ticket'); return true; }
-  if(typeof imprimirRecibo === 'function'){ imprimirRecibo(); _asistHablar('Imprimiendo'); return true; }
-  _asistHablar('No puedo imprimir desde acá');
-  return true;
-}
-
-function _asistIntentDelivery(texto){
-  // "cambiar a delivery", "modo delivery"
-  if(/^(modo\s+delivery|delivery$|cambiar\s+a\s+delivery|poner\s+delivery)/.test(texto)){
-    if(typeof setTipoPedido === 'function') setTipoPedido('delivery');
-    _asistHablar('Modo delivery');
-    return true;
-  }
-  if(/^(modo\s+)?(para\s+)?llevar$/.test(texto)){
-    if(typeof setTipoPedido === 'function') setTipoPedido('llevar');
-    _asistHablar('Para llevar'); return true;
-  }
-  if(/^(modo\s+)?local$/.test(texto)){
-    if(typeof setTipoPedido === 'function') setTipoPedido('local');
-    _asistHablar('Local'); return true;
-  }
-  return false;
-}
+// ── INTENTS CONSULTIVOS ────────────────────────────────────────
 
 function _asistIntentAyuda(texto){
-  if(!/^(ayuda|help|que\s+puedo\s+decir|que\s+entend[eé]s|comandos)/.test(texto)) return false;
-  _asistHablar('Podés decir: vendeme dos pizzas, cobrá con tarjeta, recibí cien mil, abrí mesa cinco, cuánto vendí hoy, imprimí ticket, nueva venta, o con delivery de cinco mil');
+  if(!/^(ayuda|help|hola|que\s+puedo\s+preguntarte?|que\s+puedo\s+decir|que\s+entend[eé]s|comandos|que\s+sab[eé]s\s+hacer)/.test(texto)) return false;
+  _asistHablar('Puedo responderte: cuánto vendiste, cuál es el ticket promedio, cuánto hay en caja, qué producto vendiste más, cuánto cobraste en efectivo, resumen del turno, o cuántas mesas ocupadas.');
   return true;
 }
 
-// Lista los primeros N productos activos
-function _asistIntentListarProductos(texto){
-  if(!/^(que\s+productos|listar?\s+productos|que\s+tenes|que\s+vend[eé]s|mostrar?\s+productos|cuales?\s+son\s+los\s+productos)/.test(texto)) return false;
-  if(typeof PRODS === 'undefined' || !PRODS.length){
-    _asistHablar('No hay productos cargados'); return true;
+function _asistIntentTotalVentas(texto){
+  if(!/(cuanto\s+vend[ií]|cuanto\s+llevo\s+vendid|total\s+del?\s+(turno|ventas?|d[ií]a)|llevo\s+vendido|llevo\s+hecho|vent(as)?\s+del\s+d[ií]a|vent(as)?\s+hoy|hice\s+hoy|gane\s+hoy|cuanto\s+hice|facturaci[oó]n)/.test(texto)) return false;
+  var r = _asistTotalVentas();
+  if(r.cantidad === 0){ _asistHablar('Todavía no hay ventas en este turno'); return true; }
+  _asistHablar('Llevás ' + r.cantidad + ' ventas por ' + _asistFmt(r.total) + ' guaraníes');
+  return true;
+}
+
+function _asistIntentCantidadVentas(texto){
+  if(!/(cuantas\s+ventas|cantidad\s+de\s+ventas|n[uú]mero\s+de\s+ventas|ventas\s+(hay|llevo|hice))/.test(texto)) return false;
+  var r = _asistTotalVentas();
+  if(r.cantidad === 0){ _asistHablar('Todavía no hay ventas'); return true; }
+  _asistHablar('Llevás ' + r.cantidad + ' venta' + (r.cantidad !== 1 ? 's' : '') + ' en este turno');
+  return true;
+}
+
+function _asistIntentPromedio(texto){
+  if(!/(ticket\s+promedio|venta\s+promedio|promedio\s+(de\s+)?(ventas?|ticket)|media\s+de\s+ventas?|^promedio)/.test(texto)) return false;
+  var r = _asistTotalVentas();
+  if(r.cantidad === 0){ _asistHablar('No hay ventas aún'); return true; }
+  var prom = Math.round(r.total / r.cantidad);
+  _asistHablar('Ticket promedio: ' + _asistFmt(prom) + ' guaraníes');
+  return true;
+}
+
+function _asistIntentVentaMax(texto){
+  if(!/(venta\s+m[aá]s\s+alta|ticket\s+m[aá]s\s+alto|mayor\s+venta|m[aá]s\s+alta|venta\s+grande|m[aá]xima\s+venta|venta\s+mayor)/.test(texto)) return false;
+  if(typeof turnoData === 'undefined' || !turnoData.ventas || !turnoData.ventas.length){
+    _asistHablar('No hay ventas en este turno'); return true;
   }
-  var activos = PRODS.filter(function(p){ return p && p.name && !p.itemLibre && p.activo !== false; });
-  if(!activos.length){ _asistHablar('No hay productos activos'); return true; }
-  var primeros = activos.slice(0, 8).map(function(p){ return p.name; });
-  _asistHablar('Tenés ' + activos.length + ' productos. Algunos son: ' + primeros.join(', '));
+  var max = 0;
+  turnoData.ventas.forEach(function(v){
+    if(v.anulada) return;
+    if((v.total || 0) > max) max = v.total;
+  });
+  _asistHablar('La venta más alta fue de ' + _asistFmt(max) + ' guaraníes');
   return true;
 }
 
-function _asistIntentAnular(texto){
-  if(!/^(anular|anul[aá]|cancelar\s+(la\s+)?venta|cancelar\s+pedido)/.test(texto)) return false;
-  if(typeof nuevaVenta === 'function'){ nuevaVenta(); _asistHablar('Venta cancelada'); }
-  else _asistHablar('No puedo anular');
+function _asistIntentMetodos(texto){
+  if(/efectivo|en\s+cash|cash|contado/.test(texto) &&
+     /(cuanto|total|cobr[eé]|recib[ií]|llevo|hice|tengo)/.test(texto)){
+    var m = _asistTotalPorMetodo();
+    var ef = m['EFECTIVO'] || 0;
+    _asistHablar('Cobraste ' + _asistFmt(ef) + ' guaraníes en efectivo');
+    return true;
+  }
+  if(/(tarjeta|pos|debito|credito|posnet|plastico)/.test(texto) &&
+     /(cuanto|total|cobr[eé]|llevo|hice)/.test(texto)){
+    var m2 = _asistTotalPorMetodo();
+    var pos = m2['POS'] || m2['TARJETA'] || 0;
+    _asistHablar('Cobraste ' + _asistFmt(pos) + ' guaraníes con tarjeta');
+    return true;
+  }
+  if(/(transfer|giro|qr|sipap|bancard)/.test(texto) &&
+     /(cuanto|total|cobr[eé]|llevo|hice)/.test(texto)){
+    var m3 = _asistTotalPorMetodo();
+    var tr = m3['TRANSFERENCIA'] || m3['TRANSFER'] || 0;
+    _asistHablar('Cobraste ' + _asistFmt(tr) + ' guaraníes por transferencia');
+    return true;
+  }
+  if(/(m[eé]todos?\s+de\s+pago|por\s+m[eé]todo|desglose|como\s+cobr[eé])/.test(texto)){
+    var metodos = _asistTotalPorMetodo();
+    var keys = Object.keys(metodos);
+    if(!keys.length){ _asistHablar('No hay ventas aún'); return true; }
+    var partes = keys.map(function(k){
+      return k.toLowerCase() + ' ' + _asistFmt(metodos[k]) + ' guaraníes';
+    });
+    _asistHablar('Tus cobros son: ' + partes.join(', '));
+    return true;
+  }
+  return false;
+}
+
+function _asistIntentCaja(texto){
+  if(!/(cuanto\s+hay\s+en\s+(la\s+)?caja|saldo\s+(de\s+)?caja|caja\s+actual|qu[eé]\s+hay\s+en\s+caja|total\s+de\s+caja|efectivo\s+en\s+caja|caja\s+tiene)/.test(texto)) return false;
+  if(typeof calcSaldoEsperado === 'function'){
+    var saldo = calcSaldoEsperado();
+    _asistHablar('En la caja hay ' + _asistFmt(saldo) + ' guaraníes');
+    return true;
+  }
+  var m = _asistTotalPorMetodo();
+  var ef = m['EFECTIVO'] || 0;
+  _asistHablar('En efectivo llevás ' + _asistFmt(ef) + ' guaraníes');
   return true;
 }
 
-// Dispatcher principal — prueba todas las alternativas y todos los intents
+function _asistIntentEgresos(texto){
+  if(!/(egreso|gasto|gast[eé]|sal[ií]\s+plata|retir[eé])/.test(texto)) return false;
+  var total = _asistTotalEgresos();
+  var cant = (typeof turnoData !== 'undefined' && turnoData.egresos)
+    ? turnoData.egresos.filter(function(e){ return !e.anulada; }).length : 0;
+  if(cant === 0){ _asistHablar('No hay egresos registrados en este turno'); return true; }
+  _asistHablar(cant + ' egreso' + (cant !== 1 ? 's' : '') + ' por un total de ' + _asistFmt(total) + ' guaraníes');
+  return true;
+}
+
+function _asistIntentMasVendido(texto){
+  if(!/(producto\s+m[aá]s\s+vendid|m[aá]s\s+vendid|producto\s+estrella|top\s+vent|top\s+producto|(que|cual)\s+(producto\s+)?(se\s+)?vend[ií]?\s+m[aá]s|m[aá]s\s+pedid)/.test(texto)) return false;
+  var arr = _asistProductosVendidos();
+  if(!arr.length){ _asistHablar('No hay productos vendidos aún'); return true; }
+  if(/top\s+tres|top\s+3|tres\s+m[aá]s|primeros\s+tres/.test(texto) && arr.length >= 2){
+    var top3 = arr.slice(0, 3).map(function(p){
+      return p.name + ' con ' + p.cantidad + ' unidades';
+    });
+    _asistHablar('Los más vendidos son: ' + top3.join(', '));
+    return true;
+  }
+  var top = arr[0];
+  _asistHablar('El producto más vendido es ' + top.name + ' con ' + top.cantidad + ' unidades');
+  return true;
+}
+
+function _asistIntentCantidadProductos(texto){
+  if(!/(cuantos\s+productos|total\s+de\s+productos|cuantas\s+unidades|productos\s+vendidos?)/.test(texto)) return false;
+  var arr = _asistProductosVendidos();
+  var total = arr.reduce(function(s, p){ return s + p.cantidad; }, 0);
+  _asistHablar('Vendiste ' + total + ' productos en total');
+  return true;
+}
+
+function _asistIntentInicioTurno(texto){
+  if(!/(cuando\s+(empec[eé]|empezo|abr[ií]|inici[eé])|hora\s+de\s+(apertura|inicio)|inicio\s+del?\s+turno|hace\s+cuanto\s+(abr[ií]|empec[eé])|apertura\s+del?\s+turno)/.test(texto)) return false;
+  if(typeof turnoData === 'undefined' || !turnoData.fechaApertura){
+    _asistHablar('No hay turno abierto'); return true;
+  }
+  var f = turnoData.fechaApertura instanceof Date ? turnoData.fechaApertura : new Date(turnoData.fechaApertura);
+  var hh = String(f.getHours()).padStart(2, '0');
+  var mm = String(f.getMinutes()).padStart(2, '0');
+  var ms = Date.now() - f.getTime();
+  var hs = Math.floor(ms / 3600000);
+  var mins = Math.floor((ms % 3600000) / 60000);
+  var hace = '';
+  if(hs > 0) hace = ', hace ' + hs + ' hora' + (hs !== 1 ? 's' : '') + (mins > 0 ? ' y ' + mins + ' minutos' : '');
+  else hace = ', hace ' + mins + ' minutos';
+  _asistHablar('Abriste el turno a las ' + hh + ':' + mm + hace);
+  return true;
+}
+
+function _asistIntentMesas(texto){
+  if(!/(cuantas\s+mesas|mesas\s+ocupad|mesas\s+libres|cuantas\s+estan\s+ocupad|estado\s+de\s+mesas|mesas\s+hay)/.test(texto)) return false;
+  if(typeof pendientes === 'undefined'){ _asistHablar('No puedo consultar las mesas ahora'); return true; }
+  var ocupadas = pendientes.filter(function(p){ return p.mesa_id; });
+  if(!ocupadas.length){ _asistHablar('No hay mesas ocupadas'); return true; }
+  var total = 0;
+  ocupadas.forEach(function(p){ total += (p.total || 0); });
+  _asistHablar('Hay ' + ocupadas.length + ' mesa' + (ocupadas.length !== 1 ? 's' : '') + ' ocupada' + (ocupadas.length !== 1 ? 's' : '') + ' por un total de ' + _asistFmt(total) + ' guaraníes');
+  return true;
+}
+
+function _asistIntentResumen(texto){
+  if(!/(resumen|como\s+va\s+el\s+dia|como\s+(esta|va)\s+(el\s+)?turno|balance|reporte\s+(del?\s+)?(turno|d[ií]a)|como\s+voy)/.test(texto)) return false;
+  var r = _asistTotalVentas();
+  if(r.cantidad === 0){
+    _asistHablar('Todavía no hay ventas en este turno');
+    return true;
+  }
+  var prom = Math.round(r.total / r.cantidad);
+  var m = _asistTotalPorMetodo();
+  var ef = m['EFECTIVO'] || 0;
+  var pos = m['POS'] || m['TARJETA'] || 0;
+  var tr = m['TRANSFERENCIA'] || m['TRANSFER'] || 0;
+  var partes = [];
+  partes.push('Llevás ' + r.cantidad + ' ventas por ' + _asistFmt(r.total) + ' guaraníes');
+  partes.push('Ticket promedio ' + _asistFmt(prom));
+  if(ef > 0)  partes.push('Efectivo ' + _asistFmt(ef));
+  if(pos > 0) partes.push('Tarjeta ' + _asistFmt(pos));
+  if(tr > 0)  partes.push('Transferencia ' + _asistFmt(tr));
+  var topProd = _asistProductosVendidos()[0];
+  if(topProd) partes.push('El más vendido es ' + topProd.name);
+  _asistHablar(partes.join('. ') + '.');
+  return true;
+}
+
+// ── INTENT: redirigir operatoria al usuario ──
+// Si el usuario intenta agregar/cobrar/navegar, le avisamos que no lo puede
+// hacer con voz y que use los botones de la pantalla.
+function _asistIntentOperatoria(texto){
+  var patronesOperativos = [
+    /^(agregar|agreg[aá]|vend[eé]me?|vender?|vende|poner|pon[eé]me?|ponele|a[nñ]adir|sumar|cargar|traer|tra[eé]me?|meter|dame|d[aá]me|quiero|necesito|vamos\s+con|facturame)\b/,
+    /^(cobrar|cobr[aá]|cobrame|confirmar|confirm[aá]|finalizar|imprimir|imprim[ií])\b/,
+    /^(abrir\s+mesa|cerrar\s+mesa|ir\s+a\s+mesa|pasame\s+a)/,
+    /^(nueva\s+venta|limpiar|vaciar|cancelar\s+venta|anular)/,
+    /^(efectivo\s+justo|recib[ií]|me\s+dio|pago\s+con)/
+  ];
+  for(var i = 0; i < patronesOperativos.length; i++){
+    if(patronesOperativos[i].test(texto)){
+      _asistHablar('Solo respondo preguntas sobre tus ventas. Para operar, usá los botones de la pantalla.');
+      return true;
+    }
+  }
+  return false;
+}
+
+// Dispatcher principal — solo ejecuta intents consultivos
 function _asistEjecutarComando(alternativas){
   var alts = [];
   for(var i = 0; i < alternativas.length; i++){
@@ -1122,38 +986,30 @@ function _asistEjecutarComando(alternativas){
   }
   if(!alts.length){ _asistHablar(_asistFrase('noEntendi')); return; }
 
+  // Lista de intents — solo consultas (el asistente NO opera)
   var intents = [
     _asistIntentAyuda,
-    _asistIntentListarProductos,
-    _asistIntentAnular,
-    _asistIntentCobrar,
-    _asistIntentTurno,
-    _asistIntentConsulta,
-    _asistIntentMesa,
-    _asistIntentImprimir,
-    _asistIntentDelivery,
-    _asistIntentNavegacion,
-    _asistIntentQuitar,
-    _asistIntentAgregar   // último: es el más permisivo
+    _asistIntentResumen,           // resumen completo (antes de detalle)
+    _asistIntentInicioTurno,
+    _asistIntentMasVendido,
+    _asistIntentCantidadProductos,
+    _asistIntentMesas,
+    _asistIntentEgresos,
+    _asistIntentPromedio,
+    _asistIntentVentaMax,
+    _asistIntentCaja,
+    _asistIntentMetodos,
+    _asistIntentCantidadVentas,
+    _asistIntentTotalVentas,
+    _asistIntentOperatoria         // último: atrapa intentos operativos
   ];
-
-  function ejecutarFrase(texto){
-    var partes = texto.split(/\s+(?:y\s+luego|y\s+despues|y\s+despu[eé]s|luego|despues|,\s+luego)\s+/);
-    var ok = false;
-    for(var p = 0; p < partes.length; p++){
-      var sub = partes[p].trim();
-      if(!sub) continue;
-      for(var q = 0; q < intents.length; q++){
-        if(intents[q](sub)){ ok = true; break; }
-      }
-    }
-    return ok;
-  }
 
   for(var a = 0; a < alts.length; a++){
     var textoNorm = _asistLimpiarMuletillas(_asistNormalizar(alts[a]));
     console.log('[Asistente] Probando alt', a, ':', textoNorm);
-    if(ejecutarFrase(textoNorm)) return;
+    for(var q = 0; q < intents.length; q++){
+      if(intents[q](textoNorm)) return;
+    }
   }
 
   _asistHablar(_asistFrase('noEntendi') + ' Escuché: ' + alts[0]);
