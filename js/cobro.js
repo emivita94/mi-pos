@@ -377,7 +377,7 @@ function updVuelto(entregado) {
     if (typeof hablarVuelto === 'function' && vuelto !== _vueltoUltimo) {
       _vueltoUltimo = vuelto;
       clearTimeout(_vueltoVozTimer);
-      _vueltoVozTimer = setTimeout(function(){ hablarVuelto(vuelto); }, 500);
+      _vueltoVozTimer = setTimeout(function(){ hablarVuelto(vuelto); }, 250);
     }
   } else {
     row.classList.remove('show');

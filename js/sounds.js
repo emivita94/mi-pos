@@ -505,20 +505,45 @@ function _numeroALabel(n){
 }
 
 // Anuncia el vuelto al cliente ("Vuelto 70.000 guaraníes")
+// Android Chrome bug: cancel() + speak() inmediato a veces deja el engine
+// colgado y el utterance nunca arranca. Hacemos cancel, esperamos un tick,
+// y después speak. También agregamos resume() por si quedó pausado.
 function hablarVuelto(monto){
   if(vozMuteGet()) return;
   if(!('speechSynthesis' in window)) return;
   try {
     window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance();
-    u.text = 'Vuelto ' + _formatMontoVoz(monto);
-    u.lang = 'es-PY';
-    u.rate = 1.05;
-    u.pitch = 1;
-    u.volume = 1;
-    var v = _findVozEs();
-    if(v) u.voice = v;
-    window.speechSynthesis.speak(u);
+    setTimeout(function(){
+      try {
+        var u = new SpeechSynthesisUtterance();
+        u.text = 'Vuelto ' + _formatMontoVoz(monto);
+        u.lang = 'es-PY';
+        u.rate = 1.1;
+        u.pitch = 1;
+        u.volume = 1;
+        var v = _findVozEs();
+        if(v) u.voice = v;
+        // Failsafe: si onstart no se disparó en 400ms, re-intentar
+        var arrancó = false;
+        u.onstart = function(){ arrancó = true; };
+        try { window.speechSynthesis.resume(); } catch(e){}
+        window.speechSynthesis.speak(u);
+        setTimeout(function(){
+          if(!arrancó){
+            try {
+              window.speechSynthesis.cancel();
+              var u2 = new SpeechSynthesisUtterance();
+              u2.text = 'Vuelto ' + _formatMontoVoz(monto);
+              u2.lang = 'es-PY';
+              u2.rate = 1.1;
+              u2.volume = 1;
+              if(v) u2.voice = v;
+              window.speechSynthesis.speak(u2);
+            } catch(e){}
+          }
+        }, 400);
+      } catch(e){}
+    }, 80);
   } catch(e){}
 }
 
