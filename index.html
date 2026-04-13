@@ -372,24 +372,37 @@
     <div style="background:var(--bg-card);border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;">
       <div class="general-field">
         <span class="general-field-label">Nombre del negocio</span>
-        <input class="general-field-input" id="cfgNegocio" type="text" placeholder="Mi Negocio" oninput="saveGeneralConfig()">
+        <input class="general-field-input" id="cfgNegocio" type="text" placeholder="Mi Negocio" oninput="_marcarNegocioDirty()">
       </div>
       <div class="general-field">
         <span class="general-field-label">Dirección</span>
-        <input class="general-field-input" id="cfgDireccion" type="text" placeholder="Ej: Av. Principal 123" oninput="saveGeneralConfig()">
+        <input class="general-field-input" id="cfgDireccion" type="text" placeholder="Ej: Av. Principal 123" oninput="_marcarNegocioDirty()">
       </div>
       <div class="general-field">
         <span class="general-field-label">Teléfono</span>
-        <input class="general-field-input" id="cfgTelefono" type="text" placeholder="Ej: 0981 123 456" oninput="saveGeneralConfig()">
+        <input class="general-field-input" id="cfgTelefono" type="text" placeholder="Ej: 0981 123 456" oninput="_marcarNegocioDirty()">
       </div>
       <div class="general-field">
         <span class="general-field-label">RUC del negocio</span>
-        <input class="general-field-input" id="cfgRuc" type="text" placeholder="Ej: 80012345-6" oninput="saveGeneralConfig()">
+        <input class="general-field-input" id="cfgRuc" type="text" placeholder="Ej: 80012345-6" oninput="_marcarNegocioDirty()">
       </div>
       <div class="general-field">
         <span class="general-field-label">Moneda</span>
         <input class="general-field-input" id="cfgMoneda" type="text" value="₲ (Guaraní)" readonly style="color:var(--muted);">
       </div>
+    </div>
+
+    <!-- BOTÓN GUARDAR EXPLÍCITO + ESTADO DE SINCRONIZACIÓN -->
+    <div style="margin-bottom:14px;">
+      <button id="btnGuardarNegocio" onclick="guardarNegocioAhora()" style="width:100%;background:var(--green);border:none;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 3px 10px rgba(76,175,80,.3);">
+        <svg id="iconGuardarNegocio" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        <span id="txtGuardarNegocio">GUARDAR DATOS</span>
+      </button>
+      <div id="syncStatusNegocio" style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:14px;"></div>
     </div>
 
     <!-- FUNCIONALIDADES -->
@@ -1835,7 +1848,7 @@
 <script src="js/licencia.js?v=20260412103"></script>
 <script src="js/mesas.js?v=20260412103"></script>
 
-<script src="js/app.js?v=20260413106"></script>
+<script src="js/app.js?v=20260413107"></script>
 <script src="js/init.js?v=20260413105"></script>
 
 <script>

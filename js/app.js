@@ -129,11 +129,13 @@ function renderGeneralInfo(){
 }
 
 function loadGeneralConfigInputs(){
-  const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+  const set = (id, val) => { const el = document.getElementById(id); if(el!=null) el.value = val || ''; };
   set('cfgNegocio',   configData.negocio   || localStorage.getItem('an') || '');
   set('cfgDireccion', configData.direccion  || localStorage.getItem('ad') || '');
   set('cfgTelefono',  configData.telefono   || localStorage.getItem('at') || '');
   set('cfgRuc',       configData.ruc        || localStorage.getItem('ar') || '');
+  // Mostrar última sincronización con la nube
+  if(typeof mostrarUltimaSincroNegocio === 'function') mostrarUltimaSincroNegocio();
   const chk = document.getElementById('cfgPresupuestos');
   if(chk){
     const habilitado = configData.presupuestosHabilitados !== undefined
@@ -1653,9 +1655,129 @@ async function _guardarConfigSupabase(){
     };
     await supaPost('pos_config', payload, 'licencia_email,clave', true);
     console.log('[Config] Guardado en Supabase ✓');
+    return true;
   } catch(e){
     console.warn('[Config] Error guardando en Supabase:', e.message);
+    throw e;
   }
+}
+
+// Marca que hay cambios sin guardar (al tipear en los inputs)
+function _marcarNegocioDirty(){
+  var btn = document.getElementById('btnGuardarNegocio');
+  var txt = document.getElementById('txtGuardarNegocio');
+  var status = document.getElementById('syncStatusNegocio');
+  if(btn){
+    btn.style.background = 'var(--orange, #ff9800)';
+    btn.style.boxShadow  = '0 3px 10px rgba(255,152,0,.3)';
+  }
+  if(txt) txt.textContent = 'GUARDAR CAMBIOS';
+  if(status){
+    status.textContent = '● Hay cambios sin guardar';
+    status.style.color = '#ff9800';
+  }
+}
+
+// ── GUARDAR EXPLÍCITO DE DATOS DEL NEGOCIO ──
+// El usuario toca el botón "Guardar datos" y ve feedback claro:
+// - Spinner mientras guarda
+// - ✓ verde + "Guardado en la nube" al terminar
+// - ✗ rojo + mensaje de error si falla
+// - Horario del último guardado exitoso
+async function guardarNegocioAhora(){
+  // 1. Leer valores actuales de los inputs
+  var _cfgNeg = document.getElementById('cfgNegocio');
+  var _cfgDir = document.getElementById('cfgDireccion');
+  var _cfgTel = document.getElementById('cfgTelefono');
+  var _cfgRuc = document.getElementById('cfgRuc');
+  if(_cfgNeg) configData.negocio   = _cfgNeg.value || '';
+  if(_cfgDir) configData.direccion = _cfgDir.value || '';
+  if(_cfgTel) configData.telefono  = _cfgTel.value || '';
+  if(_cfgRuc) configData.ruc       = _cfgRuc.value || '';
+
+  // 2. Persistir en localStorage
+  localStorage.setItem('an', configData.negocio);
+  localStorage.setItem('ad', configData.direccion);
+  localStorage.setItem('at', configData.telefono);
+  localStorage.setItem('ar', configData.ruc);
+
+  // 3. Cancelar cualquier debounce pendiente (evitar doble POST)
+  clearTimeout(_saveConfigTimer);
+
+  // 4. Feedback visual: spinner
+  var btn = document.getElementById('btnGuardarNegocio');
+  var txt = document.getElementById('txtGuardarNegocio');
+  var status = document.getElementById('syncStatusNegocio');
+  if(btn) btn.disabled = true;
+  if(btn) btn.style.opacity = '.75';
+  if(txt) txt.textContent = 'GUARDANDO...';
+  if(status) { status.textContent = ''; status.style.color = 'var(--muted)'; }
+
+  try {
+    await _guardarConfigSupabase();
+    // 5. Éxito — restaurar botón verde, mostrar check
+    if(btn){
+      btn.style.background = 'var(--green)';
+      btn.style.boxShadow  = '0 3px 10px rgba(76,175,80,.3)';
+    }
+    if(txt) txt.textContent = '✓ GUARDADO';
+    if(status){
+      var ahora = new Date();
+      var hh = String(ahora.getHours()).padStart(2,'0');
+      var mm = String(ahora.getMinutes()).padStart(2,'0');
+      status.textContent = '✓ Guardado en la nube · ' + hh + ':' + mm;
+      status.style.color = 'var(--green)';
+      localStorage.setItem('pos_negocio_last_sync', ahora.toISOString());
+    }
+    if(typeof toast === 'function') toast('✓ Datos del negocio guardados');
+    // Restablecer el texto del botón después de 2 segundos
+    setTimeout(function(){
+      if(btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      if(txt) txt.textContent = 'GUARDAR DATOS';
+    }, 2000);
+  } catch(e){
+    // 6. Error
+    if(txt) txt.textContent = '✗ ERROR';
+    if(status){
+      status.textContent = '✗ No se pudo sincronizar: ' + (e.message || 'sin detalle') + ' — se guardó localmente';
+      status.style.color = '#e53935';
+    }
+    if(typeof toast === 'function') toast('⚠ Error al sincronizar — guardado solo local');
+    setTimeout(function(){
+      if(btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      if(txt) txt.textContent = 'REINTENTAR';
+    }, 1500);
+  }
+
+  // Refrescar UI dependiente
+  updBtnComandaCobro();
+}
+
+// Mostrar el estado de la última sincronización al abrir la pantalla
+function mostrarUltimaSincroNegocio(){
+  var status = document.getElementById('syncStatusNegocio');
+  if(!status) return;
+  var iso = localStorage.getItem('pos_negocio_last_sync');
+  if(!iso){
+    status.textContent = 'Nunca sincronizado con la nube';
+    status.style.color = 'var(--muted)';
+    return;
+  }
+  try {
+    var f = new Date(iso);
+    var hoy = new Date();
+    var mismoDia = f.toDateString() === hoy.toDateString();
+    var hh = String(f.getHours()).padStart(2,'0');
+    var mm = String(f.getMinutes()).padStart(2,'0');
+    if(mismoDia){
+      status.textContent = 'Última sincronización hoy a las ' + hh + ':' + mm;
+    } else {
+      var dd = String(f.getDate()).padStart(2,'0');
+      var MM = String(f.getMonth()+1).padStart(2,'0');
+      status.textContent = 'Última sincronización: ' + dd + '/' + MM + ' ' + hh + ':' + mm;
+    }
+    status.style.color = 'var(--muted)';
+  } catch(e){}
 }
 
 // -- Modificadores: ver js/productos.js --
