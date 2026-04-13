@@ -57,10 +57,9 @@
     50%     { transform: scale(1.08); }
   }
 
-  /* Ocultar el FAB en ciertas pantallas donde molesta */
-  #scActivacion ~ .asist-fab,
-  #scBloqueado ~ .asist-fab,
-  .screen#scActivacion.active ~ .asist-fab { display: none !important; }
+  /* Ocultar el FAB cuando la activacion/bloqueo esta activa — se controla
+     desde JS agregando la clase .asist-hidden al body */
+  body.asist-hidden .asist-fab { display: none !important; }
 
   /* ── SPLASH SCREEN ───────────────────────────────── */
   #splashScreen {
