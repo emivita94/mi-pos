@@ -63,6 +63,10 @@ function _initAsistente(){
   };
 
   _recognition.onresult = function(e){
+    // CRÍTICO: si el asistente está hablando, ignorar cualquier captura
+    // del micrófono. Esto evita que el TTS se re-interprete como comando.
+    if(_asistHablando) return;
+
     var interim = '';
     var finales = [];
     for(var i = e.resultIndex; i < e.results.length; i++){
@@ -1199,54 +1203,40 @@ function _asistAliasGuardar(texto, producto){
   }
 }
 
-// ── UI: PANEL DE TRANSCRIPCIÓN EN VIVO ──────────────────
-function _asistTranscripcionEl(){
-  var el = document.getElementById('asistTranscripcion');
-  if(el) return el;
-  el = document.createElement('div');
-  el.id = 'asistTranscripcion';
-  el.className = 'asist-transcripcion';
-  el.innerHTML = '<div class="asist-trans-texto"></div><div class="asist-trans-countdown"></div>';
-  document.body.appendChild(el);
-  return el;
-}
-
-function _asistTranscripcionMostrar(){
-  var el = _asistTranscripcionEl();
-  el.querySelector('.asist-trans-texto').textContent = 'Escuchando...';
-  el.querySelector('.asist-trans-countdown').textContent = '';
-  el.classList.add('visible');
-}
-
+// ── UI: PANEL DE TRANSCRIPCIÓN EN VIVO (DESACTIVADO) ──────────────────
+// El usuario pidió no ver el texto dictado en pantalla.
+// Las funciones quedan como no-ops para preservar la interfaz interna.
+function _asistTranscripcionEl(){ return null; }
+function _asistTranscripcionMostrar(){ /* no-op */ }
 function _asistTranscripcionOcultar(){
+  // Por las dudas, remover el elemento si existe
   var el = document.getElementById('asistTranscripcion');
-  if(el) el.classList.remove('visible');
+  if(el && el.parentNode) el.parentNode.removeChild(el);
 }
-
-function _asistTranscripcionUpdate(texto, esFinal){
-  var el = document.getElementById('asistTranscripcion');
-  if(!el) return;
-  var t = el.querySelector('.asist-trans-texto');
-  if(t){
-    t.textContent = texto || '...';
-    t.className = 'asist-trans-texto' + (esFinal ? ' final' : '');
-  }
-}
-
-function _asistTranscripcionCountdown(segs){
-  var el = document.getElementById('asistTranscripcion');
-  if(!el) return;
-  var c = el.querySelector('.asist-trans-countdown');
-  if(c) c.textContent = segs > 0 ? (segs + 's...') : '';
-}
+function _asistTranscripcionUpdate(texto, esFinal){ /* no-op */ }
+function _asistTranscripcionCountdown(segs){ /* no-op */ }
 
 // ── RESPUESTA POR VOZ ──────────────────────────────────
+// Flag para saber si el asistente está hablando — se usa para ignorar
+// lo que captura el micrófono mientras habla (auto-escucha)
+var _asistHablando = false;
+
 function _asistHablar(texto){
   if(typeof toast === 'function') toast('🤖 ' + texto);
   if(typeof vozMuteGet === 'function' && vozMuteGet()) return;
   if(!('speechSynthesis' in window)) return;
   try {
     window.speechSynthesis.cancel();
+
+    // PAUSAR el recognition mientras el asistente habla.
+    // Esto evita que el micrófono capture la propia voz del TTS.
+    var wasListening = _asistEscuchando;
+    var wasConv = _asistModoConversacion;
+    if(wasListening && _recognition){
+      try { _recognition.abort(); } catch(e){}
+    }
+    _asistHablando = true;
+
     var u = new SpeechSynthesisUtterance();
     u.text = texto;
     u.lang = 'es-PY';
@@ -1256,8 +1246,25 @@ function _asistHablar(texto){
       var v = _findVozEs();
       if(v) u.voice = v;
     }
+
+    u.onend = function(){
+      _asistHablando = false;
+      // Si estaba en conversación continua, retomar el recognition
+      // después de un pequeño delay para que no capture el eco
+      if(wasConv){
+        setTimeout(function(){
+          if(_asistModoConversacion && _recognition && !_asistEscuchando){
+            try { _recognition.start(); } catch(e){}
+          }
+        }, 400);
+      }
+    };
+    u.onerror = function(){ _asistHablando = false; };
+
     window.speechSynthesis.speak(u);
-  } catch(e){}
+  } catch(e){
+    _asistHablando = false;
+  }
 }
 
 // ── UI: FAB FLOTANTE + ONDAS ANIMADAS ───────────────────
