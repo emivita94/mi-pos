@@ -745,7 +745,29 @@ function _asistIntentAyuda(texto){
 }
 
 function _asistIntentTotalVentas(texto){
-  if(!/(cuanto\s+vend[ií]|cuanto\s+llevo\s+vendid|total\s+del?\s+(turno|ventas?|d[ií]a)|llevo\s+vendido|llevo\s+hecho|vent(as)?\s+del\s+d[ií]a|vent(as)?\s+hoy|hice\s+hoy|gane\s+hoy|cuanto\s+hice|facturaci[oó]n)/.test(texto)) return false;
+  // Regex MUY permisivo — tolera variaciones del speech-to-text
+  // Acepta: "cuanto vendi", "cuánto vendí hoy", "cuanta venta llevo",
+  //         "cuanto llevo", "cuanto hice", "cuanto gane", "total de ventas",
+  //         "total del turno", "facturación", "ventas del día", "ventas hoy",
+  //         "que vendi hoy", "vendi mucho", etc.
+  var patrones = [
+    /cuant[oa]s?\s+(vend|llev|hice|hic|gan[eé]|facturé?|hizo|hiciste)/,
+    /total\s+(de\s+|del\s+)?(vent|turno|d[ií]a|hoy|facturaci)/,
+    /llevo\s+(vendid|hecho|facturad)/,
+    /(vent|ingres).*(hoy|d[ií]a|turno)/,
+    /hice\s+(hoy|de\s+vent|del\s+d[ií]a)/,
+    /gane\s+hoy/,
+    /facturaci[oó]n/,
+    /\bvend[ií]\b/,  // "vendí" suelto también cuenta si no matcheó otro intent
+    /que\s+llevo/,
+    /cuanto\s+es\s+(la\s+)?total/
+  ];
+  var matcheo = false;
+  for(var i = 0; i < patrones.length; i++){
+    if(patrones[i].test(texto)){ matcheo = true; break; }
+  }
+  if(!matcheo) return false;
+
   var r = _asistTotalVentas();
   if(r.cantidad === 0){ _asistHablar('Todavía no hay ventas en este turno'); return true; }
   _asistHablar('Llevás ' + r.cantidad + ' ventas por ' + _asistFmt(r.total) + ' guaraníes');
@@ -965,11 +987,18 @@ function _asistEjecutarComando(alternativas){
     _asistIntentOperatoria         // último: atrapa intentos operativos
   ];
 
+  // Diagnóstico visual: muestra lo que escuchó antes de procesar
+  if(typeof toast === 'function') toast('👂 ' + alts[0]);
+
   for(var a = 0; a < alts.length; a++){
     var textoNorm = _asistLimpiarMuletillas(_asistNormalizar(alts[a]));
-    console.log('[Asistente] Probando alt', a, ':', textoNorm);
+    console.log('[Asistente] Probando alt', a, ':', JSON.stringify(textoNorm));
     for(var q = 0; q < intents.length; q++){
-      if(intents[q](textoNorm)) return;
+      var intentName = intents[q].name || 'intent' + q;
+      if(intents[q](textoNorm)){
+        console.log('[Asistente] ✓ Matcheó:', intentName);
+        return;
+      }
     }
   }
 
