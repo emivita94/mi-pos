@@ -42,6 +42,21 @@ var _asistDb = null;
 var _asistAliasCache = {};         // { aliasNormalizado: productoId }
 var _asistAliasMem = false;        // true cuando falló IndexedDB y vamos en memoria
 
+// ══════════════════════════════════════════════════════════════════════
+// MODO ONE-SHOT SIMPLE
+// ══════════════════════════════════════════════════════════════════════
+// El modo continuo en Android Chrome es inherentemente problemático:
+// - abort() no es instantáneo → resultados en cola se entregan tarde
+// - El TTS se captura a sí mismo aunque el recognition esté "cerrado"
+// - El silencio después de cada frase disparaba respuestas prematuras
+//
+// La solución simple: 1 tap = 1 pregunta = 1 respuesta. Nada más.
+// Para hacer otra pregunta, el usuario tiene que tocar el mic otra vez.
+
+// Bloqueo global: mientras el asistente habla o está procesando,
+// NO aceptar ningún input del micrófono
+var _asistBloqueado = false;
+
 // Inicializa el reconocimiento de voz — sólo se ejecuta una vez
 function _initAsistente(){
   if(_recognition) return _recognition;
@@ -52,188 +67,114 @@ function _initAsistente(){
   }
   _recognition = new SR();
   _recognition.lang = 'es-PY';
-  _recognition.continuous = true;     // modo conversación
-  _recognition.interimResults = true; // para transcripción en vivo
+  _recognition.continuous = false;    // ONE-SHOT: escucha 1 frase y cierra
+  _recognition.interimResults = false; // sin resultados interinos
   _recognition.maxAlternatives = 3;
 
   _recognition.onstart = function(){
     _asistEscuchando = true;
     _asistMostrarOndas(true);
-    console.log('[Asistente] Escuchando...');
+    console.log('[Asistente] Escuchando (one-shot)...');
   };
 
   _recognition.onresult = function(e){
-    // CRÍTICO: si el asistente está hablando, ignorar cualquier captura
-    // del micrófono. Esto evita que el TTS se re-interprete como comando.
-    if(_asistHablando) return;
+    // Si el asistente está hablando o bloqueado, ignorar
+    if(_asistHablando || _asistBloqueado){
+      console.log('[Asistente] Resultado ignorado (bloqueado/hablando)');
+      return;
+    }
+    if(!e.results || !e.results.length) return;
+    var res = e.results[0];
+    if(!res || !res.isFinal) return;
 
-    var interim = '';
-    var finales = [];
-    for(var i = e.resultIndex; i < e.results.length; i++){
-      var res = e.results[i];
-      if(res.isFinal){
-        var alts = [];
-        for(var k = 0; k < res.length; k++) alts.push(res[k].transcript);
-        finales.push(alts);
-      } else {
-        interim += res[0].transcript;
-      }
+    var alternativas = [];
+    for(var k = 0; k < res.length; k++) alternativas.push(res[k].transcript);
+    console.log('[Asistente] Escuché:', alternativas);
+
+    var textoCrudo = _asistNormalizar(alternativas[0] || '');
+    if(!textoCrudo){
+      toast('No te escuché');
+      return;
     }
 
-    // Cualquier actividad de voz resetea el silencio
-    _asistResetSilencio();
+    // Bloquear cualquier nuevo input hasta que termine de responder
+    _asistBloqueado = true;
 
-    if(interim){
-      _asistUltimoInterim = interim;
-      _asistTranscripcionUpdate(interim, false);
-    }
-
-    for(var j = 0; j < finales.length; j++){
-      var alternativas = finales[j];
-      _asistUltimoFinal = alternativas[0] || '';
-      _asistUltimoInterim = '';
-      console.log('[Asistente] Escuché (final):', alternativas);
-      _asistTranscripcionUpdate(_asistUltimoFinal, true);
-
-      // Chequear frases de salida ANTES de limpiar muletillas
-      // (porque "listo" también figura en la lista de muletillas)
-      var textoCrudo = _asistNormalizar(alternativas[0] || '');
-      if(_asistEsFraseSalida(textoCrudo)){
-        _asistHablar('Chau, hasta luego');
-        _asistSalirConversacion();
-        return;
-      }
-
-      // ¿Estamos esperando respuesta de disambiguación?
-      if(_asistDisambiguacion){
-        var textoLimpio = _asistLimpiarMuletillas(textoCrudo);
-        _asistResolverDisambiguacion(textoLimpio);
-      } else {
-        _asistEjecutarComando(alternativas);
-      }
+    // ¿Estamos esperando respuesta de disambiguación?
+    if(_asistDisambiguacion){
+      var textoLimpio = _asistLimpiarMuletillas(textoCrudo);
+      _asistResolverDisambiguacion(textoLimpio);
+    } else {
+      _asistEjecutarComando(alternativas);
     }
   };
 
   _recognition.onerror = function(e){
     console.warn('[Asistente] Error:', e.error);
     if(e.error === 'not-allowed'){
-      _asistHablar('Permiso de micrófono denegado. Activalo en la configuración del navegador.');
-      toast('⚠ Micrófono denegado');
-      _asistSalirConversacion();
+      toast('⚠ Micrófono denegado — activalo en ajustes del navegador');
     } else if(e.error === 'no-speech'){
-      // En modo conversación no avisamos, seguimos escuchando (se reinicia onend)
-      if(!_asistModoConversacion){
-        toast('No te escuché, volvé a tocar el micrófono');
-      }
+      toast('No te escuché, tocá el micrófono y repetí');
     } else if(e.error === 'aborted'){
-      // ignorar
-    } else {
-      toast('Error del asistente: ' + e.error);
-      _asistSalirConversacion();
+      // silencio, fue cancelado intencionalmente
+    } else if(e.error !== 'audio-capture'){
+      toast('Error: ' + e.error);
     }
+    _asistEscuchando = false;
+    _asistMostrarOndas(false);
   };
 
   _recognition.onend = function(){
     _asistEscuchando = false;
-    // Si seguimos en modo conversación, reiniciar el recognition
-    if(_asistModoConversacion){
-      try {
-        _asistReiniciando = true;
-        _recognition.start();
-      } catch(e){
-        // Ya reiniciando, ignorar
-        setTimeout(function(){
-          if(_asistModoConversacion){
-            try { _recognition.start(); } catch(e2){ _asistSalirConversacion(); }
-          }
-        }, 250);
-      }
-      return;
-    }
     _asistMostrarOndas(false);
-    _asistTranscripcionOcultar();
+    console.log('[Asistente] Sesión terminada');
   };
 
   return _recognition;
 }
 
 // Trigger manual — se llama desde el botón 🎤
+// Cada tap inicia UNA sesión de escucha. Si ya está escuchando, cancela.
 function asistenteEscuchar(){
   var rec = _initAsistente();
   if(!rec){
     toast('Tu navegador no soporta reconocimiento de voz');
     return;
   }
-  // Asegurar que aliases estén cargados
+  // Asegurar que aliases estén cargados (util para búsquedas futuras)
   _asistAliasInit();
 
-  if(_asistModoConversacion){
-    // Segundo tap durante conversación = salir
-    _asistHablar('Listo');
-    _asistSalirConversacion();
-    return;
-  }
+  // Si está escuchando, segundo tap = cancelar
   if(_asistEscuchando){
     try { rec.abort(); } catch(e){}
     return;
   }
+
+  // Si está hablando, esperar a que termine
+  if(_asistHablando){
+    toast('Esperá que termine de hablar');
+    return;
+  }
+
   try {
+    _asistBloqueado = false;
     if('speechSynthesis' in window) window.speechSynthesis.cancel();
-    _asistEntrarConversacion();
     rec.start();
   } catch(e){
     console.warn('[Asistente] No se pudo iniciar:', e.message);
     toast('Error al iniciar: ' + e.message);
-    _asistModoConversacion = false;
   }
 }
 
-// ── CONVERSACIÓN CONTINUA ──────────────────────────────
-function _asistEntrarConversacion(){
-  _asistModoConversacion = true;
-  _asistDisambiguacion = null;
-  _asistUltimoInterim = '';
-  _asistUltimoFinal = '';
-  _asistTranscripcionMostrar();
-  _asistResetSilencio();
-  console.log('[Asistente] → Modo conversación');
-}
-
+// Stubs vacíos de conversación continua (preservados por compatibilidad)
+function _asistEntrarConversacion(){ /* no-op en modo one-shot */ }
 function _asistSalirConversacion(){
-  _asistModoConversacion = false;
   _asistDisambiguacion = null;
-  if(_asistSilencioTimer){ clearTimeout(_asistSilencioTimer); _asistSilencioTimer = null; }
-  if(_asistCountdownTimer){ clearInterval(_asistCountdownTimer); _asistCountdownTimer = null; }
+  _asistBloqueado = false;
   try { if(_recognition) _recognition.abort(); } catch(e){}
   _asistMostrarOndas(false);
-  _asistTranscripcionOcultar();
-  console.log('[Asistente] ← Fin conversación');
 }
-
-function _asistResetSilencio(){
-  if(_asistSilencioTimer){ clearTimeout(_asistSilencioTimer); _asistSilencioTimer = null; }
-  if(_asistCountdownTimer){ clearInterval(_asistCountdownTimer); _asistCountdownTimer = null; }
-  if(!_asistModoConversacion) return;
-
-  var inicio = Date.now();
-  _asistSilencioTimer = setTimeout(function(){
-    console.log('[Asistente] Silencio prolongado, saliendo');
-    _asistHablar('Chau');
-    _asistSalirConversacion();
-  }, _asistSilencioMs);
-
-  // Countdown visible en los últimos 5s
-  _asistCountdownTimer = setInterval(function(){
-    if(!_asistModoConversacion){ clearInterval(_asistCountdownTimer); return; }
-    var transcurrido = Date.now() - inicio;
-    var restante = Math.ceil((_asistSilencioMs - transcurrido) / 1000);
-    if(restante <= 5 && restante > 0){
-      _asistTranscripcionCountdown(restante);
-    } else {
-      _asistTranscripcionCountdown(0);
-    }
-  }, 500);
-}
+function _asistResetSilencio(){ /* no-op */ }
 
 var _ASIST_SALIDA_RE = /^(listo|chau|chao|terminado|terminar|ya\s+est[aá]|gracias|salir|fuera|adios|adi[oó]s|listo\s+gracias|chau\s+gracias|nada\s+mas|nada\s+m[aá]s)$/;
 function _asistEsFraseSalida(texto){
@@ -1223,19 +1164,25 @@ var _asistHablando = false;
 
 function _asistHablar(texto){
   if(typeof toast === 'function') toast('🤖 ' + texto);
-  if(typeof vozMuteGet === 'function' && vozMuteGet()) return;
-  if(!('speechSynthesis' in window)) return;
+  if(typeof vozMuteGet === 'function' && vozMuteGet()){
+    _asistHablando = false;
+    _asistBloqueado = false;
+    return;
+  }
+  if(!('speechSynthesis' in window)){
+    _asistHablando = false;
+    _asistBloqueado = false;
+    return;
+  }
   try {
     window.speechSynthesis.cancel();
 
-    // PAUSAR el recognition mientras el asistente habla.
-    // Esto evita que el micrófono capture la propia voz del TTS.
-    var wasListening = _asistEscuchando;
-    var wasConv = _asistModoConversacion;
-    if(wasListening && _recognition){
+    // PAUSAR el recognition mientras el asistente habla
+    if(_recognition && _asistEscuchando){
       try { _recognition.abort(); } catch(e){}
     }
     _asistHablando = true;
+    _asistBloqueado = true;
 
     var u = new SpeechSynthesisUtterance();
     u.text = texto;
@@ -1247,23 +1194,28 @@ function _asistHablar(texto){
       if(v) u.voice = v;
     }
 
-    u.onend = function(){
+    var desbloquear = function(){
       _asistHablando = false;
-      // Si estaba en conversación continua, retomar el recognition
-      // después de un pequeño delay para que no capture el eco
-      if(wasConv){
-        setTimeout(function(){
-          if(_asistModoConversacion && _recognition && !_asistEscuchando){
-            try { _recognition.start(); } catch(e){}
-          }
-        }, 400);
-      }
+      // Delay extra para que el eco del TTS no se capture si el usuario
+      // toca el mic muy rápido
+      setTimeout(function(){ _asistBloqueado = false; }, 500);
     };
-    u.onerror = function(){ _asistHablando = false; };
+
+    u.onend = desbloquear;
+    u.onerror = desbloquear;
+
+    // Failsafe: si onend no se dispara en 15s, desbloquear igual
+    setTimeout(function(){
+      if(_asistHablando){
+        console.warn('[Asistente] onend no disparó — desbloqueando manualmente');
+        desbloquear();
+      }
+    }, 15000);
 
     window.speechSynthesis.speak(u);
   } catch(e){
     _asistHablando = false;
+    _asistBloqueado = false;
   }
 }
 
