@@ -294,12 +294,21 @@ async function iniciarApp(){
   setTimeout(sateliteInicializarUI, 500);
 
   // ── SYNC PEDIDOS SATÉLITE (solo modo caja) ───────────────────────────────
-  // Primera sync a los 7s (después de que mesasCargar termine y mesasMesas
-  // esté disponible para resolver mesa_id por nombre).
-  // Después cada 30s en background para ver nuevos pedidos de meseros.
+  // Polling rápido + trigger en visibility change + Realtime via WebSocket.
+  // Primera sync a los 2s para no esperar el 7s clásico.
   if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'caja'){
-    setTimeout(cajaSyncPedidosSatelite, 7000);
-    setInterval(cajaSyncPedidosSatelite, 30000);
+    setTimeout(cajaSyncPedidosSatelite, 2000);
+    setInterval(cajaSyncPedidosSatelite, 6000); // cada 6 segundos
+    // Trigger inmediato al volver la app al foreground
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState === 'visible'){
+        setTimeout(cajaSyncPedidosSatelite, 200);
+      }
+    });
+    // Suscribirse a Realtime de Supabase si está disponible
+    if(typeof cajaSuscribirRealtime === 'function'){
+      setTimeout(cajaSuscribirRealtime, 3000);
+    }
   }
 
   // ── SYNC ESTADO DE PEDIDOS (solo modo satélite) ─────────────────────────
@@ -307,8 +316,13 @@ async function iniciarApp(){
   // así se eliminan los pedidos ya cobrados o cancelados por la caja.
   if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'satelite'){
     if(typeof sateliteSyncPedidosPendientes === 'function'){
-      setTimeout(sateliteSyncPedidosPendientes, 8000);
-      setInterval(sateliteSyncPedidosPendientes, 20000);
+      setTimeout(sateliteSyncPedidosPendientes, 3000);
+      setInterval(sateliteSyncPedidosPendientes, 10000);
+      document.addEventListener('visibilitychange', function(){
+        if(document.visibilityState === 'visible'){
+          setTimeout(sateliteSyncPedidosPendientes, 200);
+        }
+      });
     }
   }
 }

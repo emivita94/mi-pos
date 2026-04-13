@@ -410,6 +410,107 @@ async function cajaSyncPedidosSatelite(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// CAJA → REALTIME via Supabase WebSocket
+//
+// En lugar de solo hacer polling cada 6s, abrimos una conexion WebSocket a
+// Supabase Realtime. Cuando un satelite INSERTA un pedido nuevo, recibimos
+// un evento inmediato y disparamos cajaSyncPedidosSatelite() en milisegundos
+// en vez de esperar hasta el proximo poll.
+//
+// Si Realtime falla o se desconecta, el polling cada 6s sigue siendo el
+// fallback confiable.
+// ══════════════════════════════════════════════════════════════════════════════
+var _realtimeWS = null;
+var _realtimeReconnectTimer = null;
+var _realtimeRef = 0;
+
+function cajaSuscribirRealtime(){
+  if(MODO_TERMINAL !== 'caja') return;
+  if(!navigator.onLine || USAR_DEMO) return;
+  if(_realtimeWS && _realtimeWS.readyState === 1) return; // ya conectado
+  if(typeof SUPA_URL === 'undefined' || typeof SUPA_ANON === 'undefined') return;
+  if(typeof WebSocket === 'undefined') return;
+
+  try {
+    // URL del endpoint Realtime — derivar del SUPA_URL
+    var wsUrl = SUPA_URL.replace(/^https?:\/\//, 'wss://') + '/realtime/v1/websocket?apikey=' + SUPA_ANON + '&vsn=1.0.0';
+    _realtimeWS = new WebSocket(wsUrl);
+
+    _realtimeWS.onopen = function(){
+      console.log('[Realtime] Conectado a Supabase');
+      // Suscribirse a INSERTs en pos_pedidos filtrados por licencia_email
+      var email = localStorage.getItem('lic_email');
+      if(!email) return;
+      var sucursal = localStorage.getItem('pos_sucursal') || 'Principal';
+      _realtimeRef++;
+      var msg = {
+        topic: 'realtime:public:pos_pedidos',
+        event: 'phx_join',
+        payload: {
+          config: {
+            postgres_changes: [
+              {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'pos_pedidos',
+                filter: 'licencia_email=eq.' + email
+              },
+              {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'pos_pedidos',
+                filter: 'licencia_email=eq.' + email
+              }
+            ]
+          }
+        },
+        ref: String(_realtimeRef)
+      };
+      _realtimeWS.send(JSON.stringify(msg));
+
+      // Heartbeat cada 25s para mantener la conexion viva
+      _realtimeWS._hb = setInterval(function(){
+        if(_realtimeWS && _realtimeWS.readyState === 1){
+          _realtimeRef++;
+          _realtimeWS.send(JSON.stringify({
+            topic: 'phoenix', event: 'heartbeat', payload: {}, ref: String(_realtimeRef)
+          }));
+        }
+      }, 25000);
+    };
+
+    _realtimeWS.onmessage = function(e){
+      try {
+        var data = JSON.parse(e.data);
+        if(data.event === 'postgres_changes' && data.payload && data.payload.data){
+          // Nuevo pedido insertado o updateado — trigger sync inmediato
+          var eventType = data.payload.data.type;
+          console.log('[Realtime] Cambio en pos_pedidos:', eventType);
+          if(MODO_TERMINAL === 'caja'){
+            setTimeout(cajaSyncPedidosSatelite, 100);
+          }
+        }
+      } catch(err){ /* ignorar mensajes malformados */ }
+    };
+
+    _realtimeWS.onerror = function(err){
+      console.warn('[Realtime] Error WebSocket:', err);
+    };
+
+    _realtimeWS.onclose = function(){
+      console.log('[Realtime] Desconectado — reintentando en 5s');
+      if(_realtimeWS && _realtimeWS._hb) clearInterval(_realtimeWS._hb);
+      _realtimeWS = null;
+      // Reintentar conexion tras 5s
+      clearTimeout(_realtimeReconnectTimer);
+      _realtimeReconnectTimer = setTimeout(cajaSuscribirRealtime, 5000);
+    };
+  } catch(e){
+    console.warn('[Realtime] No se pudo conectar:', e.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // SATELITE → SINCRONIZAR ESTADO DE PEDIDOS ENVIADOS
 //
 // El satelite envia pedidos a pos_pedidos y los guarda localmente en pendientes[].
