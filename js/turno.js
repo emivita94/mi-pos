@@ -877,6 +877,18 @@ function cerrarTurno(){
   renderCierreMetodosRows();
   renderCierreResumen();
   goTo('scCierre');
+
+  // Voz: saludo corto al entrar a la pantalla de cierre
+  if(typeof hablarCierreInicio === 'function'){
+    setTimeout(hablarCierreInicio, 500);
+  }
+}
+
+// Botón "🔊 Escuchar valores esperados" — recita los montos por método
+function escucharValoresEsperados(){
+  if(typeof hablarValoresEsperados === 'function'){
+    hablarValoresEsperados(cierreMetodos, calcSaldoEsperado());
+  }
 }
 
 let cierreMetodos = {};

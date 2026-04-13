@@ -1314,6 +1314,11 @@ async function confirmarCierre(){
   var totalContado = Object.values(cierreMetodos).reduce(function(s,d){return s+d.contado;},0);
   var saldoEsperado = calcSaldoEsperado();
   var diferencia = totalContado > 0 ? totalContado - saldoEsperado : 0;
+
+  // Voz: alertar si hay diferencia (solo si el cajero declaro algo)
+  if(totalContado > 0 && typeof hablarDiferenciaCierre === 'function'){
+    hablarDiferenciaCierre(diferencia);
+  }
   var turnoDbIdCierre = turnoData.dbId;
   var turnoSupaIdCierre = turnoData.supaId;
 

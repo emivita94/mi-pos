@@ -391,6 +391,119 @@ document.addEventListener('touchstart', _marcarGesto, { once: true, passive: tru
 document.addEventListener('click',      _marcarGesto, { once: true });
 document.addEventListener('keydown',    _marcarGesto, { once: true });
 
+// ── VOZ EN CIERRE DE TURNO ──────────────────────────────
+
+// Al entrar a la pantalla de cierre, saludo corto para indicar al cajero
+// que debe contar el dinero fisico.
+function hablarCierreInicio(){
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance();
+    u.text = 'Cierre de caja. Contá el dinero físico y declará cada método de pago.';
+    u.lang = 'es-PY';
+    u.rate = 1.05;
+    u.volume = 1;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+// Recita los valores esperados de cada método de pago (on-demand).
+// cierreMetodos es un objeto { EFECTIVO: {esperado, contado}, POS: {...}, ... }
+function hablarValoresEsperados(cierreMetodos, saldoTotal){
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  if(!cierreMetodos) return;
+  try {
+    window.speechSynthesis.cancel();
+    var partes = [];
+    // Orden preferido: EFECTIVO primero, luego resto
+    var orden = ['EFECTIVO','POS','TRANSFERENCIA'];
+    var vistos = {};
+    orden.forEach(function(m){
+      if(cierreMetodos[m]){
+        var esp = Math.round(cierreMetodos[m].esperado || 0);
+        if(esp > 0 || m === 'EFECTIVO'){
+          partes.push(_metodoALabel(m) + ' ' + _numeroALabel(esp) + ' guaraníes');
+          vistos[m] = true;
+        }
+      }
+    });
+    // Métodos adicionales no en el orden estándar
+    Object.keys(cierreMetodos).forEach(function(m){
+      if(vistos[m]) return;
+      var esp = Math.round(cierreMetodos[m].esperado || 0);
+      if(esp > 0){
+        partes.push(_metodoALabel(m) + ' ' + _numeroALabel(esp) + ' guaraníes');
+      }
+    });
+
+    var texto;
+    if(partes.length === 0){
+      texto = 'No hay ventas registradas en este turno.';
+    } else {
+      texto = 'Valores esperados. ' + partes.join('. ') + '.';
+      if(saldoTotal != null){
+        texto += ' Total ' + _numeroALabel(Math.round(saldoTotal)) + ' guaraníes.';
+      }
+    }
+    var u = new SpeechSynthesisUtterance();
+    u.text = texto;
+    u.lang = 'es-PY';
+    u.rate = 1.0;
+    u.volume = 1;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+// Alerta al cajero si hay diferencia al cerrar
+// diferencia > 0 = sobrante, < 0 = faltante, 0 = cuadre
+function hablarDiferenciaCierre(diferencia){
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance();
+    var monto = Math.abs(Math.round(diferencia));
+    if(diferencia === 0 || monto === 0){
+      u.text = 'Caja cuadrada correctamente.';
+    } else if(diferencia > 0){
+      u.text = 'Atención, sobrante de ' + _numeroALabel(monto) + ' guaraníes.';
+    } else {
+      u.text = 'Atención, faltante de ' + _numeroALabel(monto) + ' guaraníes.';
+    }
+    u.lang = 'es-PY';
+    u.rate = 1.0;
+    u.volume = 1;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+// Helper: convierte código de método a etiqueta legible
+function _metodoALabel(m){
+  if(!m) return '';
+  var map = {
+    'EFECTIVO': 'Efectivo',
+    'POS': 'Tarjeta POS',
+    'TRANSFERENCIA': 'Transferencias',
+    'QR': 'Código QR',
+    'CHEQUE': 'Cheques',
+  };
+  return map[m.toUpperCase()] || (m.charAt(0).toUpperCase() + m.slice(1).toLowerCase());
+}
+
+// Helper: formatea número con el locale es-PY (el TTS lee bien los números)
+function _numeroALabel(n){
+  return Number(n).toLocaleString('es-PY');
+}
+
 // Anuncia el vuelto al cliente ("Vuelto 70.000 guaraníes")
 function hablarVuelto(monto){
   if(vozMuteGet()) return;
