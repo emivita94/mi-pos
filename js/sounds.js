@@ -252,6 +252,8 @@ if('speechSynthesis' in window){
         poblarSelectorVoces(typeof _vozFiltroActual !== 'undefined' ? _vozFiltroActual : 'all');
       }
     }
+    // Calentar el engine ahora que las voces están disponibles (si ya hubo gesto)
+    if(typeof calentarVoz === 'function') calentarVoz();
   });
   // Trigger inicial (algunos browsers necesitan esto para disparar voiceschanged)
   try { window.speechSynthesis.getVoices(); } catch(e){}
@@ -321,28 +323,73 @@ function hablarRazonSocial(razonSocial){
   } catch(e){}
 }
 
-// "Calienta" el engine de speechSynthesis reproduciendo una frase silenciosa.
-// La primera invocacion de speechSynthesis en Android Chrome/PWA suele tardar
-// ~1-2 segundos. Esto se hace al iniciar la app despues del primer user gesture.
+// ── WARMUP del engine de TTS ─────────────────────────────
+// En Android Chrome/PWA, la primera llamada a speechSynthesis.speak()
+// tarda ~1-2 segundos porque el servicio TTS del sistema se inicializa
+// lazy. Este warmup dispara una utterance REAL (con volumen muy bajo,
+// casi inaudible) para que el engine quede listo antes del primer uso.
+//
+// Estrategia triple:
+// 1. Al primer gesto del usuario (touchstart/click) — si las voces ya
+//    están cargadas, dispara inmediatamente.
+// 2. Cuando se dispara voiceschanged por primera vez — si ya hubo un
+//    gesto previo pendiente, calienta ahí.
+// 3. Re-intento tras 1s si el primer speak no se completó (Chrome
+//    a veces descarta el primer utterance silenciosamente).
 var _vozCalentada = false;
+var _gestoHecho = false;
+
 function calentarVoz(){
   if(_vozCalentada) return;
-  if(vozMuteGet()) return;
   if(!('speechSynthesis' in window)) return;
+  if(!_gestoHecho) return; // sin user gesture no hay permiso
+  if(vozMuteGet()) return;
+  var voces = listarVocesEs();
+  if(!voces.length){
+    // Las voces aún no cargaron — esperar a voiceschanged
+    return;
+  }
   try {
-    var u = new SpeechSynthesisUtterance(' ');
-    u.volume = 0;
-    u.rate = 2;
+    // Primer speak: una palabra real con volumen muy bajo.
+    // Un texto vacío o solo espacios es descartado por Chrome.
+    var u1 = new SpeechSynthesisUtterance('hola');
+    u1.volume = 0.01;
+    u1.rate = 2.5;
     var v = _findVozEs();
-    if(v) u.voice = v;
-    window.speechSynthesis.speak(u);
-    _vozCalentada = true;
+    if(v) u1.voice = v;
+    u1.onstart = function(){ _vozCalentada = true; };
+    u1.onend = function(){ _vozCalentada = true; };
+    window.speechSynthesis.speak(u1);
+
+    // Failsafe: si después de 300ms no se disparó onstart, cancelar
+    // y re-intentar (bug conocido en Chrome Android donde el primer
+    // utterance queda stuck).
+    setTimeout(function(){
+      if(!_vozCalentada){
+        try {
+          window.speechSynthesis.cancel();
+          var u2 = new SpeechSynthesisUtterance('hola');
+          u2.volume = 0.01;
+          u2.rate = 2.5;
+          if(v) u2.voice = v;
+          u2.onstart = function(){ _vozCalentada = true; };
+          window.speechSynthesis.speak(u2);
+        } catch(e){}
+      }
+    }, 300);
   } catch(e){}
 }
 
-// Calentar la voz en el primer toque del usuario
-document.addEventListener('touchstart', calentarVoz, { once: true, passive: true });
-document.addEventListener('click',      calentarVoz, { once: true });
+function _marcarGesto(){
+  _gestoHecho = true;
+  calentarVoz();
+}
+
+// Calentar la voz en el primer gesto del usuario (mutliples eventos para
+// asegurar captura)
+document.addEventListener('touchstart', _marcarGesto, { once: true, passive: true });
+document.addEventListener('click',      _marcarGesto, { once: true });
+document.addEventListener('keydown',    _marcarGesto, { once: true });
 
 // Anuncia el vuelto al cliente ("Vuelto 70.000 guaraníes")
 function hablarVuelto(monto){

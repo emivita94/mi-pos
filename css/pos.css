@@ -1830,10 +1830,21 @@
       grid-column: 2;
       margin-top: 4px;
     }
-    /* Factura section SIEMPRE visible, ancho completo debajo del grid */
+    /* Factura wrapper: display:contents para que la factura-sec participe
+       del flex column de scCobrar directamente (asi el footer queda
+       correctamente debajo cuando la factura se expande) */
     #scCobrar > div[style*="padding: 0 20px"] {
-      padding: 8px 28px 4px !important;
+      display: contents !important;
+    }
+    #scCobrar .factura-sec {
       flex-shrink: 0;
+      margin: 8px 28px 4px;
+    }
+    /* Cuando la factura esta abierta, permitir scroll interno del form
+       para que no empuje el footer fuera de la pantalla */
+    #scCobrar .factura-form.open {
+      max-height: 32vh;
+      overflow-y: auto;
     }
     /* El footer siempre visible al fondo — nunca scrollea */
     #scCobrar .cobrar-footer {

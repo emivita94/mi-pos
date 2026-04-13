@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260413-startupfix';
+const CACHE = 'ampersand-pos-v20260413-vozwarmup';
 
 const ASSETS = [
   '/',
