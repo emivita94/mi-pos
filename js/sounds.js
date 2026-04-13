@@ -284,6 +284,66 @@ function hablarCobro(monto){
   } catch(e){}
 }
 
+// Anuncia un pedido nuevo que llegó del satélite
+function hablarPedidoNuevo(cantidad){
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance();
+    u.text = cantidad > 1
+      ? 'Atención, ' + cantidad + ' pedidos nuevos'
+      : 'Atención, pedido nuevo';
+    u.lang = 'es-PY';
+    u.rate = 1.05;
+    u.volume = 1;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+// Anuncia la razón social encontrada al buscar un RUC
+function hablarRazonSocial(razonSocial){
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  if(!razonSocial) return;
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance();
+    u.text = 'Facturar a ' + razonSocial + '. Confirmá los datos.';
+    u.lang = 'es-PY';
+    u.rate = 1.02;
+    u.volume = 1;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+// "Calienta" el engine de speechSynthesis reproduciendo una frase silenciosa.
+// La primera invocacion de speechSynthesis en Android Chrome/PWA suele tardar
+// ~1-2 segundos. Esto se hace al iniciar la app despues del primer user gesture.
+var _vozCalentada = false;
+function calentarVoz(){
+  if(_vozCalentada) return;
+  if(vozMuteGet()) return;
+  if(!('speechSynthesis' in window)) return;
+  try {
+    var u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    u.rate = 2;
+    var v = _findVozEs();
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+    _vozCalentada = true;
+  } catch(e){}
+}
+
+// Calentar la voz en el primer toque del usuario
+document.addEventListener('touchstart', calentarVoz, { once: true, passive: true });
+document.addEventListener('click',      calentarVoz, { once: true });
+
 // Anuncia el vuelto al cliente ("Vuelto 70.000 guaraníes")
 function hablarVuelto(monto){
   if(vozMuteGet()) return;

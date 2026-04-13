@@ -287,8 +287,20 @@ async function iniciarApp(){
   // Primera sync a los 7s (después de que mesasCargar termine y mesasMesas
   // esté disponible para resolver mesa_id por nombre).
   // Después cada 30s en background para ver nuevos pedidos de meseros.
-  setTimeout(cajaSyncPedidosSatelite, 7000);
-  setInterval(cajaSyncPedidosSatelite, 30000);
+  if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'caja'){
+    setTimeout(cajaSyncPedidosSatelite, 7000);
+    setInterval(cajaSyncPedidosSatelite, 30000);
+  }
+
+  // ── SYNC ESTADO DE PEDIDOS (solo modo satélite) ─────────────────────────
+  // El satélite reconcilia su array local con el estado real en Supabase,
+  // así se eliminan los pedidos ya cobrados o cancelados por la caja.
+  if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'satelite'){
+    if(typeof sateliteSyncPedidosPendientes === 'function'){
+      setTimeout(sateliteSyncPedidosPendientes, 8000);
+      setInterval(sateliteSyncPedidosPendientes, 20000);
+    }
+  }
 }
 
 // ── ARRANQUE ──────────────────────────────────────────────

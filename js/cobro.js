@@ -726,6 +726,7 @@ async function consultarRuc() {
         document.getElementById('factNombre').value = c.razon_social;
         document.getElementById('factRuc').value    = c.ruc + (c.dv ? '-' + c.dv : '');
         setRucStatus('✓ ' + c.razon_social + (c.estado !== 'ACTIVO' ? ' (' + c.estado + ')' : ''), c.estado === 'ACTIVO' ? 'ok' : 'warn');
+        if(typeof hablarRazonSocial === 'function') hablarRazonSocial(c.razon_social);
         encontrado = true;
       }
     }
@@ -744,6 +745,7 @@ async function consultarRuc() {
           document.getElementById('factNombre').value = c.razon_social;
           document.getElementById('factRuc').value    = c.ruc + (c.dv ? '-' + c.dv : '');
           setRucStatus('✓ ' + c.razon_social + (c.estado !== 'ACTIVO' ? ' (' + c.estado + ')' : ''), c.estado === 'ACTIVO' ? 'ok' : 'warn');
+          if(typeof hablarRazonSocial === 'function') hablarRazonSocial(c.razon_social);
           encontrado = true;
         }
       }
@@ -755,6 +757,7 @@ async function consultarRuc() {
       if (demo) {
         document.getElementById('factNombre').value = demo.nombre;
         setRucStatus('✓ ' + demo.nombre, 'ok');
+        if(typeof hablarRazonSocial === 'function') hablarRazonSocial(demo.nombre);
         encontrado = true;
       }
     }

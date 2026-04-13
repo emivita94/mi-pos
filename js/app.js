@@ -1335,6 +1335,24 @@ async function confirmarCierre(){
         }, true);
       console.log('[Cierre] Turno cerrado en Supabase OK');
     } catch(e){ console.warn('[Cierre] Error Supabase:', e.message); }
+
+    // ── Cancelar pedidos satelite abiertos al cerrar turno ─
+    // Los pedidos que quedaron sin cobrar se marcan como cancelados para que
+    // no aparezcan en el proximo turno ni en los satelites
+    try {
+      var _emailCierre = localStorage.getItem('lic_email');
+      var _sucCierre = localStorage.getItem('pos_sucursal') || 'Principal';
+      if(_emailCierre){
+        await supaPatch('pos_pedidos',
+          'licencia_email=eq.' + encodeURIComponent(_emailCierre)
+          + '&sucursal=eq.' + encodeURIComponent(_sucCierre)
+          + '&estado=in.(abierto,en_cobro)',
+          { estado: 'cancelado', updated_at: new Date().toISOString() },
+          true
+        );
+        console.log('[Cierre] Pedidos satelite abiertos cancelados');
+      }
+    } catch(e){ console.warn('[Cierre] Error cancelando pedidos satelite:', e.message); }
   }
 
   // Preview en iframe para fidelidad

@@ -129,26 +129,32 @@ async function sateliteEnviarPedido(){
 
   // ── Intentar sincronizar con Supabase ────────────────────────────────────
   let supaOk = false;
+  let supabasePedidoId = null; // UUID devuelto por Supabase
   if(navigator.onLine && email && !USAR_DEMO){
     try{
       const res = await fetch(SUPA_URL + '/rest/v1/pos_pedidos', {
         method:  'POST',
-        headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+        headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
         body: JSON.stringify(pedidoData),
       });
       supaOk = res.ok;
       if(!res.ok){
         const errText = await res.text();
         console.warn('[Satélite] Error al enviar pedido a Supabase:', res.status, errText);
-        // Si la tabla no existe aún, no bloquear al mesero — solo advertir
         if(res.status === 404 || res.status === 400){
           console.warn('[Satélite] Tabla pos_pedidos no encontrada. Ejecutar SQL de setup.');
         }
       } else {
-        console.log('[Satélite] Pedido #' + nroOrden + ' sincronizado con Supabase OK');
+        // Capturar el UUID que asignó Supabase — crítico para reconciliación
+        try {
+          var inserted = await res.json();
+          if(inserted && inserted[0] && inserted[0].id){
+            supabasePedidoId = inserted[0].id;
+          }
+        } catch(ep){ console.warn('[Satélite] No se pudo leer UUID del response'); }
+        console.log('[Satélite] Pedido #' + nroOrden + ' sincronizado. ID:', supabasePedidoId);
       }
     } catch(e){
-      // Sin internet — modo offline, el pedido queda solo en localStorage
       console.warn('[Satélite] Sin conexión al enviar pedido:', e.message);
     }
   }
@@ -167,23 +173,34 @@ async function sateliteEnviarPedido(){
     console.log('[Satelite] Sin impresora — comanda no impresa, items marcados como enviados');
   }
 
-  // ── Guardar backup local en pendientes[] ─────────────────────────────────
-  // Permite que el satélite funcione sin internet y que el panel de mesas
-  // muestre la mesa como "ocupada" aunque Supabase no respondió.
-  const nro = incrementTicketCounter();
-
-  addPendiente({
-    nro:              nro,
+  // ── Guardar/actualizar backup local en pendientes[] ──────────────────────
+  // Si el cart vino de un pendiente ya guardado (currentTicketNro != null),
+  // REEMPLAZAR ese pendiente en vez de agregar uno nuevo. Esto evita duplicados
+  // en el flujo "Guardar → Enviar".
+  var nro;
+  var idxExistente = -1;
+  if(currentTicketNro !== null){
+    idxExistente = pendientes.findIndex(function(p){ return p.nro === currentTicketNro; });
+  }
+  var entradaPendiente = {
+    nro:              currentTicketNro !== null ? currentTicketNro : incrementTicketCounter(),
     obs:              mesaNombre || (tipo === 'delivery' ? 'Delivery' : 'Para llevar'),
     cart:             JSON.parse(JSON.stringify(cart)),
     total:            calcTotal(),
     fecha:            new Date().toISOString(),
     mesa_id:          mesaActual ? mesaActual.id : null,
-    esSatelite:       true,              // flag: distingue de tickets de caja
-    esSateliteCobrado:false,             // la caja lo marcará como cobrado
-    supaSync:         supaOk,            // true si se sinronizó con Supabase
+    esSatelite:       true,
+    esSateliteCobrado:false,
+    supaSync:         supaOk,
+    supabasePedidoId: supabasePedidoId, // UUID para reconciliación
     esPresupuesto:    false,
-  });
+  };
+  nro = entradaPendiente.nro;
+  if(idxExistente >= 0){
+    pendientes[idxExistente] = entradaPendiente;
+  } else {
+    addPendiente(entradaPendiente);
+  }
   guardarPendientesLocal();
 
   // ── Feedback al mesero ───────────────────────────────────────────────────
@@ -382,10 +399,81 @@ async function cajaSyncPedidosSatelite(){
       if(typeof toast === 'function')
         toast(diff + ' pedido' + (diff > 1 ? 's' : '') + ' nuevo' + (diff > 1 ? 's' : '') + ' de mesa');
       if(typeof sndPedido === 'function') sndPedido();
+      // Voz sintetica: anunciar pedido nuevo despues del sonido
+      if(typeof hablarPedidoNuevo === 'function'){
+        setTimeout(function(){ hablarPedidoNuevo(diff); }, 800);
+      }
     }
 
     console.log('[CajaSync] Satelite pendientes:', satelites.length, '| Total:', pendientes.length);
   } catch(e){ console.warn('[CajaSync] Error:', e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SATELITE → SINCRONIZAR ESTADO DE PEDIDOS ENVIADOS
+//
+// El satelite envia pedidos a pos_pedidos y los guarda localmente en pendientes[].
+// Cuando la caja los cobra o cancela, la satelite debe enterarse. Esta funcion
+// consulta Supabase y remueve del array local los pedidos que ya estan cobrados
+// o cancelados.
+// ══════════════════════════════════════════════════════════════════════════════
+async function sateliteSyncPedidosPendientes(){
+  if(MODO_TERMINAL !== 'satelite') return;
+  if(!navigator.onLine || USAR_DEMO) return;
+  try {
+    var email    = localStorage.getItem('lic_email');
+    var terminal = localStorage.getItem('pos_terminal');
+    var sucursal = localStorage.getItem('pos_sucursal') || 'Principal';
+    if(!email || !terminal) return;
+
+    // Solo pedidos de HOY para no cargar historico completo
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var hoyISO = hoy.toISOString();
+    var query = 'licencia_email=eq.' + encodeURIComponent(email)
+              + '&sucursal=eq.'        + encodeURIComponent(sucursal)
+              + '&terminal_origen=eq.' + encodeURIComponent(terminal)
+              + '&created_at=gte.'     + encodeURIComponent(hoyISO)
+              + '&select=id,estado,numero_orden,mesa';
+
+    var rows = await supaGet('pos_pedidos', query);
+    if(!rows) return;
+
+    // Crear mapa id → estado
+    var estadoById = {};
+    var estadoByNroMesa = {};
+    rows.forEach(function(r){
+      if(r.id) estadoById[r.id] = r.estado;
+      var key = (r.numero_orden||'') + '|' + (r.mesa||'');
+      estadoByNroMesa[key] = r.estado;
+    });
+
+    // Filtrar pendientes: eliminar los que ya fueron cobrados o cancelados
+    var antes = pendientes.length;
+    var sobrevivientes = pendientes.filter(function(p){
+      if(!p.esSatelite) return true;
+      var estado = null;
+      // Matching por UUID si esta disponible (mas confiable)
+      if(p.supabasePedidoId && estadoById[p.supabasePedidoId] !== undefined){
+        estado = estadoById[p.supabasePedidoId];
+      } else {
+        // Fallback: matching por (numero_orden, mesa)
+        var key = (p.nro||'') + '|' + (p.mesa_id||'');
+        if(estadoByNroMesa[key] !== undefined) estado = estadoByNroMesa[key];
+      }
+      if(estado === 'cobrado' || estado === 'cancelado'){
+        return false; // eliminar
+      }
+      return true;
+    });
+
+    if(sobrevivientes.length !== antes){
+      setPendientes(sobrevivientes);
+      guardarPendientesLocal();
+      updBtnGuardar();
+      if(typeof renderMesasScreen === 'function') renderMesasScreen();
+      console.log('[SateliteSync] Removidos', antes - sobrevivientes.length, 'pedidos (cobrados/cancelados)');
+    }
+  } catch(e){ console.warn('[SateliteSync] Error:', e.message); }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
