@@ -25,6 +25,23 @@ var _recognition = null;
 var _asistActivo = false;
 var _asistEscuchando = false;
 
+// ── Modo conversación continua ─────────────────────────
+var _asistModoConversacion = false;
+var _asistSilencioTimer = null;
+var _asistCountdownTimer = null;
+var _asistSilencioMs = 12000;      // 12s sin voz = salir
+var _asistUltimoInterim = '';
+var _asistUltimoFinal = '';
+var _asistReiniciando = false;     // bandera para reiniciar rec tras onend
+
+// ── Disambiguación ─────────────────────────────────────
+var _asistDisambiguacion = null;   // { candidatos:[], callback:fn, intentos:N, textoOriginal:str }
+
+// ── Aliases (IndexedDB) ────────────────────────────────
+var _asistDb = null;
+var _asistAliasCache = {};         // { aliasNormalizado: productoId }
+var _asistAliasMem = false;        // true cuando falló IndexedDB y vamos en memoria
+
 // Inicializa el reconocimiento de voz — sólo se ejecuta una vez
 function _initAsistente(){
   if(_recognition) return _recognition;
@@ -35,8 +52,8 @@ function _initAsistente(){
   }
   _recognition = new SR();
   _recognition.lang = 'es-PY';
-  _recognition.continuous = false;
-  _recognition.interimResults = false;
+  _recognition.continuous = true;     // modo conversación
+  _recognition.interimResults = true; // para transcripción en vivo
   _recognition.maxAlternatives = 3;
 
   _recognition.onstart = function(){
@@ -46,13 +63,51 @@ function _initAsistente(){
   };
 
   _recognition.onresult = function(e){
-    // Tomar la alternativa con mayor confianza
-    var alternativas = [];
-    for(var i = 0; i < e.results[0].length; i++){
-      alternativas.push(e.results[0][i].transcript);
+    var interim = '';
+    var finales = [];
+    for(var i = e.resultIndex; i < e.results.length; i++){
+      var res = e.results[i];
+      if(res.isFinal){
+        var alts = [];
+        for(var k = 0; k < res.length; k++) alts.push(res[k].transcript);
+        finales.push(alts);
+      } else {
+        interim += res[0].transcript;
+      }
     }
-    console.log('[Asistente] Escuché:', alternativas);
-    _asistEjecutarComando(alternativas);
+
+    // Cualquier actividad de voz resetea el silencio
+    _asistResetSilencio();
+
+    if(interim){
+      _asistUltimoInterim = interim;
+      _asistTranscripcionUpdate(interim, false);
+    }
+
+    for(var j = 0; j < finales.length; j++){
+      var alternativas = finales[j];
+      _asistUltimoFinal = alternativas[0] || '';
+      _asistUltimoInterim = '';
+      console.log('[Asistente] Escuché (final):', alternativas);
+      _asistTranscripcionUpdate(_asistUltimoFinal, true);
+
+      // Chequear frases de salida ANTES de limpiar muletillas
+      // (porque "listo" también figura en la lista de muletillas)
+      var textoCrudo = _asistNormalizar(alternativas[0] || '');
+      if(_asistEsFraseSalida(textoCrudo)){
+        _asistHablar('Chau, hasta luego');
+        _asistSalirConversacion();
+        return;
+      }
+
+      // ¿Estamos esperando respuesta de disambiguación?
+      if(_asistDisambiguacion){
+        var textoLimpio = _asistLimpiarMuletillas(textoCrudo);
+        _asistResolverDisambiguacion(textoLimpio);
+      } else {
+        _asistEjecutarComando(alternativas);
+      }
+    }
   };
 
   _recognition.onerror = function(e){
@@ -60,18 +115,39 @@ function _initAsistente(){
     if(e.error === 'not-allowed'){
       _asistHablar('Permiso de micrófono denegado. Activalo en la configuración del navegador.');
       toast('⚠ Micrófono denegado');
+      _asistSalirConversacion();
     } else if(e.error === 'no-speech'){
-      toast('No te escuché, volvé a tocar el micrófono');
-    } else if(e.error !== 'aborted'){
+      // En modo conversación no avisamos, seguimos escuchando (se reinicia onend)
+      if(!_asistModoConversacion){
+        toast('No te escuché, volvé a tocar el micrófono');
+      }
+    } else if(e.error === 'aborted'){
+      // ignorar
+    } else {
       toast('Error del asistente: ' + e.error);
+      _asistSalirConversacion();
     }
-    _asistMostrarOndas(false);
-    _asistEscuchando = false;
   };
 
   _recognition.onend = function(){
     _asistEscuchando = false;
+    // Si seguimos en modo conversación, reiniciar el recognition
+    if(_asistModoConversacion){
+      try {
+        _asistReiniciando = true;
+        _recognition.start();
+      } catch(e){
+        // Ya reiniciando, ignorar
+        setTimeout(function(){
+          if(_asistModoConversacion){
+            try { _recognition.start(); } catch(e2){ _asistSalirConversacion(); }
+          }
+        }, 250);
+      }
+      return;
+    }
     _asistMostrarOndas(false);
+    _asistTranscripcionOcultar();
   };
 
   return _recognition;
@@ -84,19 +160,81 @@ function asistenteEscuchar(){
     toast('Tu navegador no soporta reconocimiento de voz');
     return;
   }
+  // Asegurar que aliases estén cargados
+  _asistAliasInit();
+
+  if(_asistModoConversacion){
+    // Segundo tap durante conversación = salir
+    _asistHablar('Listo');
+    _asistSalirConversacion();
+    return;
+  }
   if(_asistEscuchando){
-    // Segundo tap = cancelar
     try { rec.abort(); } catch(e){}
     return;
   }
   try {
-    // Cancelar cualquier voz que esté hablando
     if('speechSynthesis' in window) window.speechSynthesis.cancel();
+    _asistEntrarConversacion();
     rec.start();
   } catch(e){
     console.warn('[Asistente] No se pudo iniciar:', e.message);
     toast('Error al iniciar: ' + e.message);
+    _asistModoConversacion = false;
   }
+}
+
+// ── CONVERSACIÓN CONTINUA ──────────────────────────────
+function _asistEntrarConversacion(){
+  _asistModoConversacion = true;
+  _asistDisambiguacion = null;
+  _asistUltimoInterim = '';
+  _asistUltimoFinal = '';
+  _asistTranscripcionMostrar();
+  _asistResetSilencio();
+  console.log('[Asistente] → Modo conversación');
+}
+
+function _asistSalirConversacion(){
+  _asistModoConversacion = false;
+  _asistDisambiguacion = null;
+  if(_asistSilencioTimer){ clearTimeout(_asistSilencioTimer); _asistSilencioTimer = null; }
+  if(_asistCountdownTimer){ clearInterval(_asistCountdownTimer); _asistCountdownTimer = null; }
+  try { if(_recognition) _recognition.abort(); } catch(e){}
+  _asistMostrarOndas(false);
+  _asistTranscripcionOcultar();
+  console.log('[Asistente] ← Fin conversación');
+}
+
+function _asistResetSilencio(){
+  if(_asistSilencioTimer){ clearTimeout(_asistSilencioTimer); _asistSilencioTimer = null; }
+  if(_asistCountdownTimer){ clearInterval(_asistCountdownTimer); _asistCountdownTimer = null; }
+  if(!_asistModoConversacion) return;
+
+  var inicio = Date.now();
+  _asistSilencioTimer = setTimeout(function(){
+    console.log('[Asistente] Silencio prolongado, saliendo');
+    _asistHablar('Chau');
+    _asistSalirConversacion();
+  }, _asistSilencioMs);
+
+  // Countdown visible en los últimos 5s
+  _asistCountdownTimer = setInterval(function(){
+    if(!_asistModoConversacion){ clearInterval(_asistCountdownTimer); return; }
+    var transcurrido = Date.now() - inicio;
+    var restante = Math.ceil((_asistSilencioMs - transcurrido) / 1000);
+    if(restante <= 5 && restante > 0){
+      _asistTranscripcionCountdown(restante);
+    } else {
+      _asistTranscripcionCountdown(0);
+    }
+  }, 500);
+}
+
+var _ASIST_SALIDA_RE = /^(listo|chau|chao|terminado|terminar|ya\s+est[aá]|gracias|salir|fuera|adios|adi[oó]s|listo\s+gracias|chau\s+gracias|nada\s+mas|nada\s+m[aá]s)$/;
+function _asistEsFraseSalida(texto){
+  if(!texto) return false;
+  return _ASIST_SALIDA_RE.test(texto.trim());
 }
 
 // ── PARSEO DE COMANDOS (v2 — NLP extendido) ──────────────────────
@@ -282,14 +420,23 @@ function _asistTokensProducto(texto){
     .map(function(w){ return _ASIST_SINONIMOS[w] || _asistSingularizar(w); });
 }
 
-function _buscarProducto(texto){
-  if(typeof PRODS === 'undefined' || !PRODS.length) return null;
+// Versión completa: devuelve { mejor, mejorScore, alternativas }
+function _buscarProductosConAlternativas(texto){
+  if(typeof PRODS === 'undefined' || !PRODS.length) return { mejor:null, mejorScore:0, alternativas:[] };
   var buscado = _asistNormalizar(texto);
-  if(!buscado) return null;
-  var tokensBuscados = _asistTokensProducto(texto);
-  if(!tokensBuscados.length) return null;
+  if(!buscado) return { mejor:null, mejorScore:0, alternativas:[] };
 
-  var mejor = null, mejorScore = 0;
+  // 1) Alias aprendido (lookup instantáneo)
+  var aliasProd = _asistAliasBuscar(buscado);
+  if(aliasProd){
+    return { mejor: aliasProd, mejorScore: 1, alternativas: [aliasProd], viaAlias: true };
+  }
+
+  var tokensBuscados = _asistTokensProducto(texto);
+  if(!tokensBuscados.length) return { mejor:null, mejorScore:0, alternativas:[] };
+
+  var resultados = []; // { p, score }
+  var exacto = null;
 
   for(var i = 0; i < PRODS.length; i++){
     var p = PRODS[i];
@@ -300,7 +447,7 @@ function _buscarProducto(texto){
 
     var score = 0;
 
-    if(nombreNorm === buscado){ return p; }
+    if(nombreNorm === buscado){ exacto = p; break; }
     if(buscado.indexOf(nombreNorm) >= 0){ score = Math.max(score, 0.95); }
 
     var comunes = 0;
@@ -327,10 +474,28 @@ function _buscarProducto(texto){
       if(simGlobal >= 0.75) score = Math.max(score, simGlobal);
     }
 
-    if(score > mejorScore){ mejorScore = score; mejor = p; }
+    if(score >= 0.55) resultados.push({ p: p, score: score });
   }
 
-  return mejorScore >= 0.55 ? mejor : null;
+  if(exacto){
+    return { mejor: exacto, mejorScore: 1, alternativas: [exacto], viaAlias: false };
+  }
+  if(!resultados.length) return { mejor:null, mejorScore:0, alternativas:[] };
+
+  resultados.sort(function(a,b){ return b.score - a.score; });
+  var top = resultados[0].score;
+  var alternativas = [];
+  for(var r = 0; r < resultados.length; r++){
+    if(resultados[r].score >= top - 0.15) alternativas.push(resultados[r].p);
+    if(alternativas.length >= 5) break;
+  }
+  return { mejor: resultados[0].p, mejorScore: top, alternativas: alternativas, viaAlias: false };
+}
+
+// API original — devuelve solo el producto (o null)
+function _buscarProducto(texto){
+  var r = _buscarProductosConAlternativas(texto);
+  return r.mejor;
 }
 
 function _asistPantallaActiva(){
@@ -418,7 +583,8 @@ function _asistIntentAgregar(texto){
     }
     if(!nombre) continue;
 
-    var prod = _buscarProducto(nombre);
+    var busq = _buscarProductosConAlternativas(nombre);
+    var prod = busq.mejor;
     if(!prod){
       _asistHablar('No encontré ' + nombre);
       continue;
@@ -427,8 +593,29 @@ function _asistIntentAgregar(texto){
       _asistHablar('No puedo agregar en esta pantalla');
       return true;
     }
+
+    // ¿Hay varios candidatos muy cercanos? → disambiguar
+    if(busq.alternativas && busq.alternativas.length > 1 && !busq.viaAlias){
+      (function(cantFinal, nombreOrig, candidatos){
+        _asistPedirDisambiguacion(candidatos, nombreOrig, function(elegido){
+          if(!elegido) return;
+          _asistIrA('scSale');
+          for(var k = 0; k < cantFinal; k++) addCart(elegido.id);
+          _asistAliasGuardar(nombreOrig, elegido);
+          _asistHablar(_asistFrase('agregado', {n: cantFinal, p: elegido.name}));
+        });
+      })(cantidad, nombre, busq.alternativas);
+      algoAgregado = true;
+      // No pusheamos al resumen porque se responde desde el callback
+      continue;
+    }
+
     _asistIrA('scSale');
     for(var k = 0; k < cantidad; k++) addCart(prod.id);
+    // Guardar alias si el match no fue exacto
+    if(!busq.viaAlias && busq.mejorScore < 0.9){
+      _asistAliasGuardar(nombre, prod);
+    }
     algoAgregado = true;
     resumen.push(cantidad + ' ' + prod.name);
   }
@@ -446,7 +633,7 @@ function _asistIntentAgregar(texto){
     }, 300);
   }
 
-  if(algoAgregado){
+  if(algoAgregado && resumen.length){
     var msgDelivery = deliveryInfo
       ? ' con delivery' + (deliveryInfo.monto ? ' de ' + Number(deliveryInfo.monto).toLocaleString('es-PY') : '')
       : '';
@@ -770,6 +957,231 @@ function _asistEjecutarComando(alternativas){
   _asistHablar(_asistFrase('noEntendi') + ' Escuché: ' + alts[0]);
 }
 
+// ── DISAMBIGUACIÓN DE PRODUCTOS ─────────────────────────
+function _asistPedirDisambiguacion(candidatos, textoOriginal, callback){
+  _asistDisambiguacion = {
+    candidatos: candidatos.slice(0, 5),
+    callback: callback,
+    intentos: 0,
+    textoOriginal: textoOriginal
+  };
+  var nombres = _asistDisambiguacion.candidatos.map(function(p){ return p.name; });
+  var frase;
+  if(nombres.length === 2){
+    frase = '¿Cuál? Tengo ' + nombres[0] + ' o ' + nombres[1];
+  } else {
+    frase = '¿Cuál? ' + nombres.slice(0, -1).join(', ') + ' o ' + nombres[nombres.length - 1];
+  }
+  _asistHablar(frase);
+}
+
+function _asistResolverDisambiguacion(texto){
+  var d = _asistDisambiguacion;
+  if(!d) return;
+  d.intentos++;
+
+  if(/^(cancelar|anular|nada|ninguno|olvid[aá]|dejalo)$/.test(texto)){
+    _asistDisambiguacion = null;
+    _asistHablar('Ok, cancelado');
+    return;
+  }
+
+  var elegido = _asistMatchDisambiguacion(texto, d.candidatos);
+  if(elegido){
+    var cb = d.callback;
+    var orig = d.textoOriginal;
+    _asistDisambiguacion = null;
+    _asistAliasGuardar(orig, elegido);
+    if(typeof cb === 'function') cb(elegido);
+    return;
+  }
+
+  if(d.intentos >= 2){
+    _asistDisambiguacion = null;
+    _asistHablar('No te entendí, dejalo así');
+    return;
+  }
+  _asistHablar('¿Cuál? Decí el nombre o el número');
+}
+
+function _asistMatchDisambiguacion(texto, candidatos){
+  if(!texto || !candidatos || !candidatos.length) return null;
+  var t = _asistNormalizar(texto);
+
+  // 1) Por posición: primero/segundo/tercero/etc. o número
+  var posMap = {
+    'primero':0,'el primero':0,'primera':0,'uno':0,'el uno':0,'la uno':0,'1':0,
+    'segundo':1,'el segundo':1,'segunda':1,'dos':1,'el dos':1,'2':1,
+    'tercero':2,'el tercero':2,'tres':2,'3':2,
+    'cuarto':3,'cuatro':3,'4':3,
+    'quinto':4,'cinco':4,'5':4
+  };
+  if(posMap[t] !== undefined && candidatos[posMap[t]]) return candidatos[posMap[t]];
+  var m = t.match(/^(?:el\s+|la\s+)?(primero|primera|segundo|segunda|tercero|cuarto|quinto|uno|dos|tres|cuatro|cinco)$/);
+  if(m && posMap[m[1]] !== undefined && candidatos[posMap[m[1]]]) return candidatos[posMap[m[1]]];
+
+  // 2) Por substring del nombre (palabra diferenciadora)
+  // Calcular tokens únicos por candidato (los que NO comparten con otros)
+  var tokensCand = candidatos.map(function(p){ return _asistTokensProducto(p.name); });
+  var tokensTexto = _asistTokensProducto(texto);
+
+  // Buscar match directo de token
+  var mejorIdx = -1, mejorCnt = 0;
+  for(var i = 0; i < candidatos.length; i++){
+    var cnt = 0;
+    for(var a = 0; a < tokensCand[i].length; a++){
+      for(var b = 0; b < tokensTexto.length; b++){
+        if(tokensCand[i][a] === tokensTexto[b]){ cnt++; break; }
+        if(tokensCand[i][a].length >= 4 && tokensTexto[b].length >= 4 &&
+           _asistSimilitud(tokensCand[i][a], tokensTexto[b]) >= 0.8){ cnt++; break; }
+      }
+    }
+    if(cnt > mejorCnt){ mejorCnt = cnt; mejorIdx = i; }
+  }
+  if(mejorCnt > 0) return candidatos[mejorIdx];
+
+  // 3) Fuzzy sobre nombre completo
+  var bestScore = 0, bestP = null;
+  for(var j = 0; j < candidatos.length; j++){
+    var s = _asistSimilitud(_asistNormalizar(candidatos[j].name), t);
+    if(s > bestScore){ bestScore = s; bestP = candidatos[j]; }
+  }
+  if(bestScore >= 0.5) return bestP;
+  return null;
+}
+
+// ── ALIASES POR CAJERO (IndexedDB + fallback en memoria) ─
+var _ASIST_ALIAS_INIT = false;
+function _asistAliasInit(){
+  if(_ASIST_ALIAS_INIT) return;
+  _ASIST_ALIAS_INIT = true;
+  try {
+    if(typeof Dexie === 'undefined'){
+      console.warn('[Asistente/Alias] Dexie no disponible, usando memoria');
+      _asistAliasMem = true;
+      return;
+    }
+    _asistDb = new Dexie('POSAsistAlias');
+    _asistDb.version(1).stores({
+      aliases: '++id, &alias, productoId, usos, ultimoUso'
+    });
+    _asistDb.open().then(function(){
+      return _asistDb.aliases.toArray();
+    }).then(function(rows){
+      var ahora = Date.now();
+      var limpieza = [];
+      var treintaDias = 30 * 24 * 60 * 60 * 1000;
+      for(var i = 0; i < rows.length; i++){
+        var r = rows[i];
+        if((r.usos || 0) < 2 && (ahora - (r.ultimoUso || 0)) > treintaDias){
+          limpieza.push(r.id);
+          continue;
+        }
+        _asistAliasCache[r.alias] = r.productoId;
+      }
+      if(limpieza.length){
+        _asistDb.aliases.bulkDelete(limpieza).catch(function(){});
+      }
+      console.log('[Asistente/Alias] Cargados:', Object.keys(_asistAliasCache).length);
+    }).catch(function(err){
+      console.warn('[Asistente/Alias] Error abriendo DB, fallback memoria:', err);
+      _asistAliasMem = true;
+    });
+  } catch(e){
+    console.warn('[Asistente/Alias] Excepción init, fallback memoria:', e);
+    _asistAliasMem = true;
+  }
+}
+
+function _asistAliasBuscar(textoNorm){
+  if(!textoNorm) return null;
+  var id = _asistAliasCache[textoNorm];
+  if(id == null || typeof PRODS === 'undefined') return null;
+  for(var i = 0; i < PRODS.length; i++){
+    if(PRODS[i] && PRODS[i].id === id) return PRODS[i];
+  }
+  return null;
+}
+
+function _asistAliasGuardar(texto, producto){
+  if(!producto || !producto.id) return;
+  var alias = _asistNormalizar(texto);
+  if(!alias) return;
+  // No guardar si el alias es idéntico al nombre normalizado
+  if(alias === _asistNormalizar(producto.name)) return;
+  var existente = _asistAliasCache[alias];
+  _asistAliasCache[alias] = producto.id;
+  console.log('[Asistente/Alias] Guardando:', alias, '→', producto.name);
+
+  if(_asistAliasMem || !_asistDb){
+    return; // solo en cache
+  }
+  try {
+    _asistDb.aliases.where('alias').equals(alias).first().then(function(row){
+      if(row){
+        return _asistDb.aliases.update(row.id, {
+          productoId: producto.id,
+          usos: (row.usos || 0) + 1,
+          ultimoUso: Date.now()
+        });
+      }
+      return _asistDb.aliases.add({
+        alias: alias,
+        productoId: producto.id,
+        usos: 1,
+        ultimoUso: Date.now()
+      });
+    }).catch(function(err){
+      console.warn('[Asistente/Alias] Error guardando, fallback memoria:', err);
+      _asistAliasMem = true;
+    });
+  } catch(e){
+    console.warn('[Asistente/Alias] Excepción guardando:', e);
+    _asistAliasMem = true;
+  }
+}
+
+// ── UI: PANEL DE TRANSCRIPCIÓN EN VIVO ──────────────────
+function _asistTranscripcionEl(){
+  var el = document.getElementById('asistTranscripcion');
+  if(el) return el;
+  el = document.createElement('div');
+  el.id = 'asistTranscripcion';
+  el.className = 'asist-transcripcion';
+  el.innerHTML = '<div class="asist-trans-texto"></div><div class="asist-trans-countdown"></div>';
+  document.body.appendChild(el);
+  return el;
+}
+
+function _asistTranscripcionMostrar(){
+  var el = _asistTranscripcionEl();
+  el.querySelector('.asist-trans-texto').textContent = 'Escuchando...';
+  el.querySelector('.asist-trans-countdown').textContent = '';
+  el.classList.add('visible');
+}
+
+function _asistTranscripcionOcultar(){
+  var el = document.getElementById('asistTranscripcion');
+  if(el) el.classList.remove('visible');
+}
+
+function _asistTranscripcionUpdate(texto, esFinal){
+  var el = document.getElementById('asistTranscripcion');
+  if(!el) return;
+  var t = el.querySelector('.asist-trans-texto');
+  if(t){
+    t.textContent = texto || '...';
+    t.className = 'asist-trans-texto' + (esFinal ? ' final' : '');
+  }
+}
+
+function _asistTranscripcionCountdown(segs){
+  var el = document.getElementById('asistTranscripcion');
+  if(!el) return;
+  var c = el.querySelector('.asist-trans-countdown');
+  if(c) c.textContent = segs > 0 ? (segs + 's...') : '';
+}
+
 // ── RESPUESTA POR VOZ ──────────────────────────────────
 function _asistHablar(texto){
   if(typeof toast === 'function') toast('🤖 ' + texto);
@@ -864,6 +1276,8 @@ function _asistCrearFab(){
     + '<span class="asist-ondas"><span></span><span></span><span></span></span>';
   fab.onclick = asistenteEscuchar;
   document.body.appendChild(fab);
+  // Warm-up del cache de aliases
+  try { _asistAliasInit(); } catch(e){}
   console.log('[Asistente] FAB creado y agregado al body ✓');
 }
 
