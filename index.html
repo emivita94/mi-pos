@@ -447,6 +447,18 @@
       <div class="general-field">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);">Asistente de voz 🎤</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Botón flotante para hablarle al POS. Decí "agregar pizza", "cobrar efectivo", "cuánto vendí hoy", etc.</div>
+          </div>
+          <label class="toggle-switch" style="flex-shrink:0;">
+            <input type="checkbox" id="cfgAsistente" onchange="toggleAsistenteConfig()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="general-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
             <div style="font-size:14px;font-weight:600;color:var(--text);">Voz al cobrar</div>
             <div style="font-size:12px;color:var(--muted);margin-top:2px;">Anuncia el monto total con voz sintética al confirmar un cobro. Útil para cámaras de seguridad con audio.</div>
           </div>
@@ -1837,7 +1849,7 @@
 <script src="js/state.js?v=20260412103"></script>
 <script src="js/selectors.js?v=20260412103"></script>
 <script src="js/sounds.js?v=20260413107"></script>
-<script src="js/asistente.js?v=20260413101"></script>
+<script src="js/asistente.js?v=20260413102"></script>
 <script src="js/ui.js?v=20260412104"></script>
 <script src="js/ventas.js?v=20260413101"></script>
 <script src="js/cobro.js?v=20260413103"></script>
@@ -1849,7 +1861,7 @@
 <script src="js/licencia.js?v=20260412103"></script>
 <script src="js/mesas.js?v=20260412103"></script>
 
-<script src="js/app.js?v=20260413107"></script>
+<script src="js/app.js?v=20260413108"></script>
 <script src="js/init.js?v=20260413105"></script>
 
 <script>

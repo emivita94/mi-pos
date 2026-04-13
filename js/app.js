@@ -157,6 +157,11 @@ function loadGeneralConfigInputs(){
   if(chkSnd){
     chkSnd.checked = typeof sonidoMuteGet === 'function' ? !sonidoMuteGet() : true;
   }
+  // Checkbox del asistente de voz
+  const chkAsist = document.getElementById('cfgAsistente');
+  if(chkAsist){
+    chkAsist.checked = typeof asistenteHabilitadoGet === 'function' ? asistenteHabilitadoGet() : true;
+  }
   // Checkbox de voz — activo por defecto
   const chkVoz = document.getElementById('cfgVoz');
   if(chkVoz){
@@ -182,6 +187,18 @@ function toggleSonidosConfig(){
   sonidoMuteSet(!chk.checked);
   // Reproducir un tap al activar para confirmar que funciona
   if(chk.checked && typeof sndTap === 'function') sndTap();
+}
+
+// Toggle del asistente de voz — activa/desactiva el FAB flotante
+function toggleAsistenteConfig(){
+  var chk = document.getElementById('cfgAsistente');
+  if(!chk || typeof asistenteHabilitadoSet !== 'function') return;
+  asistenteHabilitadoSet(chk.checked);
+  if(chk.checked){
+    if(typeof toast === 'function') toast('🎤 Asistente activado — tocá el botón verde abajo');
+  } else {
+    if(typeof toast === 'function') toast('Asistente desactivado');
+  }
 }
 
 // Toggle de voz con prueba instantánea
