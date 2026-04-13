@@ -34,15 +34,93 @@
 
 // ── CARRITO ─────────────────────────────────────────────────
 
+// ── LONG-PRESS en tiles de producto ──
+// Tap corto: agrega al carrito (rápido)
+// Long-press (500ms): abre flujo completo con mitades/modificadores opcionales
+var _longPressTimer = null;
+var _longPressFired = false;
+
+function _setupLongPressGrid(){
+  var grid = document.getElementById('pgrid');
+  if(!grid || grid._longPressSetup) return;
+  grid._longPressSetup = true;
+
+  function iniciarLongPress(e, tile){
+    _longPressFired = false;
+    clearTimeout(_longPressTimer);
+    _longPressTimer = setTimeout(function(){
+      _longPressFired = true;
+      // Extraer el id del producto del onclick del tile
+      var onclickStr = tile.getAttribute('onclick') || '';
+      var m = onclickStr.match(/addCart\((\d+)/);
+      if(!m) return;
+      var id = parseInt(m[1]);
+      var p = PRODS.find(function(x){ return x.id === id; });
+      if(!p) return;
+      // Abrir el flujo completo
+      var mods = typeof modificadores !== 'undefined'
+        ? modificadores.filter(function(mm){ return mm.productos && mm.productos.includes(p.id); })
+        : [];
+      if((p.mitad || mods.length > 0) && typeof abrirFlujoPizza === 'function'){
+        if(navigator.vibrate) navigator.vibrate(30);
+        abrirFlujoPizza(p, mods.length > 0);
+      }
+    }, 500);
+  }
+
+  function cancelarLongPress(){
+    clearTimeout(_longPressTimer);
+  }
+
+  grid.addEventListener('touchstart', function(e){
+    var tile = e.target.closest('.ptile');
+    if(tile) iniciarLongPress(e, tile);
+  }, { passive: true });
+  grid.addEventListener('touchend', cancelarLongPress);
+  grid.addEventListener('touchmove', cancelarLongPress);
+  grid.addEventListener('touchcancel', cancelarLongPress);
+  // Mouse para desktop
+  grid.addEventListener('mousedown', function(e){
+    var tile = e.target.closest('.ptile');
+    if(tile) iniciarLongPress(e, tile);
+  });
+  grid.addEventListener('mouseup', cancelarLongPress);
+  grid.addEventListener('mouseleave', cancelarLongPress);
+
+  // Prevenir que el onclick dispare si ya se ejecutó el long-press
+  grid.addEventListener('click', function(e){
+    if(_longPressFired){
+      e.stopPropagation();
+      e.preventDefault();
+      _longPressFired = false;
+    }
+  }, true);
+}
+
+// Inicializar cuando el DOM esté listo
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', _setupLongPressGrid);
+} else {
+  _setupLongPressGrid();
+}
+
 function addCart(id, tileEl){
   const p=PRODS.find(x=>x.id===id); if(!p)return;
   if(p.precioVariable){ addCartConPrecioVariable(id); return; }
 
-  const tieneModif = typeof modificadores !== 'undefined' &&
-    modificadores.some(m => m.productos && m.productos.includes(p.id));
+  // Detectar modificadores del producto
+  var mods = typeof modificadores !== 'undefined'
+    ? modificadores.filter(m => m.productos && m.productos.includes(p.id))
+    : [];
+  var tieneModif = mods.length > 0;
+  var tieneModifObligatorio = mods.some(m => m.obligatorio);
 
-  // Si tiene mitad o modificadores — abrir flujo unificado
-  if((p.mitad || tieneModif) && typeof abrirFlujoPizza === 'function'){
+  // Abrir flujo SOLO si hay modificadores obligatorios.
+  // Si el producto tiene mitad o modificadores opcionales, se agrega
+  // como entera/sin modificadores directamente (tap rápido).
+  // Para acceder al flujo completo (mitad, modificadores opcionales),
+  // el usuario debe usar long-press sobre el tile.
+  if(tieneModifObligatorio && typeof abrirFlujoPizza === 'function'){
     abrirFlujoPizza(p, tieneModif);
     if(tileEl) animAddToCart(tileEl, getProductColor(p));
     return;

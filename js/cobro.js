@@ -331,6 +331,35 @@ document.addEventListener('keydown', function (e) {
 
 // ── VUELTO ───────────────────────────────────────────────────
 
+// ── BILLETES RÁPIDOS en scCobrar — 1 tap sin abrir numpad ──
+// Setea directamente el valor del efectivo recibido y calcula el vuelto.
+// Si el billete tocado es MENOR al total, suma (por si el usuario va
+// acumulando billetes para llegar al total). Si es MAYOR, reemplaza.
+function setEfectivoBillete(monto) {
+  var total = calcTotal();
+  var current = parseInt((document.getElementById('efecVal').textContent || '0').replace(/[^0-9]/g,'')) || 0;
+  var nuevo;
+  if(current === 0 || current >= total){
+    // Primera tap o ya completó: reemplaza
+    nuevo = monto;
+  } else {
+    // Va acumulando hasta llegar al total
+    nuevo = current + monto;
+  }
+  document.getElementById('efecVal').textContent = gs(nuevo);
+  updVuelto(nuevo);
+  // Sonido de feedback
+  if(typeof sndTap === 'function') sndTap();
+}
+
+// ── EFECTIVO JUSTO — setea el monto exacto del total ──
+function setEfectivoJusto() {
+  var total = calcTotal();
+  document.getElementById('efecVal').textContent = gs(total);
+  updVuelto(total);
+  if(typeof sndTap === 'function') sndTap();
+}
+
 /**
  * Calcula y muestra el vuelto.
  * @param {number} entregado — monto en efectivo recibido

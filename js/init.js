@@ -909,9 +909,24 @@ function toggleVentaCard(id){
   card.classList.toggle('open');
 }
 
+// Helper para actualizar el texto del splash
+function splashStatus(txt){
+  var el = document.getElementById('splashStatus');
+  if(el) el.textContent = txt;
+}
+
+// Oculta el splash con fade out (la animación CSS dura 400ms)
+function hideSplash(){
+  var sp = document.getElementById('splashScreen');
+  if(!sp) return;
+  sp.classList.add('hide');
+  setTimeout(function(){ if(sp && sp.parentNode) sp.parentNode.removeChild(sp); }, 450);
+}
+
 (async function(){
   applyTheme();
 
+  splashStatus('Cargando configuración...');
   // Iniciar DB y verificar licencia EN PARALELO — no tienen dependencia
   // La DB carga productos desde IndexedDB para que aparezcan de inmediato
   // mientras licInit verifica con Supabase en background
@@ -923,6 +938,7 @@ function toggleVentaCard(id){
     console.warn('[DB] Error al iniciar:', e.message);
   }
 
+  splashStatus('Verificando licencia...');
   // Lanzar licInit y carga de IndexedDB en paralelo
   const [ok] = await Promise.all([
     licInit(),
@@ -932,5 +948,12 @@ function toggleVentaCard(id){
     ]) : Promise.resolve(),
   ]);
 
-  if(ok) await iniciarApp();
+  splashStatus('Listo ✓');
+
+  if(ok) {
+    await iniciarApp();
+  }
+
+  // Ocultar splash después de un breve momento para que la animación sea fluida
+  setTimeout(hideSplash, 300);
 })();

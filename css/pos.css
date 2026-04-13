@@ -1,5 +1,81 @@
 /* ── POS App Styles ── */
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  /* ── SPLASH SCREEN ───────────────────────────────── */
+  #splashScreen {
+    position: fixed; inset: 0; z-index: 99999;
+    background: linear-gradient(135deg, #2e7d32 0%, #4caf50 60%, #66bb6a 100%);
+    display: flex; align-items: center; justify-content: center;
+    animation: splashFadeIn .3s ease;
+  }
+  #splashScreen.hide {
+    animation: splashFadeOut .4s ease forwards;
+    pointer-events: none;
+  }
+  .splash-content {
+    display: flex; flex-direction: column; align-items: center; gap: 24px;
+    padding: 40px;
+  }
+  .splash-logo {
+    width: 96px; height: 96px;
+    background: rgba(255,255,255,.15);
+    border: 3px solid rgba(255,255,255,.7);
+    border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    animation: splashLogoPulse 1.4s ease-in-out infinite;
+    box-shadow: 0 8px 40px rgba(0,0,0,.3);
+  }
+  .splash-logo svg { width: 48px; height: 48px; }
+  .splash-name {
+    font-family: 'Barlow', sans-serif;
+    font-size: 26px; font-weight: 900;
+    color: #fff;
+    letter-spacing: 3px;
+    text-shadow: 0 2px 12px rgba(0,0,0,.3);
+    animation: splashSlideUp .5s ease .1s both;
+  }
+  .splash-dots {
+    display: flex; gap: 8px;
+    animation: splashSlideUp .5s ease .2s both;
+  }
+  .splash-dots span {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,.9);
+    animation: splashDotBounce 1.2s ease-in-out infinite;
+  }
+  .splash-dots span:nth-child(2) { animation-delay: .15s; }
+  .splash-dots span:nth-child(3) { animation-delay: .3s; }
+  .splash-status {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px; font-weight: 600;
+    color: rgba(255,255,255,.8);
+    letter-spacing: 1px; text-transform: uppercase;
+    animation: splashSlideUp .5s ease .3s both;
+    min-height: 16px; text-align: center;
+  }
+
+  @keyframes splashFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes splashFadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(1.08); visibility: hidden; }
+  }
+  @keyframes splashLogoPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 40px rgba(0,0,0,.3); }
+    50% { transform: scale(1.06); box-shadow: 0 12px 50px rgba(0,0,0,.4); }
+  }
+  @keyframes splashSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes splashDotBounce {
+    0%, 80%, 100% { transform: scale(.6); opacity: .4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
   :root, [data-theme="dark"] {
     --bg:#2e2e2e; --bg-dark:#222; --bg-header:#4caf50; --bg-card:#3a3a3a;
     --green:#4caf50; --green-btn:#43a047; --green-dark:#2e7d32;
@@ -774,16 +850,26 @@
   }
   .recibo-acciones.no-resto .recibo-btns-row { gap: 0; }
 
+  .recibo-bottom-row {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 10px 8px 0;
+  }
+  .recibo-countdown {
+    display: block; text-align: center;
+    color: var(--green); font-family: 'Barlow', sans-serif;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: .4px;
+    min-height: 16px;
+  }
   .recibo-skip {
     display: block; text-align: center;
     background: transparent; border: none;
     color: var(--muted); font-family: 'Barlow', sans-serif;
-    font-size: 13px; font-weight: 600;
-    padding: 14px 8px 4px; cursor: pointer;
+    font-size: 12px; font-weight: 600;
+    padding: 4px 8px; cursor: pointer;
     text-decoration: underline; text-underline-offset: 3px;
   }
   .recibo-skip:active { color: var(--label); }
-  #reciboCountdown { color: var(--muted); font-weight: 700; }
 
   /* Papel del recibo */
   .recibo-papel {
@@ -1401,6 +1487,43 @@
   .vuelto-row.show { display: flex; }
   .vuelto-lbl { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .4px; text-transform: uppercase; }
   .vuelto-amt { font-size: 22px; font-weight: 800; color: #4caf50; }
+
+  /* ── BILLETES RÁPIDOS en scCobrar (siempre visibles) ── */
+  .billetes-quick {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  .billete-quick-btn {
+    background: var(--bg-dark);
+    border: 1.5px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px; font-weight: 800;
+    padding: 12px 4px;
+    cursor: pointer;
+    transition: all .12s;
+    text-align: center;
+  }
+  .billete-quick-btn:active {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+    transform: scale(.95);
+  }
+  .billete-quick-btn.justo {
+    background: rgba(76,175,80,.15);
+    border-color: var(--green);
+    color: var(--green);
+    letter-spacing: .5px;
+  }
+  .billete-quick-btn.justo:active {
+    background: var(--green);
+    color: #fff;
+  }
 
   /* ── BILLETES RÁPIDOS ── */
   .billetes-row {

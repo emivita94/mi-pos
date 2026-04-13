@@ -32,8 +32,27 @@
 })();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/pos.css?v=20260413100">
+<link rel="stylesheet" href="css/pos.css?v=20260413101">
 <body>
+
+<!-- ======== SPLASH SCREEN ======== -->
+<div id="splashScreen">
+  <div class="splash-content">
+    <div class="splash-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 11H1l8-8 8 8h-8v8l-8-8z" style="display:none;"/>
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <path d="M3 10h18"/>
+        <path d="M8 16h2"/>
+      </svg>
+    </div>
+    <div class="splash-name">AMPERSAND POS</div>
+    <div class="splash-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="splash-status" id="splashStatus">Iniciando...</div>
+  </div>
+</div>
 
 <!-- ======== SCREEN: RECIBO ======== -->
 <!-- ======== SCREEN: VENTAS ======== -->
@@ -103,10 +122,11 @@
       </button>
     </div>
 
-    <!-- Omitir -->
-    <a class="recibo-skip" onclick="finalizarRecibo()">
-      Omitir impresión · <span id="reciboCountdown"></span>
-    </a>
+    <!-- Countdown + Omitir -->
+    <div class="recibo-bottom-row">
+      <span id="reciboCountdown" class="recibo-countdown"></span>
+      <a class="recibo-skip" onclick="_countdownAborted=true;finalizarRecibo()">Omitir impresión</a>
+    </div>
   </div>
 
   <!-- Preview oculto (se usa para WhatsApp/reimprimir si es necesario) -->
@@ -1563,10 +1583,19 @@
       <span style="font-size:13px;font-weight:700;color:var(--orange);" id="descTicketMonto">-₲0</span>
     </div>
     <div class="efec-sec" id="efecSec">
-      <p class="efec-lbl">Efectivo recibido</p>
+      <p class="efec-lbl">Efectivo recibido <span style="color:var(--muted);font-size:11px;font-weight:500;">(opcional — default: justo)</span></p>
       <div class="efec-row" onclick="openNP('cobrar')">
         <span class="efec-val" id="efecVal">₲0</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <!-- Billetes rápidos — siempre visibles, 1 tap = setea monto + calcula vuelto -->
+      <div class="billetes-quick" id="billetesQuick">
+        <button type="button" class="billete-quick-btn" onclick="setEfectivoBillete(5000)">5k</button>
+        <button type="button" class="billete-quick-btn" onclick="setEfectivoBillete(10000)">10k</button>
+        <button type="button" class="billete-quick-btn" onclick="setEfectivoBillete(20000)">20k</button>
+        <button type="button" class="billete-quick-btn" onclick="setEfectivoBillete(50000)">50k</button>
+        <button type="button" class="billete-quick-btn" onclick="setEfectivoBillete(100000)">100k</button>
+        <button type="button" class="billete-quick-btn justo" onclick="setEfectivoJusto()">JUSTO</button>
       </div>
       <div class="vuelto-row" id="vueltoRow">
         <span class="vuelto-lbl">Vuelto</span>
@@ -1788,9 +1817,9 @@
 <script src="js/selectors.js?v=20260412103"></script>
 <script src="js/sounds.js?v=20260412110"></script>
 <script src="js/ui.js?v=20260412104"></script>
-<script src="js/ventas.js?v=20260412103"></script>
-<script src="js/cobro.js?v=20260412111"></script>
-<script src="js/pedidos.js?v=20260412111"></script>
+<script src="js/ventas.js?v=20260413101"></script>
+<script src="js/cobro.js?v=20260413101"></script>
+<script src="js/pedidos.js?v=20260413101"></script>
 <script src="js/impresion.js?v=20260412103"></script>
 <script src="js/turno.js?v=20260412103"></script>
 <script src="js/productos.js?v=20260412103"></script>
@@ -1798,8 +1827,8 @@
 <script src="js/licencia.js?v=20260412103"></script>
 <script src="js/mesas.js?v=20260412103"></script>
 
-<script src="js/app.js?v=20260413100"></script>
-<script src="js/init.js?v=20260412103"></script>
+<script src="js/app.js?v=20260413101"></script>
+<script src="js/init.js?v=20260413101"></script>
 
 <script>
 if('serviceWorker' in navigator){

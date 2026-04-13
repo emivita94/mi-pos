@@ -913,30 +913,36 @@ function renderReciboResumen(data){
   if(btnCombo) btnCombo.style.display = hayComandas ? '' : 'none';
   if(acciones) acciones.classList.toggle('no-resto', !hayComandas);
 
-  // Iniciar countdown de auto-dismiss
-  iniciarCountdownNuevaVenta(8);
+  // Iniciar countdown de auto-imprimir
+  iniciarCountdownAutoImprimir(3);
 }
 
-// ── COUNTDOWN AUTO-DISMISS ─────────────────────────────
-// Después de 8s sin interacción vuelve automáticamente a ventas.
-// Cualquier tap/click en la pantalla cancela el countdown.
+// ── COUNTDOWN AUTO-IMPRIMIR ─────────────────────────────
+// Después de 3s sin interacción IMPRIME el ticket automáticamente
+// (comportamiento por defecto = caso más común).
+// Cualquier tap/click en la pantalla cancela el countdown para que
+// el usuario pueda elegir otra opción (combo, solo cocina, omitir).
 var _countdownTimer = null;
 var _countdownRemaining = 0;
 var _countdownAborted = false;
 
-function iniciarCountdownNuevaVenta(segundos){
+function iniciarCountdownAutoImprimir(segundos){
   cancelarCountdown();
-  _countdownRemaining = segundos || 8;
+  _countdownRemaining = segundos || 3;
   _countdownAborted = false;
   var cont = document.getElementById('reciboCountdown');
-  if(cont) cont.textContent = '(' + _countdownRemaining + 's)';
+  if(cont) cont.textContent = 'Imprimiendo en ' + _countdownRemaining + 's...';
   _countdownTimer = setInterval(function(){
     if(_countdownAborted){ cancelarCountdown(); return; }
     _countdownRemaining--;
-    if(cont) cont.textContent = '(' + _countdownRemaining + 's)';
+    if(cont) cont.textContent = 'Imprimiendo en ' + _countdownRemaining + 's...';
     if(_countdownRemaining <= 0){
       cancelarCountdown();
-      if(typeof finalizarRecibo === 'function') finalizarRecibo();
+      // Comportamiento por defecto: imprimir ticket + volver a ventas
+      if(typeof imprimirRecibo === 'function') imprimirRecibo();
+      setTimeout(function(){
+        if(typeof finalizarRecibo === 'function') finalizarRecibo();
+      }, 600);
     }
   }, 1000);
 
@@ -944,12 +950,19 @@ function iniciarCountdownNuevaVenta(segundos){
   setTimeout(function(){
     var sc = document.getElementById('scRecibo');
     if(sc && !sc._countdownListener){
-      sc._countdownListener = function(){ _countdownAborted = true; var c=document.getElementById('reciboCountdown'); if(c) c.textContent=''; };
+      sc._countdownListener = function(){
+        _countdownAborted = true;
+        var c = document.getElementById('reciboCountdown');
+        if(c) c.textContent = '';
+      };
       sc.addEventListener('touchstart', sc._countdownListener, { passive: true });
       sc.addEventListener('click',      sc._countdownListener);
     }
   }, 50);
 }
+
+// Alias retrocompatible
+function iniciarCountdownNuevaVenta(segundos){ iniciarCountdownAutoImprimir(segundos); }
 
 function cancelarCountdown(){
   if(_countdownTimer){ clearInterval(_countdownTimer); _countdownTimer = null; }
