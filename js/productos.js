@@ -1024,6 +1024,30 @@ async function supaUpsertCategoria(cat){
   }
 }
 
+// Sincroniza todas las CATEGORIAS a pos_categorias.
+// Necesario porque muchas categorías pueden venir del fallback
+// derivarCategoriasDeProductos y no existir aún en Supabase.
+// Sin este bulk upsert, al editar una sola se pierden el resto al recargar.
+async function supaSyncTodasCategorias(){
+  if(USAR_DEMO) return;
+  const email = localStorage.getItem('lic_email') || localStorage.getItem(SK && SK.email);
+  if(!email) return;
+  if(!CATEGORIAS || !CATEGORIAS.length) return;
+  try {
+    const ahora = new Date().toISOString();
+    const payload = CATEGORIAS.map(c => ({
+      id: c.id,
+      nombre: c.nombre,
+      color: c.color || '#546e7a',
+      licencia_email: email,
+      updated_at: ahora
+    }));
+    await supaPost('pos_categorias', payload, 'id', true);
+  } catch(e){
+    console.warn('[supaSyncTodasCategorias]', e.message);
+  }
+}
+
 async function supaUpdateColorProductosCat(catNombre, nuevoColor, oldColor){
   if(USAR_DEMO) return;
   const email = localStorage.getItem('lic_email') || localStorage.getItem(SK && SK.email);
@@ -1054,7 +1078,7 @@ async function guardarCategoria(){
       if(!p.colorPropio && p.color === oldColor) p.color = catColorSel;
     });
     catObj = CATEGORIAS[catEditIdx];
-    await supaUpsertCategoria(catObj);
+    await supaSyncTodasCategorias();
     if(oldColor !== catColorSel){
       await supaUpdateColorProductosCat(nombre, catColorSel, oldColor);
     }
@@ -1063,7 +1087,7 @@ async function guardarCategoria(){
     if(CATEGORIAS.find(c => c.nombre.toLowerCase() === nombre.toLowerCase())){ toast('Ya existe esa categoría'); return; }
     catObj = { id: nextCatId++, nombre, color: catColorSel };
     CATEGORIAS.push(catObj);
-    await supaUpsertCategoria(catObj);
+    await supaSyncTodasCategorias();
     toast('Categoría creada');
   }
   CATEGORIAS_DEFAULT.length = 0;
@@ -1784,10 +1808,10 @@ async function supaLoadProductos(){
     nextProdId = maxId + 1;
     console.log('[Supabase] Productos cargados:', PRODS.length - 1);
 
-    // Fallback: si no hay categorías cargadas, derivarlas de los productos
-    if(CATEGORIAS.length === 0){
-      derivarCategoriasDeProductos();
-    }
+    // Merge: agrega al array las categorías derivadas de productos que
+    // aún no existen en CATEGORIAS (para cubrir el caso de pos_categorias
+    // incompleta en Supabase).
+    derivarCategoriasDeProductos();
     curCat = 'Todos los artículos';
     var catLblEl = document.getElementById('catLbl');
     if(catLblEl) catLblEl.textContent = 'Todos los artículos';
@@ -1858,23 +1882,26 @@ async function supaLoadProductos(){
 // productos tienen el campo categoria poblado.
 function derivarCategoriasDeProductos(){
   if(!PRODS || !PRODS.length) return;
-  var vistas = {};
   var COLORES = ['#e53935','#fb8c00','#fdd835','#43a047','#00acc1','#1e88e5','#5e35b1','#d81b60','#546e7a','#6d4c41'];
-  var idx = 0;
+  // Nombres ya presentes en CATEGORIAS (case-insensitive)
+  var existentes = {};
+  CATEGORIAS.forEach(function(c){ existentes[(c.nombre||'').toLowerCase()] = true; });
+  // IDs ocupados para evitar colisión al generar ids derivados
+  var maxId = CATEGORIAS.reduce(function(m,c){ return Math.max(m, c.id||0); }, 9999);
+  var faltantes = {};
   PRODS.forEach(function(p){
     if(p.itemLibre) return;
     var nom = (p.cat || '').toString().trim();
     if(!nom || nom === 'Sin categoría' || nom === 'Descuentos') return;
-    if(!vistas[nom]){
-      vistas[nom] = { id: 10000 + idx, nombre: nom, color: COLORES[idx % COLORES.length] };
-      idx++;
-    }
+    if(existentes[nom.toLowerCase()]) return;
+    if(!faltantes[nom]) faltantes[nom] = true;
   });
-  var derivadas = Object.values(vistas).sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
-  if(derivadas.length){
-    CATEGORIAS.length = 0;
-    derivadas.forEach(function(c){ CATEGORIAS.push(c); });
-    console.log('[Fallback] Categorías derivadas de productos:', CATEGORIAS.length, '→', CATEGORIAS.map(function(c){return c.nombre;}).join(', '));
+  var nombres = Object.keys(faltantes).sort(function(a,b){ return a.localeCompare(b); });
+  nombres.forEach(function(nom, i){
+    CATEGORIAS.push({ id: maxId + 1 + i, nombre: nom, color: COLORES[i % COLORES.length] });
+  });
+  if(nombres.length){
+    console.log('[Fallback] Categorías derivadas agregadas:', nombres.length, '→', nombres.join(', '));
   }
 }
 
