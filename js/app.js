@@ -722,12 +722,10 @@ function _getImgSrcSync(p){
 function _tileProd(p){
   const imgSrc = _getImgSrcSync(p);
   if(imgSrc){
-    return '<div class="ptile" style="background:'+getProductColor(p)+';position:relative;overflow:hidden;" onclick="addCart('+p.id+',this)">'+
-      '<img src="'+imgSrc+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" '+
-        'onerror="this.style.display=\'none\'" loading="lazy">'+
-      '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:8px 4px 5px;">'+
-        '<span class="pname" style="text-shadow:0 1px 3px rgba(0,0,0,.9);color:#fff;">'+p.name+'</span>'+
-      '</div>'+
+    return '<div class="ptile ptile-img" style="background:'+getProductColor(p)+';" onclick="addCart('+p.id+',this)">'+
+      '<img src="'+imgSrc+'" class="ptile-img-bg" onerror="this.style.display=\'none\'" loading="lazy">'+
+      '<div class="ptile-img-overlay"></div>'+
+      '<span class="pname ptile-img-name">'+p.name+'</span>'+
     '</div>';
   }
   if(p.itemLibre){
