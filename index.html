@@ -1675,7 +1675,7 @@
         <div class="factura-field">
           <span class="factura-label">RUC / C.I.</span>
           <div style="display:flex;align-items:center;gap:8px;">
-            <input class="factura-input" id="factRuc" type="text" placeholder="Ej: 1234567-8" maxlength="20"
+            <input class="factura-input" id="factRuc" type="text" placeholder="Vacío = X (Sin Nombre)" maxlength="20"
               oninput="onRucInput()" onclick="openNpRuc()" readonly style="flex:1;">
             <button onclick="consultarRuc()" id="btnBuscarRuc" style="
               background:var(--green);border:none;border-radius:4px;
@@ -1690,7 +1690,7 @@
         </div>
         <div class="factura-field">
           <span class="factura-label">Razón Social / Nombre</span>
-          <input class="factura-input" id="factNombre" type="text" placeholder="Ej: Juan Pérez / Empresa SA" maxlength="60">
+          <input class="factura-input" id="factNombre" type="text" placeholder="Vacío = SIN NOMBRE" maxlength="60">
         </div>
         <div class="factura-field">
           <span class="factura-label">Dirección (opcional)</span>

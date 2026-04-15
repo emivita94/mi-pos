@@ -834,24 +834,17 @@ async function confirmarPago() {
 
   // ── Validaciones de factura ────────────────────────────────
   if (facturaActiva) {
-    const ruc    = document.getElementById('factRuc')?.value.trim();
-    const nombre = document.getElementById('factNombre')?.value.trim();
-    const tim    = timbradoSeleccionado || getTimbradoActivo();
+    const elRuc    = document.getElementById('factRuc');
+    const elNombre = document.getElementById('factNombre');
+    const tim      = timbradoSeleccionado || getTimbradoActivo();
 
     if (!tim) {
       toast('⚠️ Sin timbrado configurado. No se puede emitir factura.');
       return;
     }
-    if (!ruc) {
-      toast('⚠️ RUC / C.I. es obligatorio para facturar');
-      document.getElementById('factRuc')?.focus();
-      return;
-    }
-    if (!nombre) {
-      toast('⚠️ Razón social / Nombre es obligatorio para facturar');
-      document.getElementById('factNombre')?.focus();
-      return;
-    }
+    // Si no se ingresó cliente, facturar como consumidor final (DNIT)
+    if (elRuc && !elRuc.value.trim())       elRuc.value    = 'X';
+    if (elNombre && !elNombre.value.trim()) elNombre.value = 'SIN NOMBRE';
   }
 
   const facturaData = getFacturaData();
