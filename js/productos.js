@@ -1004,9 +1004,46 @@ function updCatPreview(){
   prev.textContent = (nombre || 'Vista previa').toUpperCase();
 }
 
-function guardarCategoria(){
+async function supaUpsertCategoria(cat){
+  if(USAR_DEMO) return;
+  const email = localStorage.getItem('lic_email') || localStorage.getItem(SK && SK.email);
+  if(!email) return;
+  try {
+    const payload = {
+      id: cat.id,
+      nombre: cat.nombre,
+      color: cat.color || '#546e7a',
+      licencia_email: email,
+      updated_at: new Date().toISOString()
+    };
+    if(cat.activa === false) payload.activa = false;
+    await supaPost('pos_categorias', payload, 'id', true);
+  } catch(e){
+    console.warn('[supaUpsertCategoria]', e.message);
+    toast('Error al guardar categoría en la nube');
+  }
+}
+
+async function supaUpdateColorProductosCat(catNombre, nuevoColor, oldColor){
+  if(USAR_DEMO) return;
+  const email = localStorage.getItem('lic_email') || localStorage.getItem(SK && SK.email);
+  if(!email) return;
+  try {
+    // Solo productos cuyo color coincide con el color viejo de la categoría
+    // (respeta los que tienen colorPropio con otro color)
+    let filtro = 'licencia_email=eq.'+encodeURIComponent(email)+
+                 '&categoria=eq.'+encodeURIComponent(catNombre);
+    if(oldColor) filtro += '&color=eq.'+encodeURIComponent(oldColor);
+    await supaPatch('pos_productos', filtro, { color: nuevoColor }, true);
+  } catch(e){
+    console.warn('[supaUpdateColorProductosCat]', e.message);
+  }
+}
+
+async function guardarCategoria(){
   const nombre = document.getElementById('catNombreInput').value.trim();
   if(!nombre){ toast('Ingresá el nombre de la categoría'); return; }
+  let catObj;
   if(catEditIdx >= 0){
     const old = CATEGORIAS[catEditIdx].nombre;
     const oldColor = CATEGORIAS[catEditIdx].color;
@@ -1016,20 +1053,22 @@ function guardarCategoria(){
       if(p.cat === old) p.cat = nombre;
       if(!p.colorPropio && p.color === oldColor) p.color = catColorSel;
     });
-    supaUpsertCategoria(CATEGORIAS[catEditIdx]);
+    catObj = CATEGORIAS[catEditIdx];
+    await supaUpsertCategoria(catObj);
+    if(oldColor !== catColorSel){
+      await supaUpdateColorProductosCat(nombre, catColorSel, oldColor);
+    }
     toast('Categoría actualizada');
   } else {
     if(CATEGORIAS.find(c => c.nombre.toLowerCase() === nombre.toLowerCase())){ toast('Ya existe esa categoría'); return; }
-    const newCat = { id: nextCatId++, nombre, color: catColorSel };
-    CATEGORIAS.push(newCat);
-    supaUpsertCategoria(newCat);
+    catObj = { id: nextCatId++, nombre, color: catColorSel };
+    CATEGORIAS.push(catObj);
+    await supaUpsertCategoria(catObj);
     toast('Categoría creada');
   }
   CATEGORIAS_DEFAULT.length = 0;
   CATEGORIAS.filter(c=>c.activa!==false).forEach(c => CATEGORIAS_DEFAULT.push(c.nombre));
-  // Sync con Supabase
-  const catObj = catEditIdx >= 0 ? CATEGORIAS[catEditIdx] : CATEGORIAS[CATEGORIAS.length-1];
-  if(catObj) supaUpsertCategoria(catObj);
+  if(db) try { await db.categorias.put({ id: catObj.id, nombre: catObj.nombre, color: catObj.color, updatedAt: new Date().toISOString() }); } catch(e){}
   filterP(); renderCatListScreen();
   goTo('scCategorias');
 }
