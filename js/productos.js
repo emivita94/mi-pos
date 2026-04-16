@@ -815,8 +815,6 @@ function guardarArticulo(){
     dbSaveProducto(prod);
     supaUpsertProducto(prod);
     toast('Artículo actualizado');
-    if(db) dbSaveProducto(PRODS[artEditIdx]);
-    supaUpsertProducto(PRODS[artEditIdx]);
   } else {
     const newProd = {
       id: nextProdId, prodId: nextProdId,
@@ -1002,6 +1000,37 @@ function updCatPreview(){
   const nombre = document.getElementById('catNombreInput') ? document.getElementById('catNombreInput').value : '';
   prev.style.background = catColorSel;
   prev.textContent = (nombre || 'Vista previa').toUpperCase();
+}
+
+async function supaUpsertProducto(prod){
+  if(USAR_DEMO) return;
+  const email = localStorage.getItem('lic_email') || localStorage.getItem(SK && SK.email);
+  if(!email) return;
+  try {
+    const payload = {
+      id:              prod.id,
+      nombre:          (prod.name || '').toUpperCase(),
+      precio:          prod.price || 0,
+      precio_variable: prod.precioVariable || false,
+      costo:           prod.costo || 0,
+      codigo:          prod.codigo || '',
+      categoria:       prod.cat || 'Sin categoría',
+      iva:             prod.iva || '10',
+      color:           prod.color || '#546e7a',
+      color_propio:    prod.colorPropio || false,
+      mitad:           prod.mitad || false,
+      inventario:      prod.inventario || false,
+      comanda:         prod.comanda || false,
+      activo:          prod.activo !== false,
+      imagen:          prod.imagen || null,
+      licencia_email:  email,
+      updated_at:      new Date().toISOString()
+    };
+    await supaPost('pos_productos', payload, 'id', true);
+  } catch(e){
+    console.warn('[supaUpsertProducto]', e.message);
+    toast('Error al guardar producto en la nube');
+  }
 }
 
 async function supaUpsertCategoria(cat){

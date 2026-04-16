@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260413-vuelto';
+const CACHE = 'ampersand-pos-v20260416-supaUpsertProducto';
 
 const ASSETS = [
   '/',
