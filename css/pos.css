@@ -1299,14 +1299,15 @@
   @supports not (aspect-ratio: 1/1) {
     .ptile::before { content:''; display:block; padding-top:100%; }
     .ptile > * {
-      position:absolute; inset:0;
+      position:absolute; top:0; left:0; right:0; bottom:0;
       display:flex; align-items:center; justify-content:center;
       padding:8px 6px;
     }
-    .ptile .ptile-img-bg { position:absolute; inset:0; padding:0; }
+    .ptile .ptile-img-bg { position:absolute; top:0; left:0; right:0; bottom:0; padding:0; }
     .ptile .ptile-img-overlay { padding:0; }
     .ptile .ptile-img-name {
-      top:auto; bottom:0; padding:8px 8px 9px;
+      top:auto; bottom:0;
+      padding:8px 8px 9px;
       align-items:flex-end; justify-content:flex-start;
     }
   }
