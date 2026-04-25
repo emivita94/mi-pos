@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260416-supaUpsertProducto';
+const CACHE = 'ampersand-pos-v20260425-cuadraditoColorYHora';
 
 const ASSETS = [
   '/',

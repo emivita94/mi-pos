@@ -270,6 +270,7 @@ function doGuardar() {
       pendientes[idx].total = calcTotal();
       pendientes[idx].obs = obs || pendientes[idx].obs;
       pendientes[idx].fecha = new Date().toISOString();
+      pendientes[idx].tipoPedido = tipoPedido || 'local';
     }
     const nro = currentTicketNro;
     setCurrentTicketNro(null);
@@ -288,6 +289,7 @@ function doGuardar() {
       total: calcTotal(),
       fecha: new Date().toISOString(),
       esPresupuesto: false,
+      tipoPedido: tipoPedido || 'local',
     });
     setCurrentTicketNro(null);
     clearCart();
@@ -312,10 +314,31 @@ function renderPendientes() {
     </div>`;
     return;
   }
+  // Helper: color de fondo del cuadradito del número según tipo de pedido
+  function colorCuadradito(tipo){
+    var map = {
+      'local':    '#3b82f6',  // azul
+      'llevar':   '#10b981',  // verde
+      'delivery': '#ff9800',  // naranja
+    };
+    return map[tipo] || '';
+  }
+  // Helper: hora HH:MM desde ISO o Date
+  function horaCorta(fecha){
+    if (!fecha) return '';
+    try {
+      var d = (typeof fecha === 'string') ? new Date(fecha) : fecha;
+      if (isNaN(d.getTime())) return '';
+      var hh = String(d.getHours()).padStart(2,'0');
+      var mm = String(d.getMinutes()).padStart(2,'0');
+      return hh + ':' + mm;
+    } catch(e){ return ''; }
+  }
+
   list.innerHTML = pendientes.map((t, i) => {
     // Pedido de terminal satélite — va directo a cobrar, no se edita
     var esSat = !!t.esSatelite;
-    // Badge visual: satélite o presupuesto
+    // Badge visual: satélite, presupuesto o tipo de pedido
     var badge = '';
     if (esSat) {
       badge = ' <span style="font-size:10px;font-weight:800;background:rgba(83,74,183,.15);' +
@@ -329,20 +352,32 @@ function renderPendientes() {
     } else if (t.esPresupuesto) {
       badge = ' <span style="font-size:10px;">📋</span>';
     }
+    // Color del cuadradito del número según tipo de pedido (solo tickets normales)
+    var bgNum = '';
+    if (!esSat && !t.esPresupuesto && t.tipoPedido) {
+      var cBg = colorCuadradito(t.tipoPedido);
+      if (cBg) bgNum = ' style="background:' + cBg + ';color:#fff;"';
+    }
     // Acción al tocar: satélite → cobrar directo | local → cargar al carrito
     var onclickAccion = esSat
       ? 'cajaAbrirPedidoSatelite(' + i + ')'
       : 'cargarTicket(' + i + ')';
-    // Info secundaria
+    // Hora a la derecha del título — fuera de .pend-item-obs porque ese div
+    // tiene overflow:hidden + text-overflow:ellipsis y la cortaba.
+    var hora = horaCorta(t.fecha);
+    var horaHtml = hora
+      ? ' <span style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px;font-family:Courier,monospace;">' + hora + '</span>'
+      : '';
+    // Info secundaria: obs · cant art. · (terminal si es satélite)
     var artCount = (t.cart || []).reduce(function(s, it) { return s + it.qty; }, 0);
     var infoObs  = (t.obs || 'Sin observación') + ' · ' + artCount + ' art.';
     if (esSat && t.terminalOrigen) infoObs += ' · ' + t.terminalOrigen;
     return '<div class="pend-item" style="display:flex;align-items:center;gap:0;' +
            (esSat ? 'border-left:3px solid #534AB7;' : '') + '">' +
       '<div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 0 14px 14px;cursor:pointer;" onclick="' + onclickAccion + '">' +
-        '<div class="pend-item-num">#' + String(t.nro).padStart(4, '0') + '</div>' +
+        '<div class="pend-item-num"' + bgNum + '>#' + String(t.nro).padStart(4, '0') + '</div>' +
         '<div class="pend-item-info">' +
-          '<div class="pend-item-title">Ticket #' + String(t.nro).padStart(4, '0') + badge + '</div>' +
+          '<div class="pend-item-title">Ticket #' + String(t.nro).padStart(4, '0') + badge + horaHtml + '</div>' +
           '<div class="pend-item-obs">' + infoObs + '</div>' +
         '</div>' +
         '<div class="pend-item-total">' + gs(t.total) + '</div>' +

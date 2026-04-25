@@ -1665,6 +1665,41 @@ function htmlATextoPlano(htmlContent, cols){
   return lineas.join('\n') + '\n\n\n\n';
 }
 
+// ── Diálogo de impresión modo TEXTO PLANO (Generic Text Only) ────────────────
+// Para impresoras 58mm/80mm USB instaladas como "Generic / Text Only" en Windows.
+// Genera el ticket como texto monoespaciado dentro de <pre> para que el driver
+// lo mande RAW al puerto USB sin interpretar HTML/CSS — resultado idéntico al
+// formato del BT Print Server (salvo bold/doble ancho que Text Only no soporta).
+function abrirDialogoImpresionTexto(htmlContent, cols){
+  var texto = htmlATextoPlano(htmlContent, cols);
+  var escapado = texto
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+
+  var fullHtml = '<!DOCTYPE html><html><head>'+
+    '<meta charset="UTF-8">'+
+    '<title>Ticket</title>'+
+    '<style>'+
+    '@page{size:auto;margin:0;}'+
+    'html,body{margin:0;padding:0;}'+
+    'pre{font-family:"Courier New",Courier,monospace;font-size:10pt;line-height:1.15;margin:0;padding:0;white-space:pre;}'+
+    '</style>'+
+    '</head><body><pre>'+escapado+'</pre>'+
+    '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</script>'+
+    '</body></html>';
+
+  var blob = new Blob([fullHtml], {type:'text/html;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var win  = window.open(url, '_blank', 'width=320,height=700');
+  if(!win){
+    var a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 20000);
+}
+
 function limpiarParaImpresora(html){
   return html
     .replace(/\u20B2/g, 'Gs')
@@ -1682,6 +1717,18 @@ function limpiarParaImpresora(html){
 function abrirDialogoImpresion(htmlContent, widthPx){
   var size = (widthPx === '200px' || widthPx === '58mm' || widthPx === '58') ? '58' : '80';
   var w = size === '58' ? '58mm' : '80mm';
+
+  // Si la impresora del ticket está configurada como PC/USB (Generic Text Only),
+  // generar texto plano monoespaciado en vez de HTML — Generic Text Only no
+  // entiende HTML/CSS y muestra todo desordenado. Con <pre> + Courier sale
+  // alineado igual que el BT Print Server.
+  try {
+    var pTicket = (typeof printers !== 'undefined' && printers && printers['ticket']) || null;
+    if(pTicket && pTicket.type === 'pc'){
+      var cols = (pTicket.size === '58' || size === '58') ? 32 : 42;
+      return abrirDialogoImpresionTexto(htmlContent, cols);
+    }
+  } catch(e){ /* safe: si no hay printers, seguir con HTML */ }
 
   // Extraer el body del HTML generado por el ticket
   var bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
