@@ -792,3 +792,243 @@ function renderCajasData(){
 }
 
 function togCj(i){var b=document.getElementById('cjB'+i);if(b)b.classList.toggle('open');}
+
+
+// ── CIERRES DE TURNO ─────────────────────────────────────────
+var _cierresData=[];
+
+async function renderCierres(){
+  var c=document.getElementById('content');
+  var p2=function(n){return String(n).padStart(2,'0');};
+  var hoy=new Date();
+  var fmtDate=function(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
+  var hoyStr=fmtDate(hoy);
+  var hace7=new Date(hoy); hace7.setDate(hoy.getDate()-7);
+  var hace7Str=fmtDate(hace7);
+
+  c.innerHTML=
+    '<div class="ph"><div><div class="pt">Cierres de Turno</div><div class="ps">Historial de cierres de caja con detalle completo</div></div></div>'+
+    '<div class="card" style="margin-bottom:14px;padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">'+
+      '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Período</div>'+
+      '<div style="display:flex;gap:6px;">'+
+        '<button class="dbtn on" id="crBtn_7d" onclick="setCierreF(\'7d\',this)">7 días</button>'+
+        '<button class="dbtn" id="crBtn_mes" onclick="setCierreF(\'mes\',this)">Este mes</button>'+
+        '<button class="dbtn" id="crBtn_todos" onclick="setCierreF(\'todos\',this)">Todos</button>'+
+      '</div></div>'+
+      '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Desde</div>'+
+      '<input type="date" id="crFD" class="d-inp" value="'+hace7Str+'"></div>'+
+      '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Hasta</div>'+
+      '<input type="date" id="crFH" class="d-inp" value="'+hoyStr+'"></div>'+
+      '<button class="btn-sv" onclick="setCierreF(\'custom\',null)">Buscar</button>'+
+    '</div>'+
+    '<div class="kg k3" style="margin-bottom:14px;">'+
+      '<div class="kc" style="--c:var(--blue)"><div class="kc-l">Cierres</div><div class="kc-v" id="crKCount">—</div></div>'+
+      '<div class="kc" style="--c:var(--green)"><div class="kc-l">Total recaudado</div><div class="kc-v" id="crKTotal">₲0</div></div>'+
+      '<div class="kc" style="--c:var(--orange)"><div class="kc-l">Prom. por turno</div><div class="kc-v" id="crKProm">₲0</div></div>'+
+    '</div>'+
+    '<div id="crBody"><div class="loading"><span class="sp"></span>Cargando...</div></div>';
+
+  _cierresData=[];
+  loadCierres('7d');
+}
+
+function setCierreF(f,b){
+  document.querySelectorAll('#crBtn_7d,#crBtn_mes,#crBtn_todos').forEach(function(x){x.classList.remove('on');});
+  if(b) b.classList.add('on');
+  var p2=function(n){return String(n).padStart(2,'0');};
+  var hoy=new Date();
+  var fmtDate=function(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
+  var fd=document.getElementById('crFD'),fh=document.getElementById('crFH');
+  if(f==='7d'&&fd&&fh){var l=new Date(hoy);l.setDate(hoy.getDate()-7);fd.value=fmtDate(l);fh.value=fmtDate(hoy);}
+  else if(f==='mes'&&fd&&fh){fd.value=fmtDate(new Date(hoy.getFullYear(),hoy.getMonth(),1));fh.value=fmtDate(hoy);}
+  loadCierres(f);
+}
+
+async function loadCierres(f){
+  var body=document.getElementById('crBody');
+  if(body) body.innerHTML='<div class="loading"><span class="sp"></span>Cargando...</div>';
+
+  var fdEl=document.getElementById('crFD'),fhEl=document.getElementById('crFH');
+  var desde=fdEl?fdEl.value:'', hasta=fhEl?fhEl.value:'';
+
+  try{
+    var query='licencia_email=ilike.'+encodeURIComponent(SE)+'&estado=eq.cerrado&order=fecha_cierre.desc&limit=150';
+    if(f!=='todos'&&desde&&hasta){
+      var hastaDate=new Date(hasta+'T00:00:00');
+      hastaDate.setDate(hastaDate.getDate()+1);
+      var p2=function(n){return String(n).padStart(2,'0');};
+      var hastaNext=hastaDate.getFullYear()+'-'+p2(hastaDate.getMonth()+1)+'-'+p2(hastaDate.getDate())+'T03:59:59';
+      query+='&fecha_cierre=gte.'+desde+'T00:00:00&fecha_cierre=lte.'+hastaNext;
+    }
+    _cierresData=await sg('pos_turno',query);
+    renderCierresData(_cierresData);
+  }catch(e){
+    if(body) body.innerHTML='<div class="loading">Error al cargar cierres</div>';
+    console.warn('[Cierres]',e.message);
+  }
+}
+
+function renderCierresData(data){
+  var eK=document.getElementById('crKCount'); if(eK) eK.textContent=data.length;
+  var totRec=data.reduce(function(s,c){return s+(c.total_vendido||0);},0);
+  var eT=document.getElementById('crKTotal'); if(eT) eT.textContent=gs(totRec);
+  var eP=document.getElementById('crKProm'); if(eP) eP.textContent=gs(data.length?Math.round(totRec/data.length):0);
+
+  var body=document.getElementById('crBody');
+  if(!body) return;
+  if(!data.length){
+    body.innerHTML='<div class="empty"><div class="empty-i">📋</div><div class="empty-t">Sin cierres en el período</div><div class="empty-s">No hay turnos cerrados en el período seleccionado</div></div>';
+    return;
+  }
+
+  body.innerHTML=data.map(function(c,i){
+    var durTxt='';
+    if(c.fecha_apertura&&c.fecha_cierre){
+      var ms=new Date(c.fecha_cierre)-new Date(c.fecha_apertura);
+      durTxt=Math.floor(ms/3600000)+'h '+Math.floor((ms%3600000)/60000)+'m';
+    }
+
+    var pagos='';
+    if(c.resumen_pagos){
+      try{
+        var rp=typeof c.resumen_pagos==='string'?JSON.parse(c.resumen_pagos):c.resumen_pagos;
+        pagos=Object.entries(rp).map(function(e){return '<div class="cj-dr"><span style="color:var(--muted)">'+e[0]+'</span><span style="font-weight:600">'+gs(e[1])+'</span></div>';}).join('');
+      }catch(ex){console.warn('[Cierres] Error parseando resumen_pagos:',ex.message);}
+    }
+    if(!pagos){
+      if(c.total_efectivo!=null) pagos+='<div class="cj-dr"><span style="color:var(--muted)">Efectivo</span><span style="font-weight:600">'+gs(c.total_efectivo)+'</span></div>';
+      if(c.total_tarjeta!=null)  pagos+='<div class="cj-dr"><span style="color:var(--muted)">Tarjeta/POS</span><span style="font-weight:600">'+gs(c.total_tarjeta)+'</span></div>';
+      if(c.total_transfer!=null) pagos+='<div class="cj-dr"><span style="color:var(--muted)">Transferencia</span><span style="font-weight:600">'+gs(c.total_transfer)+'</span></div>';
+    }
+
+    var difHTML='';
+    if(c.efectivo_inicial!=null&&c.total_efectivo!=null&&c.efectivo_cierre!=null){
+      var esp=(c.efectivo_inicial||0)+(c.total_efectivo||0);
+      var dif=(c.efectivo_cierre||0)-esp;
+      var dc=dif===0?'var(--muted)':dif>0?'var(--green)':'var(--red)';
+      difHTML=
+        '<div class="cj-dr"><span style="color:var(--muted)">Efectivo inicial</span><span>'+gs(c.efectivo_inicial||0)+'</span></div>'+
+        '<div class="cj-dr"><span style="color:var(--muted)">Ventas en efectivo</span><span>'+gs(c.total_efectivo||0)+'</span></div>'+
+        '<div class="cj-dr"><span style="color:var(--muted)">Esperado en caja</span><span style="font-weight:700">'+gs(esp)+'</span></div>'+
+        '<div class="cj-dr"><span style="color:var(--muted)">Contado al cierre</span><span>'+gs(c.efectivo_cierre||0)+'</span></div>'+
+        '<div class="cj-dr" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span style="color:var(--muted)">Diferencia</span>'+
+          '<span style="font-weight:800;color:'+dc+'">'+(dif>=0?'+':'')+gs(dif)+'</span></div>';
+    }
+
+    var cantVtas=c.total_operaciones||c.cantidad_ventas||0;
+    var ticketProm=cantVtas&&c.total_vendido?Math.round(c.total_vendido/cantVtas):0;
+
+    return '<div class="cj cl" style="margin-bottom:10px;">'
+      +'<div class="cj-h" onclick="togCierreRow('+i+')" style="cursor:pointer;">'
+        +'<div style="width:40px;height:40px;border-radius:10px;background:var(--card2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+          +'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'
+        +'</div>'
+        +'<div class="cj-info">'
+          +'<div class="cj-tit">'+(c.terminal||'Terminal')+(c.sucursal?' <span style="color:var(--muted);font-size:12px;font-weight:400;">'+c.sucursal+'</span>':'')+'</div>'
+          +'<div class="cj-meta" style="margin-top:3px;">'+fmtDT(c.fecha_cierre)+(durTxt?' · '+durTxt:'')+'</div>'
+          +(c.nombre_operador?'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+c.nombre_operador+'</div>':'')
+        +'</div>'
+        +'<div style="text-align:right;flex-shrink:0;">'
+          +'<div style="font-size:18px;font-weight:800;color:var(--green);">'+gs(c.total_vendido||0)+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);">'+cantVtas+' ventas</div>'
+          +'<span class="tag tag-gr" style="margin-top:4px;">CERRADA</span>'
+        +'</div>'
+      +'</div>'
+      +'<div class="cj-b" id="crB'+i+'">'
+        // Apertura + Cierre
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px;">'
+          +'<div style="background:var(--card2);border-radius:8px;padding:12px;">'
+            +'<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Apertura</div>'
+            +'<div class="cj-dr"><span style="color:var(--muted)">Fecha/Hora</span><span>'+fmtDT(c.fecha_apertura)+'</span></div>'
+            +'<div class="cj-dr"><span style="color:var(--muted)">Fondo inicial</span><span style="font-weight:600;">'+gs(c.efectivo_inicial||0)+'</span></div>'
+            +(c.nombre_operador?'<div class="cj-dr"><span style="color:var(--muted)">Operador</span><span>'+c.nombre_operador+'</span></div>':'')
+          +'</div>'
+          +'<div style="background:var(--card2);border-radius:8px;padding:12px;">'
+            +'<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Cierre</div>'
+            +'<div class="cj-dr"><span style="color:var(--muted)">Fecha/Hora</span><span>'+fmtDT(c.fecha_cierre)+'</span></div>'
+            +'<div class="cj-dr"><span style="color:var(--muted)">Duración del turno</span><span style="font-weight:600;">'+durTxt+'</span></div>'
+          +'</div>'
+        +'</div>'
+        // Resumen de ventas
+        +'<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;">'
+          +'<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Resumen de ventas</div>'
+          +'<div class="cj-dr"><span style="color:var(--muted)">Total vendido</span><span style="color:var(--green);font-weight:800;font-size:15px;">'+gs(c.total_vendido||0)+'</span></div>'
+          +'<div class="cj-dr"><span style="color:var(--muted)">Cantidad de ventas</span><span style="font-weight:700;">'+cantVtas+' operaciones</span></div>'
+          +(ticketProm?'<div class="cj-dr"><span style="color:var(--muted)">Ticket promedio</span><span>'+gs(ticketProm)+'</span></div>':'')
+          +(c.total_descuentos?'<div class="cj-dr"><span style="color:var(--muted)">Total descuentos</span><span style="color:var(--red);">−'+gs(c.total_descuentos)+'</span></div>':'')
+        +'</div>'
+        // Métodos de pago
+        +(pagos?'<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;"><div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Métodos de pago</div>'+pagos+'</div>':'')
+        // Control de efectivo
+        +(difHTML?'<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;"><div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Control de efectivo</div>'+difHTML+'</div>':'')
+        // Notas de cierre
+        +(c.notas_cierre?'<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;"><div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">Notas de cierre</div><div style="font-size:13px;color:var(--text2);">'+c.notas_cierre+'</div></div>':'')
+        // Ventas individuales del turno (lazy)
+        +'<div id="crVT'+i+'">'
+          +(c.id
+            ?'<button onclick="verVentasTurno(\''+c.id+'\','+i+',\''+c.fecha_apertura+'\',\''+c.fecha_cierre+'\')" class="btn-sv" style="width:100%;margin-bottom:10px;">Ver ventas individuales'+( cantVtas?' ('+cantVtas+')':'' )+'</button>'
+            :'')
+        +'</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function togCierreRow(i){
+  var b=document.getElementById('crB'+i);
+  if(b) b.classList.toggle('open');
+}
+
+async function verVentasTurno(turnoId,idx,fechaAp,fechaCi){
+  var cont=document.getElementById('crVT'+idx);
+  if(!cont) return;
+  cont.innerHTML='<div class="loading"><span class="sp"></span>Cargando ventas del turno...</div>';
+  try{
+    var ventas=[];
+    // Intentar primero por turno_id
+    if(turnoId){
+      ventas=await sg('pos_ventas','turno_id=eq.'+turnoId+'&order=fecha.asc&limit=300');
+    }
+    // Fallback: por rango de fecha si turno_id no devuelve nada
+    if(!ventas.length&&fechaAp&&fechaCi){
+      ventas=await sg('pos_ventas',
+        'licencia_email=ilike.'+encodeURIComponent(SE)+
+        '&fecha=gte.'+fechaAp+'&fecha=lte.'+fechaCi+
+        '&order=fecha.asc&limit=300');
+    }
+    if(!ventas.length){
+      cont.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;background:var(--card2);border-radius:8px;margin-bottom:10px;">Sin ventas registradas en este turno</div>';
+      return;
+    }
+    var mb=function(m){var u=(m||'').toUpperCase();return u==='EFECTIVO'?'<span class="tag tag-g">EF</span>':u==='POS'?'<span class="tag tag-b">POS</span>':'<span class="tag tag-o">TR</span>';};
+    var totalT=ventas.reduce(function(s,v){return s+(v.total||0);},0);
+    var html='<div style="background:var(--card2);border-radius:8px;overflow:hidden;margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">'
+        +'<span style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;">Ventas del turno ('+ventas.length+')</span>'
+        +'<span style="font-size:14px;font-weight:800;color:var(--green);">'+gs(totalT)+'</span>'
+      +'</div>'
+      +'<table style="font-size:12px;width:100%;"><thead><tr>'
+        +'<th style="padding:7px 12px;text-align:left;">Hora</th>'
+        +'<th style="padding:7px 4px;text-align:center;">Método</th>'
+        +'<th style="padding:7px 12px;text-align:left;">Productos</th>'
+        +'<th style="padding:7px 12px;text-align:right;">Total</th>'
+      +'</tr></thead><tbody>';
+    ventas.forEach(function(v){
+      var items=[];
+      try{items=typeof v.items==='string'?JSON.parse(v.items):(v.items||[]);}catch(e){console.warn('[VentasTurno] items parse:',e.message);}
+      var prodsTxt=items.filter(function(it){return !it.esDescuento;}).map(function(it){return (it.nombre||it.name||'?')+' x'+(it.qty||1);}).join(', ');
+      if(prodsTxt.length>55) prodsTxt=prodsTxt.substring(0,53)+'…';
+      html+='<tr style="border-top:1px solid var(--border);">'
+        +'<td style="padding:7px 12px;color:var(--muted);white-space:nowrap;">'+fmtH(v.fecha)+'</td>'
+        +'<td style="padding:7px 4px;text-align:center;">'+mb(v.metodo_pago)+'</td>'
+        +'<td style="padding:7px 12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">'+prodsTxt+'</td>'
+        +'<td style="padding:7px 12px;text-align:right;font-weight:700;color:var(--green);white-space:nowrap;">'+gs(v.total||0)+'</td>'
+      +'</tr>';
+    });
+    html+='</tbody></table></div>';
+    cont.innerHTML=html;
+  }catch(e){
+    cont.innerHTML='<div style="color:var(--red);font-size:13px;padding:8px 0;">Error al cargar ventas: '+e.message+'</div>';
+    console.warn('[VentasTurno]',e.message);
+  }
+}
