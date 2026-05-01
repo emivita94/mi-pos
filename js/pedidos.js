@@ -893,24 +893,20 @@ async function sateliteVerificarCajaActiva(){
   if(!email) return false;
 
   try{
-    // Buscar turno abierto para esta sucursal O con sucursal null (turnos viejos sin el campo)
     var rows = await supaGet('pos_turno',
         'licencia_email=eq.' + encodeURIComponent(email)
         + '&estado=eq.abierto'
-        + '&or=(sucursal.eq.' + encodeURIComponent(sucursal) + ',sucursal.is.null)'
         + '&limit=1'
         + '&select=id,terminal,fecha_apertura,sucursal');
     var hayTurno = Array.isArray(rows) && rows.length > 0;
     if(hayTurno){
-      console.log('[Satelite] Caja activa en ' + sucursal + ' — turno de:', rows[0].terminal);
+      console.log('[Satelite] Caja activa — turno de:', rows[0].terminal, '| sucursal:', rows[0].sucursal);
     } else {
-      console.warn('[Satelite] Sin caja abierta en sucursal ' + sucursal);
+      console.warn('[Satelite] Sin turno abierto para licencia:', email);
     }
     return hayTurno;
   } catch(e){
     console.warn('[Satelite] Error verificando caja:', e.message);
-    // Sin internet: asumir caja abierta (modo offline intencional).
-    // Con internet pero fetch falla: ser conservador y mostrar overlay de espera.
     return !navigator.onLine;
   }
 }
