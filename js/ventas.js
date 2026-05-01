@@ -453,6 +453,10 @@ function cajaAbrirPedidoSatelite(i) {
   }
 
   // Cargar el carrito del pedido satélite
+  if(typeof resetTicketDescuento === 'function') resetTicketDescuento();
+  if(t.descuentoTicket && t.descuentoTicket > 0 && typeof setTicketDescuento === 'function'){
+    setTicketDescuento(t.descuentoTicket);
+  }
   setCart(JSON.parse(JSON.stringify(t.cart || [])));
   setCurrentTicketNro(t.nro);
 

@@ -126,6 +126,7 @@ async function sateliteEnviarPedido(){
     estado:          'abierto',
     items:           JSON.stringify(itemsParaSupabase),
     total:           calcTotal(),
+    descuento_ticket: ticketDescuento || 0,
     mesero_id:       terminal,
     created_at:      new Date().toISOString(),
     updated_at:      new Date().toISOString(),
@@ -393,10 +394,9 @@ async function cajaSyncPedidosSatelite(){
   try{
     const rows = await supaGet('pos_pedidos',
         'licencia_email=eq.' + encodeURIComponent(email)
-        + '&sucursal=eq.'       + encodeURIComponent(sucursal)
         + '&estado=in.(abierto,en_cobro)'
         + '&order=created_at.asc'
-        + '&select=id,numero_orden,mesa,tipo_pedido,estado,items,total,terminal_origen,created_at');
+        + '&select=id,numero_orden,mesa,tipo_pedido,estado,items,total,descuento_ticket,terminal_origen,created_at');
     if(!Array.isArray(rows)) return;
 
     // Conservar tickets locales (de esta caja), reemplazar los de satélite
@@ -434,14 +434,15 @@ async function cajaSyncPedidosSatelite(){
             enviado: true,
           };
         }),
-        total:          total,
-        fecha:          p.created_at,
-        mesa_id:        mesaId,
-        tipoPedido:     p.tipo_pedido || 'local',
-        esSatelite:     true,
-        terminalOrigen: p.terminal_origen || '',
-        estadoSupabase: p.estado,
-        esPresupuesto:  false,
+        total:           total,
+        fecha:           p.created_at,
+        mesa_id:         mesaId,
+        tipoPedido:      p.tipo_pedido || 'local',
+        esSatelite:      true,
+        terminalOrigen:  p.terminal_origen || '',
+        estadoSupabase:  p.estado,
+        esPresupuesto:   false,
+        descuentoTicket: p.descuento_ticket || 0,
       };
     });
 
