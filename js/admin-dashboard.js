@@ -851,21 +851,30 @@ function _renderCierreCard(c,i){
   var pCols={'EFECTIVO':'var(--green)','POS':'var(--blue)','TRANSFERENCIA':'var(--orange)'};
   var pIcos={'EFECTIVO':'&#128181;','POS':'&#128179;','TRANSFERENCIA':'&#127970;'};
   var pagosRows=Object.entries(pagosMap).map(function(e){
-    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);font-size:13px;">'+(pIcos[e[0]]||'?')+' '+e[0]+'</span><span style="font-weight:700;color:'+(pCols[e[0]]||'var(--text)')+';">'+gs(e[1])+'</span></div>';
+    var v=typeof e[1]==='object'?(e[1].total||0):e[1];
+    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);font-size:13px;">'+(pIcos[e[0]]||'&#128181;')+' '+e[0]+'</span><span style="font-weight:700;color:'+(pCols[e[0]]||'var(--text)')+';">'+gs(v)+'</span></div>';
   }).join('');
+  var efInicial=c.efectivo_inicial||0;
+  var totalVendido=c.total_vendido||0;
+  var totalEgresos=c.total_egresos||0;
+  var saldoCaja=efInicial+totalVendido-totalEgresos;
+  var resumenBox='<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;">'+
+    '<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Resumen del turno</div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Importe inicial</span><span style="font-weight:600;">'+gs(efInicial)+'</span></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Total ventas ('+ops+' ops)</span><span style="font-weight:600;color:var(--green);">'+gs(totalVendido)+'</span></div>'+
+    (totalEgresos>0?'<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Total egresos</span><span style="font-weight:600;color:var(--red);">-'+gs(totalEgresos)+'</span></div>':'')+
+    '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);margin-top:4px;"><span style="font-size:13px;font-weight:800;">Saldo en caja</span><span style="font-weight:800;font-size:15px;color:var(--green);">'+gs(saldoCaja)+'</span></div>'+
+    '</div>';
   var difHTML='';
-  if(c.efectivo_inicial!=null&&c.total_efectivo!=null&&c.efectivo_cierre!=null){
-    var esp=(c.efectivo_inicial||0)+(c.total_efectivo||0)-(c.total_egresos||0);
-    var dif=(c.efectivo_cierre||0)-esp;
+  if(c.total_contado>0){
+    var esp=saldoCaja;
+    var dif=c.diferencia!=null?c.diferencia:c.total_contado-esp;
     var dc=dif===0?'var(--green)':dif>0?'var(--blue)':'var(--red)';
-    var difLabel=dif===0?'Sin diferencia':(dif>0?'+':'')+gs(dif);
+    var difLabel=dif===0?'Sin diferencia':((dif>0?'+':'')+gs(Math.abs(dif)));
     difHTML='<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;">'+
-      '<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Control de efectivo</div>'+
-      '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Fondo inicial</span><span style="font-weight:600;">'+gs(c.efectivo_inicial||0)+'</span></div>'+
-      '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Ventas efectivo</span><span style="font-weight:600;">'+gs(c.total_efectivo||0)+'</span></div>'+
-      (c.total_egresos?'<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Egresos</span><span style="font-weight:600;color:var(--red);">-'+gs(c.total_egresos)+'</span></div>':'')+
-      '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);margin-top:4px;"><span style="color:var(--muted);font-size:13px;">Esperado en caja</span><span style="font-weight:700;">'+gs(esp)+'</span></div>'+
-      '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Contado al cierre</span><span style="font-weight:700;">'+gs(c.efectivo_cierre)+'</span></div>'+
+      '<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Control de cierre</div>'+
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Saldo esperado</span><span style="font-weight:600;">'+gs(esp)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Total contado</span><span style="font-weight:700;">'+gs(c.total_contado)+'</span></div>'+
       '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid var(--border);margin-top:4px;"><span style="font-size:13px;font-weight:700;">Diferencia</span><span style="font-weight:800;font-size:15px;color:'+dc+';">'+difLabel+'</span></div>'+
       '</div>';
   }
@@ -885,13 +894,11 @@ function _renderCierreCard(c,i){
       (durTxt?' &nbsp;&middot;&nbsp; <strong style="color:var(--text);">'+durTxt+'</strong>':'')+
     '</div>'+
     '<div style="padding:12px 14px;">'+
-      '<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;">'+
-        '<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Ventas</div>'+
+      resumenBox+
+      (pagosRows?'<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;">'+
+        '<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Formas de pago</div>'+
         pagosRows+
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0 2px;'+(pagosRows?'border-top:2px solid var(--border);margin-top:4px;':'')+'"><span style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;">Total</span><span style="font-size:18px;font-weight:800;color:var(--green);">'+gs(c.total_vendido||0)+'</span></div>'+
-        (c.total_descuentos?'<div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:var(--muted);font-size:12px;">Descuentos</span><span style="color:var(--red);font-size:12px;font-weight:600;">-'+gs(c.total_descuentos)+'</span></div>':'')+
-        (!difHTML&&c.efectivo_inicial!=null?'<div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--border);margin-top:6px;"><span style="color:var(--muted);font-size:12px;">Fondo inicial</span><span style="font-size:12px;font-weight:600;">'+gs(c.efectivo_inicial)+'</span></div>':'')+
-      '</div>'+
+      '</div>':'')+
       difHTML+
       (c.notas_cierre?'<div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:10px;"><div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">Notas del cierre</div><div style="font-size:13px;color:var(--text2);">'+c.notas_cierre+'</div></div>':'')+
       (c.id?'<div id="cjVT'+i+'"><button onclick="verVentasTurno('+i+')" class="btn-sv" style="width:100%;">Ver ventas del turno ('+ops+')</button></div>':'')+

@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260501-cierres';
+const CACHE = 'ampersand-admin-v20260501-cierre-full';
 
 const ASSETS = [
   '/admin-negocio.html',

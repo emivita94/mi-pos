@@ -1331,6 +1331,18 @@ async function confirmarCierre(){
   var totalContado = Object.values(cierreMetodos).reduce(function(s,d){return s+d.contado;},0);
   var saldoEsperado = calcSaldoEsperado();
   var diferencia = totalContado > 0 ? totalContado - saldoEsperado : 0;
+  var _totalVentas   = turnoData.ventas.reduce(function(s,v){return s+v.total;},0);
+  var _totalEgresos  = turnoData.egresos.filter(function(e){return !e.anulada;}).reduce(function(s,e){return s+e.monto;},0);
+  var _cantVentas    = turnoData.ventas.length;
+  var _metodosTotales = {};
+  (function(){
+    var acum=function(met,mn){met=(met||'EFECTIVO').toUpperCase().trim();_metodosTotales[met]=(_metodosTotales[met]||0)+mn;};
+    turnoData.ventas.forEach(function(v){
+      if(v.divPagos&&v.divPagos.length>=2){v.divPagos.forEach(function(p){acum(p.metodo,p.monto||0);});}
+      else if(v.metodo&&v.metodo.includes(' + ')){var pts=v.metodo.split(' + '),mp=Math.round(v.total/pts.length);pts.forEach(function(p,i){acum(p,i===pts.length-1?v.total-mp*(pts.length-1):mp);});}
+      else{acum(v.metodo,v.total);}
+    });
+  })();
 
   // Voz: alertar si hay diferencia (solo si el cajero declaro algo)
   if(totalContado > 0 && typeof hablarDiferenciaCierre === 'function'){
@@ -1350,10 +1362,14 @@ async function confirmarCierre(){
   if(navigator.onLine && supaId){
     try {
       await supaPatch('pos_turno', 'id=eq.'+supaId, {
-          estado:        'cerrado',
-          fecha_cierre:  (await obtenerFechaServidor()).toISOString(), // hora del servidor
-          total_contado: totalContado,
-          diferencia:    diferencia,
+          estado:          'cerrado',
+          fecha_cierre:    (await obtenerFechaServidor()).toISOString(),
+          total_contado:   totalContado,
+          diferencia:      diferencia,
+          total_vendido:   _totalVentas,
+          total_egresos:   _totalEgresos,
+          cantidad_ventas: _cantVentas,
+          resumen_pagos:   JSON.stringify(_metodosTotales),
         }, true);
       console.log('[Cierre] Turno cerrado en Supabase OK');
     } catch(e){ console.warn('[Cierre] Error Supabase:', e.message); }
