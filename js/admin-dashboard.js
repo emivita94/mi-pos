@@ -15,25 +15,53 @@ function renderDashboard(){
 
 <!-- KPIs fila 1 -->
 <div class="kg k4" style="margin-bottom:14px;">
-  <div class="kc" style="--c:var(--green)">
-    <div class="kc-l" id="kTLabel">Ventas de hoy</div>
-    <div class="kc-v" id="kT">₲0</div>
-    <div class="kc-s" id="kTdiff" style="cursor:help;">—</div>
+  <div class="kc" style="--c:var(--green);padding:16px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+      <div style="flex:1;min-width:0;">
+        <div class="kc-l" id="kTLabel">Ventas de hoy</div>
+        <div class="kc-v" style="font-size:26px;" id="kT">₲0</div>
+        <div class="kc-s" id="kTdiff" style="cursor:help;margin-top:5px;">—</div>
+      </div>
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--g2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="kc" style="--c:var(--blue)">
-    <div class="kc-l">Ticket promedio</div>
-    <div class="kc-v" id="kP">₲0</div>
-    <div class="kc-s" id="kC" style="cursor:help;">0 operaciones</div>
+  <div class="kc" style="--c:var(--blue);padding:16px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+      <div style="flex:1;min-width:0;">
+        <div class="kc-l">Ticket promedio</div>
+        <div class="kc-v" style="font-size:26px;" id="kP">₲0</div>
+        <div class="kc-s" id="kC" style="cursor:help;margin-top:5px;">0 operaciones</div>
+      </div>
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--b2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="kc" style="--c:var(--green)">
-    <div class="kc-l">Efectivo</div>
-    <div class="kc-v" id="kEf">₲0</div>
-    <div class="kc-s" id="kEfPct">0%</div>
+  <div class="kc" style="--c:var(--green);padding:16px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+      <div style="flex:1;min-width:0;">
+        <div class="kc-l">Efectivo</div>
+        <div class="kc-v" style="font-size:26px;" id="kEf">₲0</div>
+        <div class="kc-s" id="kEfPct" style="margin-top:5px;">0%</div>
+      </div>
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--g2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="kc" style="--c:var(--orange)">
-    <div class="kc-l">POS / Transfer.</div>
-    <div class="kc-v" id="kEl">₲0</div>
-    <div class="kc-s" id="kElPct">0%</div>
+  <div class="kc" style="--c:var(--orange);padding:16px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+      <div style="flex:1;min-width:0;">
+        <div class="kc-l">POS / Transfer.</div>
+        <div class="kc-v" style="font-size:26px;" id="kEl">₲0</div>
+        <div class="kc-s" id="kElPct" style="margin-top:5px;">0%</div>
+      </div>
+      <div style="width:40px;height:40px;border-radius:10px;background:var(--o2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -151,19 +179,23 @@ async function loadDashData(f){
   try{
     // Aplicar offset Paraguay UTC-4
     // fd.d ej: '2026-05-01T00:00:00' → '2026-05-01T04:00:00' (medianoche PY = 04:00 UTC)
-    var p2tz=function(n){return String(n).padStart(2,'0');};
     var addDay=function(ds){
-      var d=new Date(ds+'Z'); d.setDate(d.getDate()+1);
-      return d.getFullYear()+'-'+p2tz(d.getMonth()+1)+'-'+p2tz(d.getDate());
+      // Incrementa la fecha sin depender del timezone del browser
+      var parts=ds.substring(0,10).split('-');
+      var d=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2])+1);
+      var p=function(n){return String(n).padStart(2,'0');};
+      return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
     };
     var desdeTZ = fd.d.substring(0,10)+'T04:00:00';
-    var hastaNextDay = addDay(fd.h.substring(0,10)+'T00:00:00');
+    var hastaNextDay = addDay(fd.h.substring(0,10));
     var hastaTZ = hastaNextDay+'T03:59:59';
 
     // Datos del período
+    console.log('[Dash] Query ventas → email:', SE, '| desde:', desdeTZ, '| hasta:', hastaTZ);
     var v=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
       '&fecha=gte.'+desdeTZ+'&fecha=lte.'+hastaTZ+'&order=fecha.desc&limit=500');
+    console.log('[Dash] Resultados:', v.length, 'ventas, primera:', v[0]||'—');
     var tot=v.reduce(function(s,x){return s+(x.total||0);},0);
     var cnt=v.length;
     var totEf=v.filter(function(x){return (x.metodo_pago||'').toUpperCase()==='EFECTIVO';})
@@ -337,9 +369,9 @@ async function _render7Dias(hoy,fmt,p2,textColor,gridColor,fontFam){
   var hace7=new Date(hoy); hace7.setDate(hoy.getDate()-6); hace7.setHours(0,0,0,0);
   // Offset Paraguay UTC-4: desde T04:00:00 del día inicio hasta T03:59:59 del día siguiente al fin
   var p2tz7=function(n){return String(n).padStart(2,'0');};
-  var addDay7=function(ds){var d=new Date(ds+'Z');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+p2tz7(d.getMonth()+1)+'-'+p2tz7(d.getDate());};
+  var addDay7=function(ds){var parts=ds.substring(0,10).split('-');var d=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2])+1);return d.getFullYear()+'-'+p2tz7(d.getMonth()+1)+'-'+p2tz7(d.getDate());};
   var desde7TZ=fmt(hace7)+'T04:00:00';
-  var hasta7NextDay=addDay7(fmt(hoy)+'T00:00:00');
+  var hasta7NextDay=addDay7(fmt(hoy));
   var hasta7TZ=hasta7NextDay+'T03:59:59';
   var v7=await sg('pos_ventas',
     'licencia_email=ilike.'+encodeURIComponent(SE)+
@@ -394,9 +426,9 @@ async function _renderInsights(hoy,fmt,p2){
   var hace30=new Date(hoy); hace30.setDate(hoy.getDate()-30);
   // Offset Paraguay UTC-4
   var p2tzI=function(n){return String(n).padStart(2,'0');};
-  var addDayI=function(ds){var d=new Date(ds+'Z');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+p2tzI(d.getMonth()+1)+'-'+p2tzI(d.getDate());};
+  var addDayI=function(ds){var parts=ds.substring(0,10).split('-');var d=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2])+1);return d.getFullYear()+'-'+p2tzI(d.getMonth()+1)+'-'+p2tzI(d.getDate());};
   var desdeITZ=fmt(hace30)+'T04:00:00';
-  var hastaINextDay=addDayI(fmt(hoy)+'T00:00:00');
+  var hastaINextDay=addDayI(fmt(hoy));
   var hastaITZ=hastaINextDay+'T03:59:59';
   try{
     var vH=await sg('pos_ventas',
@@ -499,9 +531,9 @@ async function _renderHeatmap(hoy,fmt,p2,textColor){
   var hace30=new Date(hoy); hace30.setDate(hoy.getDate()-30);
   // Offset Paraguay UTC-4
   var p2tzH=function(n){return String(n).padStart(2,'0');};
-  var addDayH=function(ds){var d=new Date(ds+'Z');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+p2tzH(d.getMonth()+1)+'-'+p2tzH(d.getDate());};
+  var addDayH=function(ds){var parts=ds.substring(0,10).split('-');var d=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2])+1);return d.getFullYear()+'-'+p2tzH(d.getMonth()+1)+'-'+p2tzH(d.getDate());};
   var desdeHTZ=fmt(hace30)+'T04:00:00';
-  var hastaHNextDay=addDayH(fmt(hoy)+'T00:00:00');
+  var hastaHNextDay=addDayH(fmt(hoy));
   var hastaHTZ=hastaHNextDay+'T03:59:59';
   var vH=await sg('pos_ventas',
     'licencia_email=ilike.'+encodeURIComponent(SE)+

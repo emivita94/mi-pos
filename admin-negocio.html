@@ -463,11 +463,15 @@ async function saveConf(){
   </div>
 </div>
 <script>
+// Admin panel no necesita SW — limpiar cualquier SW previo y todos los caches
 if('serviceWorker' in navigator){
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('/sw-admin.js')
-      .then(function(reg){ console.log('[SW Admin] Registrado:', reg.scope); })
-      .catch(function(err){ console.warn('[SW Admin] Error:', err); });
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){ r.unregister().then(function(ok){ if(ok) console.log('[Admin] SW desregistrado:', r.scope); }); });
+  });
+}
+if('caches' in window){
+  caches.keys().then(function(keys){
+    keys.forEach(function(k){ caches.delete(k).then(function(){ console.log('[Admin] Caché eliminado:', k); }); });
   });
 }
 </script>
