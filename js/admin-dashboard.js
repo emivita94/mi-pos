@@ -798,38 +798,78 @@ async function loadCajasRango(){
       '&order=fecha_apertura.desc&limit=200');
   }catch(e){ toast('Error al cargar cierres'); console.warn('[Cajas]',e.message); allCjs=[]; }
 
-  // Enriquecer registros históricos sin total_vendido calculando desde pos_ventas
-  var sinDatos = allCjs.filter(function(c){
-    return c.estado === 'cerrado' && (c.total_vendido == null);
-  });
-  if (sinDatos.length > 0) {
-    var ids = sinDatos.map(function(c){ return c.id; }).join(',');
-    try {
-      var ventas = await sg('pos_ventas',
-        'turno_id=in.('+ids+')&select=turno_id,total,metodo_pago&limit=5000');
-      // Agrupar por turno_id
-      var byTurno = {};
-      ventas.forEach(function(v) {
-        var tid = v.turno_id;
-        if (!byTurno[tid]) byTurno[tid] = { total: 0, metodos: {} };
-        byTurno[tid].total += (v.total || 0);
-        var m = (v.metodo_pago || 'EFECTIVO').toUpperCase();
-        byTurno[tid].metodos[m] = (byTurno[tid].metodos[m] || 0) + (v.total || 0);
-      });
-      // Parchear allCjs en memoria (NO tocar DB — solo para display)
-      allCjs = allCjs.map(function(c) {
-        if (c.estado === 'cerrado' && c.total_vendido == null && byTurno[c.id]) {
-          return Object.assign({}, c, {
-            total_vendido: byTurno[c.id].total,
-            resumen_pagos: JSON.stringify(byTurno[c.id].metodos),
-            _computed: true  // flag para saber que fue calculado, no guardado
-          });
-        }
-        return c;
-      });
-    } catch(e) {
-      console.warn('[Cajas] Error cargando ventas para turnos sin datos:', e.message);
+  // ── Enriquecer TODOS los turnos con datos reales de pos_ventas ──────────
+  // Necesitan datos: abiertos (siempre, para tiempo real) + cerrados sin total_vendido
+  var necesitanVentas = allCjs.filter(function(c){ return c.estado==='abierto' || !c.total_vendido; });
+
+  if(necesitanVentas.length > 0){
+    var byTurno = {};
+
+    // ── PASO A: fetch por turno_id (registros modernos) ──────────────────
+    var idsParaBuscar = necesitanVentas.filter(function(c){ return c.id; }).map(function(c){ return c.id; });
+    if(idsParaBuscar.length){
+      try{
+        var vPorId = await sg('pos_ventas',
+          'turno_id=in.('+idsParaBuscar.join(',')+')'
+          +'&select=turno_id,total,metodo_pago&limit=10000');
+        vPorId.forEach(function(v){
+          var tid = v.turno_id;
+          if(!byTurno[tid]) byTurno[tid]={total:0,count:0,metodos:{}};
+          byTurno[tid].total += (v.total||0);
+          byTurno[tid].count++;
+          var m=(v.metodo_pago||'EFECTIVO').toUpperCase();
+          byTurno[tid].metodos[m]=(byTurno[tid].metodos[m]||0)+(v.total||0);
+        });
+      }catch(e){ console.warn('[Cajas] fetch turno_id:', e.message); }
     }
+
+    // ── PASO B: fallback por rango de fechas (ventas sin turno_id) ────────
+    // Solo para los turnos que no encontraron ventas en el paso A
+    var sinVentasAun = necesitanVentas.filter(function(c){ return !byTurno[c.id]; });
+    if(sinVentasAun.length){
+      // Un único query amplio cubriendo todas las fechas necesarias
+      var minF = sinVentasAun.map(function(c){ return c.fecha_apertura||''; }).filter(Boolean).sort()[0];
+      var maxF = sinVentasAun.map(function(c){ return c.fecha_cierre||new Date().toISOString(); }).sort().reverse()[0];
+      if(minF){
+        try{
+          var vLegacy = await sg('pos_ventas',
+            'licencia_email=ilike.'+encodeURIComponent(SE)
+            +'&fecha=gte.'+encodeURIComponent(minF)
+            +'&fecha=lte.'+encodeURIComponent(maxF)
+            +'&select=turno_id,total,metodo_pago,fecha&limit=10000');
+          vLegacy.forEach(function(v){
+            // ignorar las que ya se asignaron por turno_id
+            if(v.turno_id && byTurno[v.turno_id]) return;
+            var vFecha=new Date(v.fecha);
+            sinVentasAun.forEach(function(c){
+              var ap=new Date(c.fecha_apertura);
+              var ci=c.fecha_cierre?new Date(c.fecha_cierre):new Date();
+              if(vFecha>=ap && vFecha<=ci){
+                if(!byTurno[c.id]) byTurno[c.id]={total:0,count:0,metodos:{}};
+                byTurno[c.id].total+=(v.total||0);
+                byTurno[c.id].count++;
+                var m=(v.metodo_pago||'EFECTIVO').toUpperCase();
+                byTurno[c.id].metodos[m]=(byTurno[c.id].metodos[m]||0)+(v.total||0);
+              }
+            });
+          });
+        }catch(e){ console.warn('[Cajas] fetch legacy rango:', e.message); }
+      }
+    }
+
+    // ── Aplicar datos computados a allCjs ─────────────────────────────────
+    allCjs = allCjs.map(function(c){
+      if(!c.id || !byTurno[c.id]) return c;
+      var d = byTurno[c.id];
+      return Object.assign({}, c, {
+        // Para abiertos: siempre usar datos live
+        // Para cerrados: preferir DB (total_vendido ya guardado) pero usar live si no hay
+        total_vendido:   c.estado==='abierto' ? d.total  : (c.total_vendido  || d.total),
+        cantidad_ventas: c.estado==='abierto' ? d.count  : (c.cantidad_ventas|| d.count),
+        resumen_pagos:   c.estado==='abierto' ? JSON.stringify(d.metodos) : (c.resumen_pagos || JSON.stringify(d.metodos)),
+        _live: c.estado==='abierto'  // flag para badge "en tiempo real"
+      });
+    });
   }
 
   renderCajasData();
@@ -869,13 +909,61 @@ function renderCajasData(){
     abiertas.forEach(function(c){
       var ms2=Date.now()-new Date(c.fecha_apertura);
       var durTxt=Math.floor(ms2/3600000)+'h '+Math.floor((ms2%3600000)/60000)+'m';
+      var totalVendido = c.total_vendido||0;
+      var cantVentas = c.cantidad_ventas||c.total_operaciones||0;
+      var efInicial = c.efectivo_inicial||0;
+      var saldoActual = efInicial + totalVendido;
+
+      // Formas de pago
+      var pagosMap={};
+      if(c.resumen_pagos){ try{ pagosMap=typeof c.resumen_pagos==='string'?JSON.parse(c.resumen_pagos):c.resumen_pagos; }catch(ex){} }
+      var pCols={'EFECTIVO':'var(--green)','POS':'var(--blue)','TRANSFERENCIA':'var(--orange)'};
+      var pIcos={'EFECTIVO':'&#128181;','POS':'&#128179;','TRANSFERENCIA':'&#127970;'};
+      var pagosRows=Object.entries(pagosMap).map(function(e){
+        var v=typeof e[1]==='object'?(e[1].total||0):e[1];
+        return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);font-size:13px;">'+(pIcos[e[0]]||'&#128181;')+' '+e[0]+'</span><span style="font-weight:700;color:'+(pCols[e[0]]||'var(--text)')+';">'+gs(v)+'</span></div>';
+      }).join('');
+
       html+='<div class="cj op" style="margin-bottom:12px;border-left:3px solid var(--green);">'+
-        '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;">'+
-        '<div><div style="font-size:14px;font-weight:800;">'+(c.terminal||'Terminal')+(c.sucursal?' <span style="font-size:11px;color:var(--muted);font-weight:400">&middot; '+c.sucursal+'</span>':'')+'</div>'+
-        '<div style="font-size:12px;color:var(--muted);margin-top:3px;">Abierta '+fmtDT(c.fecha_apertura)+'&nbsp;&nbsp;&middot;&nbsp;&nbsp;'+durTxt+'</div></div>'+
-        '<div style="text-align:right;"><div style="font-size:18px;font-weight:800;color:var(--green);">'+gs(c.total_vendido||0)+'</div>'+
-        '<div style="font-size:11px;color:var(--muted);">'+(c.total_operaciones||c.cantidad_ventas||0)+' ventas</div></div>'+
-        '</div></div>';
+        // Header: terminal + total actual
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:2px solid var(--border);">'+
+          '<div style="display:flex;align-items:center;gap:10px;">'+
+            '<div style="width:36px;height:36px;border-radius:8px;background:rgba(76,175,80,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'+
+            '</div>'+
+            '<div>'+
+              '<div style="font-size:14px;font-weight:800;">'+(c.terminal||'Terminal')+(c.sucursal?' <span style="font-size:11px;color:var(--muted);font-weight:400">&middot; '+c.sucursal+'</span>':'')+'</div>'+
+              '<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">'+
+                '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(76,175,80,0.15);color:var(--green);font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px;">'+
+                  '<span style="width:6px;height:6px;background:var(--green);border-radius:50%;display:inline-block;"></span>En curso</span>'+
+                '<span style="font-size:11px;color:var(--muted);">'+durTxt+'</span>'+
+              '</div>'+
+            '</div>'+
+          '</div>'+
+          '<div style="text-align:right;">'+
+            '<div style="font-size:20px;font-weight:800;color:var(--green);">'+gs(totalVendido)+'</div>'+
+            '<div style="font-size:11px;color:var(--muted);">'+cantVentas+' ventas hasta ahora</div>'+
+          '</div>'+
+        '</div>'+
+        // Barra de hora
+        '<div style="padding:7px 14px;background:var(--card2);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;">'+
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'+
+          'Apertura: <strong style="color:var(--text);">'+fmtDT(c.fecha_apertura)+'</strong>'+
+        '</div>'+
+        // Resumen
+        '<div style="padding:12px 14px;">'+
+          '<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;">'+
+            '<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Resumen actual</div>'+
+            '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Importe inicial</span><span style="font-weight:600;">'+gs(efInicial)+'</span></div>'+
+            '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);font-size:13px;">Ventas del turno ('+cantVentas+' ops)</span><span style="font-weight:600;color:var(--green);">'+gs(totalVendido)+'</span></div>'+
+            '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);margin-top:4px;"><span style="font-size:13px;font-weight:800;">Saldo en caja</span><span style="font-weight:800;font-size:15px;color:var(--green);">'+gs(saldoActual)+'</span></div>'+
+          '</div>'+
+          (pagosRows?'<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px;">'+
+            '<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Formas de pago</div>'+
+            pagosRows+
+          '</div>':'')+
+        '</div>'+
+      '</div>';
     });
   }
   var cerradas=allCjs.filter(function(c){return c.estado==='cerrado';});
