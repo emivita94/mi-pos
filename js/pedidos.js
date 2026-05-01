@@ -928,10 +928,11 @@ function sateliteMostrarEsperaCaja(){
     '</div>' +
     '<h2 style="color:#fff;font-family:Barlow,sans-serif;font-size:20px;font-weight:800;text-align:center;margin:0;">Esperando caja abierta</h2>' +
     '<p style="color:#888;font-family:Barlow,sans-serif;font-size:14px;text-align:center;max-width:300px;line-height:1.5;margin:0;">' +
-      'No hay turno abierto en sucursal <b style="color:#fff;">' + sucursal + '</b>.<br>El cajero debe abrir turno para que puedas tomar pedidos.' +
+      'No hay turno abierto detectado.<br>El cajero debe abrir turno para que puedas tomar pedidos.' +
     '</p>' +
     '<div id="sateliteEsperaStatus" style="color:#534AB7;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;">Verificando cada 15 segundos...</div>' +
-    '<button onclick="sateliteReintentarCaja()" style="margin-top:12px;background:#534AB7;border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:14px 32px;cursor:pointer;letter-spacing:.5px;">REINTENTAR AHORA</button>';
+    '<button onclick="sateliteReintentarCaja()" style="margin-top:8px;background:#534AB7;border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:14px 32px;cursor:pointer;letter-spacing:.5px;width:280px;">REINTENTAR AHORA</button>' +
+    '<button onclick="sateliteLimpiarYRecargar()" style="background:transparent;border:1px solid #444;border-radius:8px;color:#888;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:10px 24px;cursor:pointer;width:280px;">Limpiar caché y recargar</button>';
   document.body.appendChild(div);
 
   // Iniciar polling
@@ -970,6 +971,23 @@ function sateliteIniciarPollingCaja(){
       if(status) status.textContent = 'Sin caja abierta. Reintentando en 15s...';
     }
   }, 15000);
+}
+
+async function sateliteLimpiarYRecargar(){
+  var status = document.getElementById('sateliteEsperaStatus');
+  if(status) status.textContent = 'Limpiando caché...';
+  try{
+    if('serviceWorker' in navigator){
+      var regs = await navigator.serviceWorker.getRegistrations();
+      for(var r of regs) await r.unregister();
+    }
+    if('caches' in window){
+      var keys = await caches.keys();
+      for(var k of keys) await caches.delete(k);
+    }
+  }catch(e){ console.warn('[Satelite] Error limpiando caché:', e.message); }
+  // Recargar forzando bypass de caché
+  window.location.href = window.location.href.split('?')[0] + '?r=' + Date.now();
 }
 
 async function sateliteReintentarCaja(){
