@@ -475,17 +475,12 @@ function cajaAbrirPedidoSatelite(i) {
   if (typeof updUI === 'function') updUI();
   if (typeof updBtnGuardar === 'function') updBtnGuardar();
 
-  // Ir directo al cobro — el cajero no edita el pedido del mesero
-  // Primero actualizar la UI del carrito, luego llamar goCobrar que setea
-  // el total en la pantalla de cobro y navega a scCobrar
+  // Ir al POS para que el cajero pueda agregar items antes de cobrar
+  goTo('scSale');
+  if (typeof renderCatPills === 'function') renderCatPills();
+  if (typeof filterP === 'function') filterP();
   if (typeof toast === 'function')
-    toast('Pedido de ' + (t.terminalOrigen || 'mesero') + ' — ' + (t.obs || '') + ' listo para cobrar');
-
-  if (typeof goCobrar === 'function') {
-    goCobrar(); // _goCobrarSetup + goTo('scCobrar') en secuencia correcta
-  } else {
-    goTo('scCobrar');
-  }
+    toast('Pedido de ' + (t.terminalOrigen || 'mesero') + ' cargado — agregá items o cobrá');
 }
 
 function nuevaVenta() {
