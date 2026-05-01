@@ -897,10 +897,10 @@ async function sateliteVerificarCajaActiva(){
         'licencia_email=eq.' + encodeURIComponent(email)
         + '&estado=eq.abierto'
         + '&limit=1'
-        + '&select=id,terminal,fecha_apertura,sucursal');
+        + '&select=id,terminal,fecha_apertura');
     var hayTurno = Array.isArray(rows) && rows.length > 0;
     if(hayTurno){
-      console.log('[Satelite] Caja activa — turno de:', rows[0].terminal, '| sucursal:', rows[0].sucursal);
+      console.log('[Satelite] Caja activa — turno de:', rows[0].terminal);
     } else {
       console.warn('[Satelite] Sin turno abierto para licencia:', email);
     }
@@ -1020,10 +1020,10 @@ async function sateliteReintentarCaja(){
         'licencia_email=eq.' + encodeURIComponent(email)
         + '&estado=eq.abierto'
         + '&limit=1'
-        + '&select=id,terminal,fecha_apertura,sucursal');
+        + '&select=id,terminal,fecha_apertura');
     activa = Array.isArray(rows) && rows.length > 0;
     diagMsg = activa
-      ? 'Turno encontrado: ' + (rows[0].terminal||'?') + ' / ' + (rows[0].sucursal||'sin sucursal')
+      ? 'Turno encontrado: ' + (rows[0].terminal||'?')
       : 'Sin turno abierto para ' + email + '. Registros: ' + (Array.isArray(rows)?rows.length:0);
   }catch(e){
     diagMsg = 'Error Supabase: ' + e.message;

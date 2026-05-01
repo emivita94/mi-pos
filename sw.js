@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260501-forzar-entrada';
+const CACHE = 'ampersand-pos-v20260501-fix-sucursal';
 
 const ASSETS = [
   '/',
