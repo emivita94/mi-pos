@@ -578,6 +578,7 @@ function supaInsertTurno(estado, efectivoInicial){
     efectivo_inicial: efectivoInicial || 0,
     estado:           estado,
     terminal:         localStorage.getItem('pos_terminal') || 'Terminal 1',
+    sucursal:         localStorage.getItem('pos_sucursal') || 'Principal',
     licencia_email:   email,
   };
   supaPost('pos_turno', data).then(rows=>{

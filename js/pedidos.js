@@ -893,10 +893,11 @@ async function sateliteVerificarCajaActiva(){
   if(!email) return false;
 
   try{
+    // Buscar turno abierto para esta sucursal O con sucursal null (turnos viejos sin el campo)
     var rows = await supaGet('pos_turno',
         'licencia_email=eq.' + encodeURIComponent(email)
-        + '&sucursal=eq.' + encodeURIComponent(sucursal)
         + '&estado=eq.abierto'
+        + '&or=(sucursal.eq.' + encodeURIComponent(sucursal) + ',sucursal.is.null)'
         + '&limit=1'
         + '&select=id,terminal,fecha_apertura,sucursal');
     var hayTurno = Array.isArray(rows) && rows.length > 0;
