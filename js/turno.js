@@ -279,6 +279,81 @@ async function stockDescontarVenta(items, comprobante){
   }
 }
 
+async function stockRevertirVenta(items, comprobante){
+  const depId = parseInt(localStorage.getItem('pos_deposito_id'))||null;
+  const sucId = parseInt(localStorage.getItem('pos_sucursal_id'))||null;
+  const email = localStorage.getItem(SK.email);
+  if(!depId || !email) return;
+
+  const prods = PRODS || [];
+  const itemsInv = (items||[]).filter(function(it){
+    if(it.esDelivery || it.esDescuento) return false;
+    const p = prods.find(function(p){ return p.id===it.id; });
+    return p && p.inventario;
+  });
+  if(!itemsInv.length) return;
+
+  try{
+    const licId = parseInt(localStorage.getItem('ali')) || null;
+    if(!licId) return;
+
+    const prodIds = itemsInv.map(function(i){ return encodeURIComponent(i.id); }).join(',');
+    const stockData = await supaGet('stock',
+      'deposito_id=eq.'+depId+'&producto_id=in.('+prodIds+')&select=producto_id,cantidad');
+    const stockMap = {};
+    (stockData||[]).forEach(function(s){ stockMap[s.producto_id] = parseFloat(s.cantidad)||0; });
+
+    const compData = await supaPost('stock_comprobantes', {
+        licencia_id: licId,
+        deposito_id: depId,
+        sucursal_id: sucId,
+        tipo: 'anulacion',
+        referencia: comprobante || ('ANULACION-'+Date.now()),
+        observacion: 'Venta anulada desde POS — stock revertido',
+        terminal: localStorage.getItem('pos_terminal')||'Terminal',
+        usuario: email,
+        fecha: new Date().toISOString()
+      });
+    const compId = Array.isArray(compData) ? compData[0].id : compData.id;
+
+    const compItems = itemsInv.map(function(it){
+      const qty   = parseFloat(it.qty)||1;
+      const antes = stockMap[it.id]||0;
+      const desp  = antes + qty;
+      return {
+        comprobante_id:   compId,
+        producto_id:      it.id,
+        nombre_producto:  it.name||it.nombre||'',
+        cantidad:         +qty,
+        cantidad_antes:   antes,
+        cantidad_despues: desp,
+        costo_unitario:   0
+      };
+    });
+    await supaPost('stock_comprobante_items', compItems, null, true);
+
+    for(const it of itemsInv){
+      const qty   = parseFloat(it.qty)||1;
+      const antes = stockMap[it.id]||0;
+      const desp  = antes + qty;
+      try {
+        await supaPost('stock', {
+            deposito_id:     depId,
+            sucursal_id:     sucId,
+            licencia_id:     licId,
+            producto_id:     it.id,
+            nombre_producto: it.name||it.nombre||'',
+            cantidad:        desp,
+            updated_at:      new Date().toISOString()
+          }, 'deposito_id,producto_id', true);
+      } catch(e){ console.warn('[Stock] upsert revert prod', it.id, ':', e.message); }
+    }
+    console.log('[Stock] Revertido — '+itemsInv.length+' productos | depósito:', depId);
+  }catch(e){
+    console.warn('[Stock] Error revirtiendo stock:', e.message);
+  }
+}
+
 // Sincronizar ventas pendientes de la cola
 async function syncVentasPendientes(){
   if(!db || !navigator.onLine || USAR_DEMO) return;

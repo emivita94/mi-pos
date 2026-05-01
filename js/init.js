@@ -343,7 +343,7 @@ async function guardarConfigTerminalSupabase(cfg){
           deviceId:    deviceId,
           savedAt:     new Date().toISOString()
         }),
-        licencia_email: email
+        licencia_email: localStorage.getItem(SK.email)
       }, 'licencia_email,clave', true);
     console.log('[Terminal] Config guardada — device:', deviceId.slice(0,12));
   }catch(e){console.warn('[Terminal] Error guardando:', e.message);}
@@ -777,12 +777,20 @@ async function anularVentaConfirmar(id){
       factura_anulada: venta.tiene_factura ? 1 : 0,
     });
 
-    // 2. Reconstruir turnoData.ventas desde DB para que el turno cuadre
+    // 2. Revertir stock en Supabase (en background, sin bloquear UI)
+    if(!USAR_DEMO && navigator.onLine){
+      try {
+        const items = JSON.parse(venta.items || '[]');
+        await stockRevertirVenta(items, venta.comprobante || ('ANULACION-'+Date.now()));
+      } catch(e){ console.warn('[Anulacion] Error revirtiendo stock:', e.message); }
+    }
+
+    // 3. Reconstruir turnoData.ventas desde DB para que el turno cuadre
     //    (elimina la venta anulada del conteo de activas)
     await reconstruirVentasTurno();
     turnoGuardar();
 
-    // 3. Cerrar modal y refrescar
+    // 4. Cerrar modal y refrescar
     const ov = document.getElementById('anulOverlay');
     if(ov) ov.remove();
 
@@ -907,6 +915,17 @@ async function cpConfirmar(id){
 
     if(actualizado) turnoGuardar();
 
+    // Sync a Supabase en background
+    if(!USAR_DEMO && navigator.onLine && venta && venta.fecha){
+      const emailCp = localStorage.getItem(SK.email);
+      if(emailCp){
+        supaPatch('pos_ventas',
+          'licencia_email=eq.'+encodeURIComponent(emailCp)+'&fecha=eq.'+encodeURIComponent(venta.fecha),
+          { metodo_pago: metodoNuevo, comprobante }, true
+        ).catch(e => console.warn('[cpConfirmar] Supabase sync error:', e.message));
+      }
+    }
+
     // Cerrar modal
     const ov = document.getElementById('cpOverlay');
     if(ov) ov.remove();
@@ -935,7 +954,8 @@ async function reconstruirVentasTurno(){
         factura:     v.tiene_factura ? { ruc: v.factura_ruc, nombre: v.factura_nombre } : null,
         fecha:       v.fecha ? new Date(v.fecha) : new Date(),
         nroTicket:   v.nro_ticket || null,
-        items:       (() => { try { return JSON.parse(v.items||'[]'); } catch(e){ return []; } })(),
+        items:       (() => { try { return JSON.parse(v.items||'[]');     } catch(e){ return []; } })(),
+        divPagos:    (() => { try { return JSON.parse(v.div_pagos||'null'); } catch(e){ return null; } })(),
       }));
   } catch(e){ console.warn('[Turno] Error reconstruyendo ventas:', e.message); toast('Error al cargar ventas del turno'); }
 }

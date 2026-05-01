@@ -492,15 +492,25 @@ function nuevaVenta() {
   guardarPendientesLocal();
   const totalActual = calcTotal();
   if (totalActual > 0) {
-    pendientes.push({
-      nro: ticketCounter,
-      obs: 'Auto-guardado',
-      cart: JSON.parse(JSON.stringify(cart)),
-      total: totalActual,
-      fecha: new Date(),
-      esPresupuesto: false,
-    });
-    incrementTicketCounter();
+    if (currentTicketNro !== null) {
+      // Editando ticket existente — actualizar en lugar de crear duplicado
+      const idx = pendientes.findIndex(p => p.nro === currentTicketNro);
+      if (idx !== -1) {
+        pendientes[idx] = { ...pendientes[idx], cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date() };
+      } else {
+        pendientes.push({ nro: currentTicketNro, obs: 'Auto-guardado', cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), esPresupuesto: false });
+      }
+    } else {
+      pendientes.push({
+        nro: ticketCounter,
+        obs: 'Auto-guardado',
+        cart: JSON.parse(JSON.stringify(cart)),
+        total: totalActual,
+        fecha: new Date(),
+        esPresupuesto: false,
+      });
+      incrementTicketCounter();
+    }
   }
   clearCart();
   setCurrentTicketNro(null);

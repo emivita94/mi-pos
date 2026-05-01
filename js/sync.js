@@ -205,6 +205,7 @@ async function dbSaveVenta(data){
     metodo_pago:  data.metodo,
     comprobante:  data.comprobante || '',
     items:        JSON.stringify(data.items),
+    div_pagos:    data.divPagos ? JSON.stringify(data.divPagos) : null,
     tiene_factura: !!data.factura,
     factura_ruc:  data.factura ? data.factura.ruc : '',
     factura_nombre: data.factura ? data.factura.nombre : '',
