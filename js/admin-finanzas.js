@@ -384,18 +384,43 @@ async function balanceBuscar(licId){
   body.innerHTML='<div class="loading"><span class="sp"></span>Calculando balance...</div>';
 
   try{
-    // 1. VENTAS BRUTAS
-    var ventas=await sg('pos_ventas',
+    // ── FASE 1: TODOS LOS FETCHES PRIMERO ──────────────────
+
+    // 1a. Ventas + mapa de costos (en paralelo)
+    var fetchVentas=sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)
       +(fd?'&fecha=gte.'+fd+'T00:00:00':'')
       +(fh?'&fecha=lte.'+fh+'T23:59:59':'')
       +'&select=items,total&limit=5000'
     );
-    var ventaBruta=0, costoVentas=0;
-    // Cargar mapa de costos
-    var prds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&select=id,costo&limit=1000');
+    var fetchPrds=sg('pos_productos',
+      'licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&select=id,costo&limit=1000'
+    );
+    // 1b. Gastos
+    var fetchGastos=sg('gastos',
+      'licencia_id=eq.'+licId
+      +(fd?'&fecha=gte.'+fd:'')
+      +(fh?'&fecha=lte.'+fh:'')
+      +'&select=monto,categoria,concepto,concepto_id,categoria_id&limit=2000'
+    );
+    // 1c. IVA (opcional — no lanza error si falla)
+    var fetchIva=sg('iva_liquidaciones','licencia_id=eq.'+licId
+      +(fd?'&periodo=gte.'+fd.substring(0,7):'')
+      +'&select=iva_pagar,iva_favor,debito_total,credito_total,periodo&limit=1'
+    ).catch(function(e){ console.warn('[Balance] Error cargando IVA:', e.message); return []; });
+
+    var results=await Promise.all([fetchVentas,fetchPrds,fetchGastos,fetchIva]);
+    var ventas=results[0];
+    var prds=results[1];
+    var gastos=results[2];
+    var ivaRows=results[3];
+
+    // ── FASE 2: COMPUTAR TODOS LOS VALORES ─────────────────
+
     var costoMap={};
     prds.forEach(function(p){ costoMap[p.id]=parseFloat(p.costo)||0; });
+
+    var ventaBruta=0, costoVentas=0;
     ventas.forEach(function(v){
       ventaBruta+=(v.total||0);
       var items=[];
@@ -407,16 +432,9 @@ async function balanceBuscar(licId){
     var utilidadBruta=ventaBruta-costoVentas;
     var margenBruto=ventaBruta>0?Math.round(utilidadBruta/ventaBruta*100):0;
 
-    // 2. GASTOS agrupados por categoría > concepto
-    var gastos=await sg('gastos',
-      'licencia_id=eq.'+licId
-      +(fd?'&fecha=gte.'+fd:'')
-      +(fh?'&fecha=lte.'+fh:'')
-      +'&select=monto,categoria,concepto,concepto_id,categoria_id&limit=2000'
-    );
     var totalGastos=gastos.reduce(function(s,g){return s+(g.monto||0);},0);
 
-    // Agrupar gastos por categoría
+    // Agrupar gastos por categoría > concepto
     var gastosXCat={};
     gastos.forEach(function(g){
       var catId=g.categoria_id||0;
@@ -434,7 +452,13 @@ async function balanceBuscar(licId){
     var utilidadNeta=utilidadBruta-totalGastos;
     var utilColor=utilidadNeta>=0?'var(--green)':'var(--red)';
 
-    // Render del balance
+    var ivaData=(ivaRows&&ivaRows.length)?ivaRows[0]:null;
+    var ivaAPagar=ivaData?Math.round(ivaData.iva_pagar||0):null;
+    var utilidadFinal=ivaAPagar!==null?utilidadNeta-ivaAPagar:utilidadNeta;
+    var utilFinalColor=utilidadFinal>=0?'var(--green)':'var(--red)';
+
+    // ── FASE 3: CONSTRUIR TODO EL HTML DE UNA VEZ ──────────
+
     var gastosHTML=Object.values(gastosXCat).sort(function(a,b){return b.total-a.total;}).map(function(cat){
       var consHTML=Object.values(cat.conceptos).sort(function(a,b){return b.total-a.total;}).map(function(con){
         return '<div style="display:flex;justify-content:space-between;padding:5px 16px 5px 32px;font-size:12px;border-bottom:1px solid var(--border)">'
@@ -490,20 +514,7 @@ async function balanceBuscar(licId){
         +'</div>'
         +(gastosHTML||'<div style="padding:16px 18px;color:var(--muted);font-size:13px">Sin gastos registrados en el período</div>')
       +'</div>'
-      // IVA estimado del período
-      var ivaData=null;
-      try{
-        var ivaRows=await sg('iva_liquidaciones','licencia_id=eq.'+licId
-          +'&periodo=gte.'+fd.substring(0,7)
-          +'&select=iva_pagar,iva_favor,debito_total,credito_total,periodo&limit=1');
-        if(ivaRows&&ivaRows.length) ivaData=ivaRows[0];
-      }catch(e){ console.warn('[Balance] Error cargando IVA:', e.message); }
-      var utilidadAntesIva=utilidadNeta;
-      var ivaAPagar=ivaData?Math.round(ivaData.iva_pagar||0):null;
-      var utilidadFinal=ivaAPagar!==null?utilidadNeta-ivaAPagar:utilidadNeta;
-      var utilFinalColor=utilidadFinal>=0?'var(--green)':'var(--red)';
-
-      // RESULTADO NETO
+      // RESULTADO NETO (utilidad antes de IVA)
       +'<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:'+utilColor+';border-radius:12px;margin-top:4px">'
         +'<span style="font-size:16px;font-weight:800;color:#fff">'+(utilidadNeta>=0?'UTILIDAD ANTES DE IVA':'PÉRDIDA ANTES DE IVA')+'</span>'
         +'<span style="font-size:24px;font-weight:800;color:#fff">'+gs(Math.abs(utilidadNeta))+'</span>'
@@ -532,7 +543,7 @@ async function balanceBuscar(licId){
     // ── GRÁFICOS ──────────────────────────────────────────
     // Calcular datos históricos por mes para el gráfico de tendencia
     var grafDiv='<div class="card" style="margin-top:14px;margin-bottom:10px">'
-      +'<div class="card-h"><span class="card-t">Ventas vs Utilidad neta por mes</span></div>'
+      +'<div class="card-h"><span class="card-t">Ventas vs Ventas − Gastos por mes</span></div>'
       +'<div style="padding:16px 18px"><canvas id="balGraf1" height="90"></canvas></div>'
     +'</div>'
     +'<div class="card" style="margin-bottom:10px">'
@@ -579,7 +590,7 @@ async function balDibujarTendencia(fd,fh,ventaActual,utilActual,licId){
       var venta=v.reduce(function(s,x){return s+(x.total||0);},0);
       var g=await sg('gastos','licencia_id=eq.'+licId+'&fecha=gte.'+mStr+'-01&fecha=lte.'+mStr+'-'+ultimoDia+'&select=monto&limit=500');
       var gasto=g.reduce(function(s,x){return s+(x.monto||0);},0);
-      puntos.push({label:mStr,venta:venta,util:venta*0.9-gasto}); // aproximación
+      puntos.push({label:mStr,venta:venta,util:venta-gasto}); // ventas menos gastos (sin costo mercadería histórico)
     }catch(e){ puntos.push({label:mStr,venta:0,util:0}); }
   }));
   puntos.sort(function(a,b){return a.label.localeCompare(b.label);});
@@ -630,7 +641,7 @@ async function balDibujarTendencia(fd,fh,ventaActual,utilActual,licId){
   ctx.fillText('Ventas',PAD.l+16,16);
   ctx.fillStyle='rgba(66,165,245,0.8)'; ctx.fillRect(PAD.l+70,8,12,8);
   ctx.fillStyle='rgba(255,255,255,0.5)';
-  ctx.fillText('Utilidad neta',PAD.l+86,16);
+  ctx.fillText('Ventas − Gastos',PAD.l+86,16);
 }
 
 function balDibujarComposicion(venta,costo,gastos,iva){

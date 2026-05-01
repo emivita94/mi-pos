@@ -149,10 +149,21 @@ async function loadDashData(f){
   });
 
   try{
+    // Aplicar offset Paraguay UTC-4
+    // fd.d ej: '2026-05-01T00:00:00' → '2026-05-01T04:00:00' (medianoche PY = 04:00 UTC)
+    var p2tz=function(n){return String(n).padStart(2,'0');};
+    var addDay=function(ds){
+      var d=new Date(ds+'Z'); d.setDate(d.getDate()+1);
+      return d.getFullYear()+'-'+p2tz(d.getMonth()+1)+'-'+p2tz(d.getDate());
+    };
+    var desdeTZ = fd.d.substring(0,10)+'T04:00:00';
+    var hastaNextDay = addDay(fd.h.substring(0,10)+'T00:00:00');
+    var hastaTZ = hastaNextDay+'T03:59:59';
+
     // Datos del período
     var v=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
-      '&fecha=gte.'+fd.d+'&fecha=lte.'+fd.h+'&order=fecha.desc&limit=500');
+      '&fecha=gte.'+desdeTZ+'&fecha=lte.'+hastaTZ+'&order=fecha.desc&limit=500');
     var tot=v.reduce(function(s,x){return s+(x.total||0);},0);
     var cnt=v.length;
     var totEf=v.filter(function(x){return (x.metodo_pago||'').toUpperCase()==='EFECTIVO';})
@@ -162,9 +173,12 @@ async function loadDashData(f){
     // Período anterior
     var ms={'hoy':86400000,'semana':7*86400000,'mes':30*86400000}[f]||86400000;
     var dAnt=new Date(new Date(fd.d)-ms), hAnt=new Date(new Date(fd.h)-ms);
+    var dAntTZ=fmt(dAnt)+'T04:00:00';
+    var hAntNextDay=addDay(fmt(hAnt)+'T00:00:00');
+    var hAntTZ=hAntNextDay+'T03:59:59';
     var vAnt=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
-      '&fecha=gte.'+fmt(dAnt)+'T00:00:00&fecha=lte.'+fmt(hAnt)+'T23:59:59&limit=500');
+      '&fecha=gte.'+dAntTZ+'&fecha=lte.'+hAntTZ+'&limit=500');
     var totAnt=vAnt.reduce(function(s,x){return s+(x.total||0);},0);
     var cntAnt=vAnt.length;
     var avgAnt=cntAnt>0?Math.round(totAnt/cntAnt):0;
@@ -321,9 +335,15 @@ async function _render7Dias(hoy,fmt,p2,textColor,gridColor,fontFam){
   }
 
   var hace7=new Date(hoy); hace7.setDate(hoy.getDate()-6); hace7.setHours(0,0,0,0);
+  // Offset Paraguay UTC-4: desde T04:00:00 del día inicio hasta T03:59:59 del día siguiente al fin
+  var p2tz7=function(n){return String(n).padStart(2,'0');};
+  var addDay7=function(ds){var d=new Date(ds+'Z');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+p2tz7(d.getMonth()+1)+'-'+p2tz7(d.getDate());};
+  var desde7TZ=fmt(hace7)+'T04:00:00';
+  var hasta7NextDay=addDay7(fmt(hoy)+'T00:00:00');
+  var hasta7TZ=hasta7NextDay+'T03:59:59';
   var v7=await sg('pos_ventas',
     'licencia_email=ilike.'+encodeURIComponent(SE)+
-    '&fecha=gte.'+fmt(hace7)+'T00:00:00&fecha=lte.'+fmt(hoy)+'T23:59:59&limit=1000');
+    '&fecha=gte.'+desde7TZ+'&fecha=lte.'+hasta7TZ+'&limit=1000');
   v7.forEach(function(x){
     var d=new Date(x.fecha);
     var diffDays=Math.round((new Date(fmt(d))-new Date(fmt(hace7)))/(86400000));
@@ -372,10 +392,16 @@ async function _renderInsights(hoy,fmt,p2){
   var diasNom=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   var $$=function(id){return document.getElementById(id);};
   var hace30=new Date(hoy); hace30.setDate(hoy.getDate()-30);
+  // Offset Paraguay UTC-4
+  var p2tzI=function(n){return String(n).padStart(2,'0');};
+  var addDayI=function(ds){var d=new Date(ds+'Z');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+p2tzI(d.getMonth()+1)+'-'+p2tzI(d.getDate());};
+  var desdeITZ=fmt(hace30)+'T04:00:00';
+  var hastaINextDay=addDayI(fmt(hoy)+'T00:00:00');
+  var hastaITZ=hastaINextDay+'T03:59:59';
   try{
     var vH=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
-      '&fecha=gte.'+fmt(hace30)+'T00:00:00&fecha=lte.'+fmt(hoy)+'T23:59:59&limit=2000');
+      '&fecha=gte.'+desdeITZ+'&fecha=lte.'+hastaITZ+'&limit=2000');
     // Día más activo — mismo mapeo que heatmap: lun=0 ... dom=6
     var diaMap=new Array(7).fill(0), diaCount=new Array(7).fill(0);
     var hrMap=new Array(24).fill(0), hrCount=new Array(24).fill(0);
@@ -471,9 +497,15 @@ async function _renderComprasGastos(fd){
 async function _renderHeatmap(hoy,fmt,p2,textColor){
   var heatData=new Array(7).fill(null).map(function(){return new Array(24).fill(0);});
   var hace30=new Date(hoy); hace30.setDate(hoy.getDate()-30);
+  // Offset Paraguay UTC-4
+  var p2tzH=function(n){return String(n).padStart(2,'0');};
+  var addDayH=function(ds){var d=new Date(ds+'Z');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+p2tzH(d.getMonth()+1)+'-'+p2tzH(d.getDate());};
+  var desdeHTZ=fmt(hace30)+'T04:00:00';
+  var hastaHNextDay=addDayH(fmt(hoy)+'T00:00:00');
+  var hastaHTZ=hastaHNextDay+'T03:59:59';
   var vH=await sg('pos_ventas',
     'licencia_email=ilike.'+encodeURIComponent(SE)+
-    '&fecha=gte.'+fmt(hace30)+'T00:00:00&fecha=lte.'+fmt(hoy)+'T23:59:59&limit=2000');
+    '&fecha=gte.'+desdeHTZ+'&fecha=lte.'+hastaHTZ+'&limit=2000');
   vH.forEach(function(x){var d4=new Date(x.fecha);heatData[(d4.getDay()||7)-1][d4.getHours()]+=(x.total||0);});
   var maxH=Math.max.apply(null,heatData.map(function(r){return Math.max.apply(null,r);}));
   var diasN=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
@@ -765,6 +797,41 @@ async function loadCajasRango(){
       '&fecha_apertura=lte.'+hastaNext+
       '&order=fecha_apertura.desc&limit=200');
   }catch(e){ toast('Error al cargar cierres'); console.warn('[Cajas]',e.message); allCjs=[]; }
+
+  // Enriquecer registros históricos sin total_vendido calculando desde pos_ventas
+  var sinDatos = allCjs.filter(function(c){
+    return c.estado === 'cerrado' && (c.total_vendido == null);
+  });
+  if (sinDatos.length > 0) {
+    var ids = sinDatos.map(function(c){ return c.id; }).join(',');
+    try {
+      var ventas = await sg('pos_ventas',
+        'turno_id=in.('+ids+')&select=turno_id,total,metodo_pago&limit=5000');
+      // Agrupar por turno_id
+      var byTurno = {};
+      ventas.forEach(function(v) {
+        var tid = v.turno_id;
+        if (!byTurno[tid]) byTurno[tid] = { total: 0, metodos: {} };
+        byTurno[tid].total += (v.total || 0);
+        var m = (v.metodo_pago || 'EFECTIVO').toUpperCase();
+        byTurno[tid].metodos[m] = (byTurno[tid].metodos[m] || 0) + (v.total || 0);
+      });
+      // Parchear allCjs en memoria (NO tocar DB — solo para display)
+      allCjs = allCjs.map(function(c) {
+        if (c.estado === 'cerrado' && c.total_vendido == null && byTurno[c.id]) {
+          return Object.assign({}, c, {
+            total_vendido: byTurno[c.id].total,
+            resumen_pagos: JSON.stringify(byTurno[c.id].metodos),
+            _computed: true  // flag para saber que fue calculado, no guardado
+          });
+        }
+        return c;
+      });
+    } catch(e) {
+      console.warn('[Cajas] Error cargando ventas para turnos sin datos:', e.message);
+    }
+  }
+
   renderCajasData();
 }
 
