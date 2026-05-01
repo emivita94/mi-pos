@@ -993,7 +993,29 @@ async function sateliteLimpiarYRecargar(){
 async function sateliteReintentarCaja(){
   var status = document.getElementById('sateliteEsperaStatus');
   if(status) status.textContent = 'Verificando...';
-  var activa = await sateliteVerificarCajaActiva();
+
+  // Mostrar diagnóstico visible directamente en pantalla
+  var email = localStorage.getItem('lic_email') || '(sin email)';
+  if(status) status.textContent = 'Buscando turno para: ' + email;
+
+  var activa = false;
+  var diagMsg = '';
+  try{
+    var rows = await supaGet('pos_turno',
+        'licencia_email=eq.' + encodeURIComponent(email)
+        + '&estado=eq.abierto'
+        + '&limit=1'
+        + '&select=id,terminal,fecha_apertura,sucursal');
+    activa = Array.isArray(rows) && rows.length > 0;
+    diagMsg = activa
+      ? 'Turno encontrado: ' + (rows[0].terminal||'?') + ' / ' + (rows[0].sucursal||'sin sucursal')
+      : 'Sin turno abierto para ' + email + '. Registros: ' + (Array.isArray(rows)?rows.length:0);
+  }catch(e){
+    diagMsg = 'Error Supabase: ' + e.message;
+  }
+
+  if(status) status.textContent = diagMsg;
+
   if(activa){
     sateliteOcultarEsperaCaja();
     toast('Caja abierta detectada');
@@ -1006,8 +1028,5 @@ async function sateliteReintentarCaja(){
       if(typeof renderCatPills === 'function') renderCatPills();
       if(typeof filterP === 'function') filterP();
     }
-  } else {
-    if(status) status.textContent = 'Sin caja abierta. Reintentando en 15s...';
-    toast('No hay caja abierta todavia');
   }
 }
