@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260501-fix-descuento';
+const CACHE = 'ampersand-pos-v20260502-fix-descartar';
 
 const ASSETS = [
   '/',

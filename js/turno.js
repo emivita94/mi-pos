@@ -782,6 +782,11 @@ function descartarPendiente(i){
   const t = pendientes[i];
   if(!t) return;
   if(!confirm('¿Descartar el ticket #'+String(t.nro).padStart(4,'0')+'? Se eliminará de la lista de pendientes.')) return;
+  // Si es pedido satélite, marcar como cancelado en Supabase para que no vuelva al sync
+  if(t.esSatelite && t.supabasePedidoId){
+    supaPatch('pos_pedidos', 'id=eq.'+t.supabasePedidoId, {estado:'cancelado', updated_at: new Date().toISOString()}, true)
+      .catch(e => console.warn('[descartarPendiente] Error cancelando en Supabase:', e.message));
+  }
   // Si es el ticket activo actualmente, limpiar carrito
   if(currentTicketNro === t.nro){
     clearCart();
