@@ -72,6 +72,10 @@ async function sateliteEnviarPedido(){
     toast('Agrega productos primero');
     return;
   }
+  if(calcTotal() === 0){
+    toast('El total del pedido no puede ser cero');
+    return;
+  }
 
   // ── Verificar que hay caja abierta en la sucursal ───────────────────────
   var cajaActiva = await sateliteVerificarCajaActiva();

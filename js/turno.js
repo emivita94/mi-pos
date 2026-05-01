@@ -657,6 +657,7 @@ function _mostrarModalPendientesCierre(pendActivos){
             <button onclick="marcarPresupuesto(${idx},true)" style="padding:6px 10px;border-radius:6px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
               📋 Presupuesto
             </button>
+            ${t.esSatelite ? `<button onclick="cancelarPedidoSatelite(${idx})" style="padding:6px 10px;border-radius:6px;border:none;background:rgba(244,67,54,.15);color:#f44336;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">✕ Anular</button>` : ''}
             <button onclick="abrirPendienteYCerrarModal(${idx})" style="padding:6px 10px;border-radius:6px;border:none;background:var(--green);color:#fff;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
               Abrir
             </button>
@@ -678,6 +679,34 @@ function abrirPendienteYCerrarModal(idx){
   const ov = document.getElementById('pendCierreOv');
   if(ov) ov.remove();
   cargarTicket(idx);
+}
+
+async function cancelarPedidoSatelite(idx){
+  const t = pendientes[idx];
+  if(!t || !t.esSatelite) return;
+
+  if(t.supabasePedidoId){
+    try{
+      await supaPatch('pos_pedidos', 'id=eq.'+t.supabasePedidoId, {estado:'cancelado'}, true);
+    } catch(e){ console.warn('[cancelarPedido]', e.message); }
+  }
+
+  pendientes.splice(idx, 1);
+  guardarPendientesLocal();
+  if(typeof updBtnGuardar === 'function') updBtnGuardar();
+
+  const ov = document.getElementById('pendCierreOv');
+  if(ov) ov.remove();
+
+  toast('Pedido de satélite anulado');
+
+  // Re-evaluar: si no quedan pendientes activos, continuar al cierre
+  const restantes = pendientes.filter(p => !p.esPresupuesto);
+  if(restantes.length > 0){
+    _mostrarModalPendientesCierre(restantes);
+  } else {
+    cerrarTurno();
+  }
 }
 
 function imprimirPresupuesto(idx){

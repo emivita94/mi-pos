@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260425-cuadraditoColorYHora';
+const CACHE = 'ampersand-pos-v20260501-anular-sat';
 
 const ASSETS = [
   '/',
