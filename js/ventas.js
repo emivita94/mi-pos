@@ -173,6 +173,10 @@ function calcDescuentoMonto() { return calcSubtotal() - calcTotal(); }
 
 function vaciarTicket(){
   if(!cart.length) return;
+  // Si es un ticket guardado siendo editado, confirmar antes de vaciar
+  if(currentTicketNro !== null){
+    if(!confirm('¿Vaciar el ticket #'+String(currentTicketNro).padStart(4,'0')+'? Los cambios no se guardarán.')) return;
+  }
   clearCart(); resetTicketDescuento(); setCurrentTicketNro(null); clearMesaActual();
   setTipoPedido('llevar'); updTabTicketHeader(); updMesaBtn?.();
   const dBar=document.getElementById('tabDeliveryBar'); if(dBar)dBar.classList.remove('visible');
@@ -433,6 +437,19 @@ function cajaAbrirPedidoSatelite(i) {
   var totalActual = typeof calcTotal === 'function' ? calcTotal() : 0;
   if (totalActual > 0) {
     if (!confirm('Hay un ticket en curso. ¿Descartar y abrir el pedido de ' + (t.obs || 'mesero') + '?')) return;
+    // Auto-guardar el ticket activo antes de pisarlo (mismo patrón que cargarTicket)
+    if (currentTicketNro !== null) {
+      var idx = pendientes.findIndex(function(p){ return p.nro === currentTicketNro; });
+      if (idx >= 0) {
+        pendientes[idx].cart = JSON.parse(JSON.stringify(cart));
+        pendientes[idx].total = totalActual;
+        pendientes[idx].fecha = new Date();
+      }
+      // Refrescar índice de t porque pendientes pudo haberse reordenado (no ocurre aquí, pero por consistencia)
+      t = pendientes[i];
+      if (!t || !t.esSatelite) return;
+    }
+    // Si currentTicketNro === null, el carrito es nuevo sin guardar — descartar
   }
 
   // Cargar el carrito del pedido satélite

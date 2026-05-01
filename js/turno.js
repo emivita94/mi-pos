@@ -158,14 +158,16 @@ function supaInsertVenta(data){
     return;
   }
 
-  supaPost('pos_ventas', venta, null, true).then(() => {
+  supaPost('pos_ventas', venta, null, true).then(async () => {
     console.log('[Venta] Guardada en Supabase OK');
     // Si la venta tenía un pedido satélite vinculado, marcarlo como cobrado
     if(data._supabasePedidoId){
       marcarPedidoSateliteCobrado(data._supabasePedidoId);
     }
     // Descontar stock en background
-    stockDescontarVenta(data.items, data.comprobante || ('VENTA-'+Date.now()));
+    try {
+      await stockDescontarVenta(data.items, data.comprobante || ('VENTA-'+Date.now()));
+    } catch(e){ console.warn('[Stock] Error en stockDescontarVenta:', e.message); }
   })
   .catch(e => {
     console.warn('[Venta] Error Supabase, encolando:', e.message);
@@ -216,7 +218,7 @@ async function stockDescontarVenta(items, comprobante){
     if(!licId) return;
 
     // Leer stock actual
-    const prodIds = itemsInv.map(function(i){ return i.id; }).join(',');
+    const prodIds = itemsInv.map(function(i){ return encodeURIComponent(i.id); }).join(',');
     const stockData = await supaGet('stock',
       'deposito_id=eq.'+depId+'&producto_id=in.('+prodIds+')&select=producto_id,cantidad');
     const stockMap = {};
@@ -294,7 +296,7 @@ async function syncVentasPendientes(){
         datos.licencia_email = email;
         await supaPost('pos_ventas', datos, null, true);
         await db.sync_queue.update(item.id, { sincronizado: 1 });
-      } catch(e){ console.warn('[Sync ventas] Error sincronizando item:', e.message); break; }
+      } catch(e){ console.warn('[Sync ventas] Error sincronizando item:', e.message); continue; }
     }
   } catch(e){ console.warn('[Sync ventas]', e.message); }
 }

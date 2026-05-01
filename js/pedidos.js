@@ -136,8 +136,10 @@ async function sateliteEnviarPedido(){
   // tiene supabasePedidoId del pedido original. En ese caso hacemos PATCH
   // para actualizar items y total, en vez de crear un POST nuevo que
   // generaria dos pedidos separados para la misma mesa.
+  // Excepción: si es ADICIONAL (mesa ya tiene un pedido distinto y estamos
+  // creando uno nuevo encima), SIEMPRE POST — nunca pisar el pedido original.
   var existingSupabaseId = null;
-  if(currentTicketNro !== null){
+  if(currentTicketNro !== null && !esAdicional){
     var existente = pendientes.find(function(p){ return p.nro === currentTicketNro; });
     if(existente && existente.supabasePedidoId && existente.esSatelite){
       existingSupabaseId = existente.supabasePedidoId;
@@ -443,7 +445,22 @@ async function cajaSyncPedidosSatelite(){
       };
     });
 
-    setPendientes(locales.concat(satelites));
+    // Deduplicar: si un satélite comparte supabasePedidoId con un local,
+    // el local manda (es el canónico). Entre satélites con mismo nro, usar el primero.
+    var localesIds = {};
+    locales.forEach(function(p){
+      if(p.supabasePedidoId) localesIds[p.supabasePedidoId] = true;
+    });
+    var nrosVistos = {};
+    var satelitesUniq = [];
+    satelites.forEach(function(s){
+      if(s.supabasePedidoId && localesIds[s.supabasePedidoId]) return; // canónico es el local
+      var key = String(s.nro);
+      if(nrosVistos[key]) return; // ya vimos otro satélite con este nro
+      nrosVistos[key] = true;
+      satelitesUniq.push(s);
+    });
+    setPendientes(locales.concat(satelitesUniq));
     guardarPendientesLocal();
     updBtnGuardar();
 
@@ -891,7 +908,9 @@ async function sateliteVerificarCajaActiva(){
     return hayTurno;
   } catch(e){
     console.warn('[Satelite] Error verificando caja:', e.message);
-    return true;
+    // Sin internet: asumir caja abierta (modo offline intencional).
+    // Con internet pero fetch falla: ser conservador y mostrar overlay de espera.
+    return !navigator.onLine;
   }
 }
 
