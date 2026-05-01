@@ -261,16 +261,17 @@ async function stockDescontarVenta(items, comprobante){
       const qty   = parseFloat(it.qty)||1;
       const antes = stockMap[it.id]||0;
       const desp  = antes - qty;
-      supaPost('stock', {
-          deposito_id: depId,
-          sucursal_id: sucId,
-          licencia_id: licId,
-          producto_id: it.id,
-          nombre_producto: it.name||it.nombre||'',
-          cantidad: desp,
-          updated_at: new Date().toISOString()
-        }, 'deposito_id,producto_id', true)
-      .catch(function(e){ console.warn('[Stock] upsert error:', e.message); });
+      try {
+        await supaPost('stock', {
+            deposito_id: depId,
+            sucursal_id: sucId,
+            licencia_id: licId,
+            producto_id: it.id,
+            nombre_producto: it.name||it.nombre||'',
+            cantidad: desp,
+            updated_at: new Date().toISOString()
+          }, 'deposito_id,producto_id', true);
+      } catch(e){ console.warn('[Stock] upsert error prod', it.id, ':', e.message); }
     }
     console.log('[Stock] Descontado — '+itemsInv.length+' productos | depósito:', depId);
   }catch(e){
@@ -987,12 +988,27 @@ function renderCierreResumen(){
   const pad = n => String(n).padStart(2,'0');
   const fmt = d => d ? pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes()) : '—';
 
-  // Totales por método
+  // Totales por método — manejar divPagos igual que renderTurno
   const metodos = {};
+  const acumResumen = (m, monto) => {
+    m = (m || 'EFECTIVO').toUpperCase().trim();
+    if(!metodos[m]) metodos[m] = { total: 0, ops: 0 };
+    metodos[m].total += monto;
+    metodos[m].ops++;
+  };
   turnoData.ventas.forEach(v => {
-    const m = (v.metodo||'EFECTIVO').toUpperCase();
-    if(!metodos[m]) metodos[m]={total:0,ops:0};
-    metodos[m].total+=v.total; metodos[m].ops++;
+    if(v.divPagos && v.divPagos.length > 0){
+      v.divPagos.forEach(p => acumResumen(p.metodo, p.monto || 0));
+    } else if(v.metodo && v.metodo.includes(' + ')){
+      const partes = v.metodo.split(' + ');
+      const montoParte = Math.round(v.total / partes.length);
+      partes.forEach((p, i) => {
+        const m = i === partes.length - 1 ? v.total - montoParte * (partes.length - 1) : montoParte;
+        acumResumen(p, m);
+      });
+    } else {
+      acumResumen(v.metodo, v.total);
+    }
   });
 
   let html = '';

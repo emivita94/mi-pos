@@ -394,6 +394,7 @@ async function cajaSyncPedidosSatelite(){
   try{
     const rows = await supaGet('pos_pedidos',
         'licencia_email=eq.' + encodeURIComponent(email)
+        + '&sucursal=eq.'    + encodeURIComponent(sucursal)
         + '&estado=in.(abierto,en_cobro)'
         + '&order=created_at.asc'
         + '&select=id,numero_orden,mesa,tipo_pedido,estado,items,total,descuento_ticket,terminal_origen,created_at');
@@ -737,8 +738,8 @@ async function leerModoDesdeActivaciones(){
     // Persistir en localStorage para uso offline futuro
     localStorage.setItem('pos_modo_terminal', modoServidor);
 
-    // Actualizar sucursal si viene en activaciones (consistencia)
-    if(activ.sucursal && !localStorage.getItem('pos_sucursal')){
+    // Actualizar sucursal desde Supabase (fuente de verdad, igual que el modo)
+    if(activ.sucursal){
       localStorage.setItem('pos_sucursal', activ.sucursal);
       if(typeof configData !== 'undefined') configData.sucursal = activ.sucursal;
     }
@@ -896,6 +897,7 @@ async function sateliteVerificarCajaActiva(){
   try{
     var rows = await supaGet('pos_turno',
         'licencia_email=eq.' + encodeURIComponent(email)
+        + '&sucursal=eq.'    + encodeURIComponent(sucursal)
         + '&estado=eq.abierto'
         + '&limit=1'
         + '&select=id,terminal,fecha_apertura');
@@ -1011,7 +1013,8 @@ async function sateliteReintentarCaja(){
   if(status) status.textContent = 'Verificando...';
 
   // Mostrar diagnóstico visible directamente en pantalla
-  var email = localStorage.getItem('lic_email') || '(sin email)';
+  var email    = localStorage.getItem('lic_email') || '(sin email)';
+  var sucursal = localStorage.getItem('pos_sucursal') || 'Principal';
   if(status) status.textContent = 'Buscando turno para: ' + email;
 
   var activa = false;
@@ -1019,6 +1022,7 @@ async function sateliteReintentarCaja(){
   try{
     var rows = await supaGet('pos_turno',
         'licencia_email=eq.' + encodeURIComponent(email)
+        + '&sucursal=eq.'    + encodeURIComponent(sucursal)
         + '&estado=eq.abierto'
         + '&limit=1'
         + '&select=id,terminal,fecha_apertura');

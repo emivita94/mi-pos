@@ -814,6 +814,9 @@ async function confirmarPago() {
   const comprobante       = document.getElementById('compDisplay')?.textContent || '';
   const efectivoEntregado = document.getElementById('efecVal')?.textContent || '';
   const vuelto            = document.getElementById('vueltoAmt')?.textContent || '';
+  // Capturar descuento ANTES de resetTicketDescuento() y clearCart()
+  const descTicketCopy    = ticketDescuento;
+  const descMontoCopy     = calcDescuentoMonto();
 
   // Detectar si es pago dividido (divPagos definido en ventas.js)
   // Requiere que haya al menos 2 pagos cobrados con monto > 0
@@ -913,8 +916,8 @@ async function confirmarPago() {
   generarRecibo({
     items:       itemsVenta,
     total:       totalVenta,
-    descTicket:  ticketDescuento,
-    descMonto:   calcDescuentoMonto(),
+    descTicket:  descTicketCopy,
+    descMonto:   descMontoCopy,
     metodo:      metodoPago,
     comprobante: comprobante === '—' ? '' : comprobante,
     efectivo:    efectivoEntregado,
