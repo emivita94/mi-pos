@@ -467,56 +467,221 @@ async function doActivar(){
   document.getElementById('scActivado').style.display='flex';
 }
 
+// ── Selector de sucursal: carga desde tabla `sucursales` ──────────────────────
+// Muestra un <select> real con las sucursales registradas + opción "Nueva sucursal"
 async function cargarSucursalesExistentes(email){
-  var sel = document.getElementById('activadoSucursal');
-  var list = document.getElementById('sucursalesList');
+  var sel  = document.getElementById('activadoSucursalSel');
   if(!sel) return;
-  if(!email || USAR_DEMO) return;
+  if(!email || USAR_DEMO){
+    // Sin datos reales: dejar el campo listo para escribir nombre libre
+    sel.innerHTML = '<option value="__nuevo__">➕ Nueva sucursal</option>';
+    onSucursalSelChange(sel);
+    return;
+  }
+
   try {
-    var rows = await supaGet('activaciones',
-      'email=eq.' + encodeURIComponent(email)
-      + '&activa=eq.true'
-      + '&deleted_at=is.null'
-      + '&select=sucursal,nombre_negocio'
-    );
-    if(!Array.isArray(rows) || !rows.length) return;
+    // Obtener licencia_id del email
+    var licRows = await supaGet('licencias',
+      'email_cliente=ilike.' + encodeURIComponent(email) + '&activa=eq.true&select=id,nombre_negocio&limit=1');
+    var licId = licRows && licRows[0] ? licRows[0].id : null;
 
-    // Sucursales unicas
-    var sucursales = [];
-    var vistas = {};
-    rows.forEach(function(r){
-      if(r.sucursal && !vistas[r.sucursal]){
-        vistas[r.sucursal] = true;
-        sucursales.push(r.sucursal);
-      }
-    });
-    if(!sucursales.length) return;
-
-    // Pre-llenar negocio si no tiene
+    // Pre-llenar negocio si está disponible y el campo está vacío
     var negInput = document.getElementById('activadoNegocio');
-    if(negInput && !negInput.value && rows[0].nombre_negocio){
-      negInput.value = rows[0].nombre_negocio;
+    if(negInput && !negInput.value && licRows && licRows[0] && licRows[0].nombre_negocio){
+      negInput.value = licRows[0].nombre_negocio;
     }
 
-    // Crear datalist si no existe
-    if(!list){
-      list = document.createElement('datalist');
-      list.id = 'sucursalesList';
-      document.body.appendChild(list);
-      sel.setAttribute('list', 'sucursalesList');
-    }
-    list.innerHTML = sucursales.map(function(s){
-      return '<option value="' + s.replace(/"/g, '&quot;') + '">';
-    }).join('');
-
-    // Si solo hay una sucursal, preseleccionarla
-    if(sucursales.length === 1 && !sel.value){
-      sel.value = sucursales[0];
+    var sucursales = [];
+    if(licId){
+      sucursales = await supaGet('sucursales',
+        'licencia_id=eq.' + licId + '&activa=eq.true&order=nombre.asc&select=id,nombre');
     }
 
-    console.log('[Setup] Sucursales existentes:', sucursales.join(', '));
+    // Si no hay sucursales en la tabla, intentar desde activaciones como fallback
+    if(!sucursales.length){
+      var actRows = await supaGet('activaciones',
+        'email=eq.' + encodeURIComponent(email)
+        + '&activa=eq.true&deleted_at=is.null'
+        + '&select=sucursal,nombre_negocio');
+      if(Array.isArray(actRows)){
+        var vistas = {};
+        actRows.forEach(function(r){
+          if(r.sucursal && !vistas[r.sucursal]){
+            vistas[r.sucursal] = true;
+            sucursales.push({ id: null, nombre: r.sucursal });
+          }
+        });
+        // Pre-llenar negocio desde activaciones si no se obtuvo de licencias
+        if(negInput && !negInput.value && actRows[0] && actRows[0].nombre_negocio){
+          negInput.value = actRows[0].nombre_negocio;
+        }
+      }
+    }
+
+    // Poblar el select
+    var opciones = '<option value="" disabled>Selecciona una sucursal...</option>';
+    sucursales.forEach(function(s){
+      opciones += '<option value="' + (s.id||'__nombre__:'+s.nombre) + '" data-nombre="' + s.nombre.replace(/"/g,'&quot;') + '">'
+               + s.nombre + '</option>';
+    });
+    opciones += '<option value="__nuevo__">➕ Nueva sucursal</option>';
+    sel.innerHTML = opciones;
+
+    // Si solo hay una, preseleccionarla y disparar cambio
+    if(sucursales.length === 1){
+      sel.value = sucursales[0].id ? String(sucursales[0].id) : '__nombre__:'+sucursales[0].nombre;
+      onSucursalSelChange(sel);
+    } else if(!sucursales.length){
+      // Sin sucursales: mostrar directamente input de nueva
+      sel.value = '__nuevo__';
+      onSucursalSelChange(sel);
+    } else {
+      sel.value = '';
+    }
+
+    console.log('[Setup] Sucursales cargadas:', sucursales.length);
   } catch(e){
     console.warn('[Setup] Error cargando sucursales:', e.message);
+    // En caso de error, dejar opción de escribir manualmente
+    var sel2 = document.getElementById('activadoSucursalSel');
+    if(sel2) sel2.innerHTML = '<option value="__nuevo__">➕ Nueva sucursal</option>';
+    onSucursalSelChange(document.getElementById('activadoSucursalSel'));
+  }
+}
+
+// Manejador de cambio en el select de sucursal
+function onSucursalSelChange(sel){
+  var val  = sel ? sel.value : '';
+  var inputNueva = document.getElementById('activadoSucursalNueva');
+  var hidNombre  = document.getElementById('activadoSucursal');
+  var hidId      = document.getElementById('activadoSucursalId');
+  var hint       = document.getElementById('activadoSucursalHint');
+
+  if(val === '__nuevo__'){
+    // Mostrar input de texto libre para nueva sucursal
+    if(inputNueva) inputNueva.style.display = 'block';
+    if(hidId)     hidId.value = '0';
+    if(hidNombre) hidNombre.value = (inputNueva ? inputNueva.value.trim() : '');
+    if(hint)      hint.textContent = 'Escribe el nombre de la nueva sucursal';
+    // Limpiar depósitos (serán nuevos también)
+    _limpiarDepositosSel(null, null);
+  } else if(val && val.startsWith('__nombre__:')){
+    // Sucursal sin ID (venía de activaciones fallback)
+    var nombre = val.replace('__nombre__:', '');
+    if(inputNueva) inputNueva.style.display = 'none';
+    if(hidNombre)  hidNombre.value = nombre;
+    if(hidId)      hidId.value = '0';
+    if(hint)       hint.textContent = 'Sucursal seleccionada: ' + nombre;
+    _cargarDepositosSel(null, nombre);
+  } else if(val && val !== ''){
+    // Sucursal existente con ID numérico
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
+    var nombre2 = opt ? (opt.getAttribute('data-nombre') || opt.textContent.trim()) : val;
+    if(inputNueva) inputNueva.style.display = 'none';
+    if(hidNombre)  hidNombre.value = nombre2;
+    if(hidId)      hidId.value = val;
+    if(hint)       hint.textContent = 'Sucursal seleccionada: ' + nombre2;
+    _cargarDepositosSel(parseInt(val), nombre2);
+  } else {
+    // Sin selección
+    if(inputNueva) inputNueva.style.display = 'none';
+    if(hidNombre)  hidNombre.value = '';
+    if(hidId)      hidId.value = '0';
+    _limpiarDepositosSel(null, null);
+  }
+}
+
+// Sincronizar input de nueva sucursal → campo hidden
+function onSucursalNuevaInput(input){
+  var hid = document.getElementById('activadoSucursal');
+  if(hid) hid.value = input.value.trim();
+}
+
+// ── Selector de depósito: carga desde tabla `depositos` ───────────────────────
+async function _cargarDepositosSel(sucursalId, sucursalNombre){
+  var sel = document.getElementById('activadoDepositoSel');
+  var inputNuevo = document.getElementById('activadoDepositoNuevo');
+  if(!sel) return;
+
+  sel.innerHTML = '<option value="" disabled>Cargando depósitos...</option>';
+  if(inputNuevo) inputNuevo.style.display = 'none';
+
+  var depositos = [];
+  try {
+    var email = localStorage.getItem('lic_email');
+    if(!USAR_DEMO && email && sucursalId){
+      // Buscar depósitos por sucursal_id
+      depositos = await supaGet('depositos',
+        'sucursal_id=eq.' + sucursalId + '&activo=eq.true&order=nombre.asc&select=id,nombre');
+    } else if(!USAR_DEMO && email && sucursalNombre){
+      // Fallback: buscar por licencia_id + nombre de sucursal
+      var licRows = await supaGet('licencias',
+        'email_cliente=ilike.' + encodeURIComponent(email) + '&activa=eq.true&select=id&limit=1');
+      if(licRows && licRows[0]){
+        var sucRows = await supaGet('sucursales',
+          'licencia_id=eq.' + licRows[0].id + '&nombre=ilike.' + encodeURIComponent(sucursalNombre) + '&select=id&limit=1');
+        if(sucRows && sucRows[0]){
+          depositos = await supaGet('depositos',
+            'sucursal_id=eq.' + sucRows[0].id + '&activo=eq.true&order=nombre.asc&select=id,nombre');
+          // Actualizar el hidden sucursal_id ahora que lo tenemos
+          var hidSucId = document.getElementById('activadoSucursalId');
+          if(hidSucId) hidSucId.value = sucRows[0].id;
+        }
+      }
+    }
+  } catch(e){
+    console.warn('[Setup] Error cargando depósitos:', e.message);
+  }
+
+  var opciones = '';
+  if(depositos.length){
+    opciones = '<option value="" disabled>Selecciona un depósito...</option>';
+    depositos.forEach(function(d){
+      opciones += '<option value="' + d.id + '" data-nombre="' + d.nombre.replace(/"/g,'&quot;') + '">'
+               + d.nombre + '</option>';
+    });
+    opciones += '<option value="__nuevo__">➕ Nuevo depósito</option>';
+    sel.innerHTML = opciones;
+
+    // Preseleccionar el primero
+    sel.value = String(depositos[0].id);
+    onDepositoSelChange(sel);
+
+    console.log('[Setup] Depósitos cargados:', depositos.length);
+  } else {
+    // Sin depósitos: solo opción nueva
+    sel.innerHTML = '<option value="__nuevo__">➕ Nuevo depósito</option>';
+    sel.value = '__nuevo__';
+    onDepositoSelChange(sel);
+  }
+}
+
+function _limpiarDepositosSel(sucursalId, sucursalNombre){
+  var sel = document.getElementById('activadoDepositoSel');
+  if(!sel) return;
+  sel.innerHTML = '<option value="__nuevo__">➕ Nuevo depósito</option>';
+  sel.value = '__nuevo__';
+  onDepositoSelChange(sel);
+}
+
+// Manejador de cambio en el select de depósito
+function onDepositoSelChange(sel){
+  var val  = sel ? sel.value : '__nuevo__';
+  var inputNuevo = document.getElementById('activadoDepositoNuevo');
+  var hidNombre  = document.getElementById('activadoDeposito');
+  var hidId      = document.getElementById('activadoDepositoId');
+
+  if(val === '__nuevo__' || !val){
+    if(inputNuevo) inputNuevo.style.display = 'block';
+    if(hidId)      hidId.value = '0';
+    // El nombre lo toma del input cuando se llama doEntrar
+    if(hidNombre && inputNuevo) hidNombre.value = inputNuevo.value.trim() || 'Depósito Principal';
+  } else {
+    if(inputNuevo) inputNuevo.style.display = 'none';
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
+    var nombre = opt ? (opt.getAttribute('data-nombre') || opt.textContent.trim()) : val;
+    if(hidNombre)  hidNombre.value = nombre;
+    if(hidId)      hidId.value = val;
   }
 }
 
@@ -554,9 +719,34 @@ function selModoActivacion(modo){
 async function doEntrar(){
   var negocio  = document.getElementById('activadoNegocio').value.trim();
   var terminal = document.getElementById('activadoTerminal').value.trim() || 'Terminal 1';
-  var sucursal = document.getElementById('activadoSucursal').value.trim() || 'Principal';
-  var deposito = document.getElementById('activadoDeposito').value.trim() || 'Depósito Principal';
   var modo     = (document.getElementById('activadoModo') || {}).value || 'caja';
+
+  // ── Resolver nombre de sucursal ────────────────────────────────────────────
+  // Si el select tiene valor '__nuevo__', tomamos el input libre; si no, el hidden ya tiene el nombre.
+  var sucSelVal = (document.getElementById('activadoSucursalSel')||{}).value || '';
+  var sucursal, sucursalId;
+  if(sucSelVal === '__nuevo__'){
+    var inputNueva = document.getElementById('activadoSucursalNueva');
+    sucursal   = inputNueva ? inputNueva.value.trim() : '';
+    sucursalId = 0;
+  } else {
+    sucursal   = (document.getElementById('activadoSucursal')||{}).value || '';
+    sucursalId = parseInt((document.getElementById('activadoSucursalId')||{}).value || '0') || 0;
+  }
+  sucursal = sucursal || 'Principal';
+
+  // ── Resolver nombre de depósito ────────────────────────────────────────────
+  var depSelVal = (document.getElementById('activadoDepositoSel')||{}).value || '__nuevo__';
+  var deposito, depositoId;
+  if(depSelVal === '__nuevo__'){
+    var inputNuevo = document.getElementById('activadoDepositoNuevo');
+    deposito   = inputNuevo ? inputNuevo.value.trim() : '';
+    depositoId = 0;
+  } else {
+    deposito   = (document.getElementById('activadoDeposito')||{}).value || '';
+    depositoId = parseInt((document.getElementById('activadoDepositoId')||{}).value || '0') || 0;
+  }
+  deposito = deposito || 'Depósito Principal';
 
   if(!negocio){ alert('Ingresá el nombre del negocio'); return; }
   if(!sucursal){ alert('Ingresá el nombre de la sucursal'); return; }
@@ -585,10 +775,22 @@ async function doEntrar(){
     configData.deposito = deposito;
   }
 
-  // Crear sucursal + depósito en Supabase
+  // Persistir IDs resueltos si ya los tenemos del dropdown (selección de existente)
+  if(sucursalId > 0){
+    localStorage.setItem('pos_sucursal_id', String(sucursalId));
+    cookieSet('pos_suc_id', String(sucursalId), 365);
+    if(db) await dbSaveConfig('sucursal_id', String(sucursalId));
+  }
+  if(depositoId > 0){
+    localStorage.setItem('pos_deposito_id', String(depositoId));
+    cookieSet('pos_dep_id', String(depositoId), 365);
+    if(db) await dbSaveConfig('deposito_id', String(depositoId));
+  }
+
+  // Crear sucursal + depósito en Supabase (solo cuando son nuevos o no tenemos IDs)
   if(!USAR_DEMO){
     try {
-      // Primero actualizar activación
+      // Actualizar activación
       await supaRPC('actualizar_activacion', {
         p_device_id: licGetDeviceId(),
         p_email:     localStorage.getItem(SK.email),
@@ -601,26 +803,33 @@ async function doEntrar(){
         'activaciones?device_id=eq.' + encodeURIComponent(licGetDeviceId()),
         { modo: modo }
       );
-      // Obtener licencia_id desde activaciones
-      var activ = await supaFetch('GET', 'activaciones?device_id=eq.'+licGetDeviceId()+'&select=licencia_id');
-      const activData = await activ.json();
-      if(activData && activData[0]){
-        const licId = activData[0].licencia_id;
-        // Crear sucursal y depósito (si no existe ya)
-        const result = await supaRPC('crear_sucursal', {
-          p_licencia_id: licId,
-          p_nombre:      sucursal,
-          p_direccion:   '',
-          p_deposito:    deposito,
-        });
-        if(result && result.sucursal_id){
-          localStorage.setItem('pos_sucursal_id', result.sucursal_id);
-          localStorage.setItem('pos_deposito_id', result.deposito_id);
-          if(db){
-            await dbSaveConfig('sucursal_id', String(result.sucursal_id));
-            await dbSaveConfig('deposito_id', String(result.deposito_id));
+
+      // Solo llamar crear_sucursal si no tenemos IDs ya resueltos desde el dropdown
+      if(sucursalId === 0 || depositoId === 0){
+        var activ = await supaFetch('GET', 'activaciones?device_id=eq.'+licGetDeviceId()+'&select=licencia_id');
+        var activData = await activ.json();
+        if(activData && activData[0]){
+          var licId = activData[0].licencia_id;
+          // crear_sucursal crea o reutiliza la sucursal/depósito por nombre (idempotente)
+          var result = await supaRPC('crear_sucursal', {
+            p_licencia_id: licId,
+            p_nombre:      sucursal,
+            p_direccion:   '',
+            p_deposito:    deposito,
+          });
+          if(result && result.sucursal_id){
+            if(sucursalId === 0){
+              localStorage.setItem('pos_sucursal_id', result.sucursal_id);
+              cookieSet('pos_suc_id', String(result.sucursal_id), 365);
+              if(db) await dbSaveConfig('sucursal_id', String(result.sucursal_id));
+            }
+            if(depositoId === 0){
+              localStorage.setItem('pos_deposito_id', result.deposito_id);
+              cookieSet('pos_dep_id', String(result.deposito_id), 365);
+              if(db) await dbSaveConfig('deposito_id', String(result.deposito_id));
+            }
+            console.log('[Setup] Sucursal ID:', result.sucursal_id, '| Depósito ID:', result.deposito_id);
           }
-          console.log('[Setup] Sucursal ID:', result.sucursal_id, '| Depósito ID:', result.deposito_id);
         }
       }
     } catch(e){ console.warn('[Setup Supabase]', e.message); toast('Error al configurar en servidor: '+e.message); }

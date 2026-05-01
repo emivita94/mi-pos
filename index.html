@@ -1296,19 +1296,46 @@
     <!-- Sucursal -->
     <div style="margin-bottom:14px;">
       <span style="font-size:11px;color:#888;letter-spacing:.8px;text-transform:uppercase;font-weight:700;font-family:'Barlow',sans-serif;display:block;margin-bottom:6px;">SUCURSAL *</span>
-      <input id="activadoSucursal" type="text" list="sucursalesList" placeholder="Selecciona o escribe la sucursal..."
-        style="background:#2a2a2a;border:1.5px solid #444;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;padding:13px 14px;outline:none;width:100%;box-sizing:border-box;"
-        onfocus="this.style.borderColor='#4caf50'" onblur="this.style.borderColor='#444'" autocomplete="off">
-      <datalist id="sucursalesList"></datalist>
-      <span id="activadoSucursalHint" style="font-size:11px;color:#555;font-family:'Barlow',sans-serif;margin-top:4px;display:block;">Selecciona una sucursal existente o escribe una nueva</span>
+      <!-- Dropdown poblado desde Supabase (sucursales table) -->
+      <div style="position:relative;">
+        <select id="activadoSucursalSel"
+          style="background:#2a2a2a;border:1.5px solid #444;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;padding:13px 40px 13px 14px;outline:none;width:100%;box-sizing:border-box;appearance:none;-webkit-appearance:none;cursor:pointer;"
+          onchange="onSucursalSelChange(this)">
+          <option value="" disabled selected>Cargando sucursales...</option>
+        </select>
+        <svg style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <!-- Input para nombre de sucursal nueva (oculto por defecto) -->
+      <input id="activadoSucursalNueva" type="text" placeholder="Nombre de la nueva sucursal..."
+        oninput="onSucursalNuevaInput(this)"
+        style="display:none;margin-top:8px;background:#2a2a2a;border:1.5px solid #4caf50;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;padding:13px 14px;outline:none;width:100%;box-sizing:border-box;">
+      <!-- Campo oculto: nombre resuelto (para doEntrar) -->
+      <input type="hidden" id="activadoSucursal" value="">
+      <!-- Campo oculto: id de sucursal existente (0 = nueva) -->
+      <input type="hidden" id="activadoSucursalId" value="0">
+      <span id="activadoSucursalHint" style="font-size:11px;color:#555;font-family:'Barlow',sans-serif;margin-top:4px;display:block;">Selecciona una sucursal existente o crea una nueva</span>
     </div>
 
     <!-- Depósito -->
     <div style="margin-bottom:14px;">
       <span style="font-size:11px;color:#888;letter-spacing:.8px;text-transform:uppercase;font-weight:700;font-family:'Barlow',sans-serif;display:block;margin-bottom:6px;">DEPÓSITO</span>
-      <input id="activadoDeposito" type="text" placeholder="Depósito Principal" value="Depósito Principal"
-        style="background:#2a2a2a;border:1.5px solid #444;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;padding:13px 14px;outline:none;width:100%;box-sizing:border-box;"
-        onfocus="this.style.borderColor='#4caf50'" onblur="this.style.borderColor='#444'">
+      <!-- Dropdown poblado según sucursal seleccionada -->
+      <div style="position:relative;">
+        <select id="activadoDepositoSel"
+          style="background:#2a2a2a;border:1.5px solid #444;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;padding:13px 40px 13px 14px;outline:none;width:100%;box-sizing:border-box;appearance:none;-webkit-appearance:none;cursor:pointer;"
+          onchange="onDepositoSelChange(this)">
+          <option value="__nuevo__">➕ Nuevo depósito</option>
+        </select>
+        <svg style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <!-- Input para nombre de depósito nuevo (visible por defecto hasta que se carguen datos) -->
+      <input id="activadoDepositoNuevo" type="text" placeholder="Depósito Principal" value="Depósito Principal"
+        oninput="var _hd=document.getElementById('activadoDeposito');if(_hd)_hd.value=this.value.trim()||'Depósito Principal';"
+        style="margin-top:8px;background:#2a2a2a;border:1.5px solid #4caf50;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;padding:13px 14px;outline:none;width:100%;box-sizing:border-box;">
+      <!-- Campo oculto: nombre resuelto (para doEntrar) -->
+      <input type="hidden" id="activadoDeposito" value="Depósito Principal">
+      <!-- Campo oculto: id de depósito existente (0 = nuevo) -->
+      <input type="hidden" id="activadoDepositoId" value="0">
       <span style="font-size:11px;color:#555;font-family:'Barlow',sans-serif;margin-top:4px;display:block;">Depósito de stock de esta sucursal</span>
     </div>
 
