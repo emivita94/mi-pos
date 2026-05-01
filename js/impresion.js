@@ -726,9 +726,33 @@ function imprimirCierreTurno(data, html){
   // Generar HTML si no se pasó ya construido
   if(!html && data) html = generarHTMLCierreTurno(data, size);
 
-  // 1) BT Print Server
   var btpsTipo = localStorage.getItem('printerType_ticket');
   var btpsMac  = localStorage.getItem('btps_mac');
+
+  // 0) PC / Generic Text Only — texto plano monoespaciado en <pre>
+  if(btpsTipo === 'pc' && data){
+    var colsPC = size === '58' ? 32 : 42;
+    var txtPC = BTPrinter.buildCierreTurno(data, colsPC);
+    if(txtPC){
+      txtPC = txtPC.replace(/\[CENTER\]|\[\/CENTER\]|\[BOLD\]|\[\/BOLD\]|\[SMALL\]|\[\/SMALL\]|\[DBLWIDE\]|\[\/DBLWIDE\]/g, '');
+      txtPC = limpiarParaImpresora(txtPC);
+      var escPC = txtPC.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var pcHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'+
+        '@page{size:auto;margin:0;}html,body{margin:0;padding:0;}'+
+        'pre{font-family:"Courier New",Courier,monospace;font-size:10pt;line-height:1.15;margin:0;padding:4mm;}'+
+        '</style></head><body><pre>'+escPC+'</pre>'+
+        '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>'+
+        '</body></html>';
+      var blobPC = new Blob([pcHtml], {type:'text/html;charset=utf-8'});
+      var urlPC  = URL.createObjectURL(blobPC);
+      var winPC  = window.open(urlPC, '_blank', 'width=320,height=700');
+      if(!winPC){ var aPC=document.createElement('a'); aPC.href=urlPC; aPC.target='_blank'; document.body.appendChild(aPC); aPC.click(); document.body.removeChild(aPC); }
+      setTimeout(function(){ URL.revokeObjectURL(urlPC); }, 20000);
+      return;
+    }
+  }
+
+  // 1) BT Print Server
   if(btpsTipo === 'btps' || btpsMac){
     if(data){
       var cols = size === '58' ? 32 : 42;

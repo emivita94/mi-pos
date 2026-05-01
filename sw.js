@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260502-satelite-badge';
+const CACHE = 'ampersand-pos-v20260502-cierre-pc-print';
 
 const ASSETS = [
   '/',
