@@ -48,8 +48,6 @@
       <div style="font-size:10px;color:#3a3a3a;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:10px 14px 3px;">Gestión</div>
       <div class="sb-i" id="sbi-cajas" onclick="goTo('cajas')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Cajas / Turnos</div>
-      <div class="sb-i" id="sbi-cierres" onclick="goTo('cierres')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Cierres de Turno</div>
       <div class="sb-i" id="sbi-importar" onclick="goTo('importar')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Importar productos
@@ -389,7 +387,6 @@ function renderPage(p){
   else if(p==='ventas') renderVentas();
   else if(p==='terminales') renderTerminales();
   else if(p==='cajas')  renderCajas();
-  else if(p==='cierres') renderCierres();
   else if(p==='importar') renderImportar();
   else if(p==='productos') renderProductos();
   else if(p==='inventarios') renderInventarios();
