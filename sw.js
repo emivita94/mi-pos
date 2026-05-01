@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260501-satelite-diag';
+const CACHE = 'ampersand-pos-v20260501-forzar-entrada';
 
 const ASSETS = [
   '/',

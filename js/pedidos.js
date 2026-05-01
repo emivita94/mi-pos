@@ -932,6 +932,7 @@ function sateliteMostrarEsperaCaja(){
     '</p>' +
     '<div id="sateliteEsperaStatus" style="color:#534AB7;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;">Verificando cada 15 segundos...</div>' +
     '<button onclick="sateliteReintentarCaja()" style="margin-top:8px;background:#534AB7;border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:14px 32px;cursor:pointer;letter-spacing:.5px;width:280px;">REINTENTAR AHORA</button>' +
+    '<button onclick="sateliteForzarEntrada()" style="background:#4caf50;border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:14px 32px;cursor:pointer;width:280px;">Entrar de todas formas</button>' +
     '<button onclick="sateliteLimpiarYRecargar()" style="background:transparent;border:1px solid #444;border-radius:8px;color:#888;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:10px 24px;cursor:pointer;width:280px;">Limpiar caché y recargar</button>';
   document.body.appendChild(div);
 
@@ -988,6 +989,20 @@ async function sateliteLimpiarYRecargar(){
   }catch(e){ console.warn('[Satelite] Error limpiando caché:', e.message); }
   // Recargar forzando bypass de caché
   window.location.href = window.location.href.split('?')[0] + '?r=' + Date.now();
+}
+
+async function sateliteForzarEntrada(){
+  sateliteOcultarEsperaCaja();
+  toast('Entrada forzada — verificá que la caja esté abierta');
+  if(typeof mesasSalones !== 'undefined' && mesasSalones && mesasSalones.length > 0){
+    if(typeof mesasCargar === 'function') await mesasCargar();
+    goTo('scMesas');
+    if(typeof renderMesasScreen === 'function') renderMesasScreen();
+  } else {
+    goTo('scSale');
+    if(typeof renderCatPills === 'function') renderCatPills();
+    if(typeof filterP === 'function') filterP();
+  }
 }
 
 async function sateliteReintentarCaja(){
