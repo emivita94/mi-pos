@@ -417,12 +417,17 @@ function cargarTicket(i) {
       incrementTicketCounter();
     }
   }
+  if(typeof resetTicketDescuento === 'function') resetTicketDescuento();
+  if(t.descuentoTicket && t.descuentoTicket > 0 && typeof setTicketDescuento === 'function'){
+    setTicketDescuento(t.descuentoTicket);
+  }
   setCart(JSON.parse(JSON.stringify(t.cart)));
   setCurrentTicketNro(t.nro);
   updUI();
   updBtnGuardar();
   goTo('scSale');
-  toast('Ticket #' + String(t.nro).padStart(4, '0') + ' cargado');
+  const origen = t.esSatelite ? ' (de ' + (t.terminalOrigen || 'satélite') + ')' : '';
+  toast('Ticket #' + String(t.nro).padStart(4, '0') + origen + ' cargado');
 }
 
 // ── cajaAbrirPedidoSatelite — abre pedido satélite directo al cobro ──────────

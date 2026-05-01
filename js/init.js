@@ -502,6 +502,7 @@ async function renderVentasList(){
               <div class="venta-card-titulo">
                 Ticket #${String(t.nro||i+1).padStart(4,'0')}
                 ${esPresupuesto ? `<span style="font-size:11px;background:rgba(103,58,183,.15);color:#9c27b0;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">📋 Presupuesto</span>` : ''}
+                ${t.esSatelite ? `<span style="font-size:11px;background:rgba(83,74,183,.15);color:#534AB7;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">📡 ${t.terminalOrigen||'Satélite'}</span>` : ''}
                 ${t.obs?' — '+t.obs:''}
               </div>
               <div class="venta-card-sub">${fecha} · ${items.length} artículo${items.length!==1?'s':''}</div>
