@@ -275,12 +275,8 @@ async function sateliteEnviarPedido(){
   updBtnGuardar();
   updTabTicketHeader();
 
-  // Volver al panel de mesas (si hay salones configurados) o al POS principal
-  if(mesasSalones && mesasSalones.length > 0){
-    abrirPantallaMesas();
-  } else {
-    goTo('scSale');
-  }
+  // Volver al POS principal — el mesero elige el siguiente paso
+  goTo('scSale');
 }
 
 function imprimirComandaPreCobro(){
@@ -462,10 +458,16 @@ async function cajaSyncPedidosSatelite(){
 
     if(satelites.length > 0 && typeof renderMesasScreen === 'function') renderMesasScreen();
 
+    // Si la lista de tickets está abierta, refrescarla para mostrar los nuevos pedidos
+    var _scPend = document.getElementById('scPendientes');
+    if(_scPend && _scPend.classList.contains('active') && typeof renderPendientes === 'function'){
+      renderPendientes();
+    }
+
     var diff = pendientes.length - antes;
     if(diff > 0){
       if(typeof toast === 'function')
-        toast(diff + ' pedido' + (diff > 1 ? 's' : '') + ' nuevo' + (diff > 1 ? 's' : '') + ' de mesa');
+        toast(diff + ' pedido' + (diff > 1 ? 's' : '') + ' nuevo' + (diff > 1 ? 's' : '') + ' de satélite');
       if(typeof sndPedido === 'function') sndPedido();
       // Voz sintetica: anunciar pedido nuevo despues del sonido
       if(typeof hablarPedidoNuevo === 'function'){
