@@ -298,7 +298,7 @@ async function iniciarApp(){
   // Primera sync a los 2s para no esperar el 7s clásico.
   if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'caja'){
     setTimeout(cajaSyncPedidosSatelite, 2000);
-    setInterval(cajaSyncPedidosSatelite, 6000); // cada 6 segundos
+    setInterval(cajaSyncPedidosSatelite, 3000); // cada 3 segundos
     // Trigger inmediato al volver la app al foreground
     document.addEventListener('visibilitychange', function(){
       if(document.visibilityState === 'visible'){
