@@ -141,6 +141,7 @@ function supaInsertVenta(data){
                       nombre: i.name,
                       qty:    i.qty,
                       precio: i.price,
+                      iva:    i.iva||'10',
                       obs:    i.obs||''
                     }))),
     tiene_factura:  !!(data.factura && data.factura.ruc),
@@ -381,6 +382,11 @@ async function syncVentasPendientes(){
         datos.licencia_email = email;
         await supaPost('pos_ventas', datos, null, true);
         await db.sync_queue.update(item.id, { sincronizado: 1 });
+        // Descontar stock de la venta que estaba en cola
+        try {
+          const itemsSync = typeof datos.items === 'string' ? JSON.parse(datos.items) : (datos.items||[]);
+          if(itemsSync.length) await stockDescontarVenta(itemsSync, datos.comprobante||('SYNC-'+item.id));
+        } catch(e){ console.warn('[Sync stock] Error descontando stock offline:', e.message); }
       } catch(e){ console.warn('[Sync ventas] Error sincronizando item:', e.message); continue; }
     }
   } catch(e){ console.warn('[Sync ventas]', e.message); }

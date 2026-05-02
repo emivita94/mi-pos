@@ -383,14 +383,17 @@ async function balanceBuscar(licId){
   if(!body) return;
   body.innerHTML='<div class="loading"><span class="sp"></span>Calculando balance...</div>';
 
+  // Paraguay UTC-4: día empieza T04:00:00 UTC, termina al día siguiente T03:59:59 UTC
+  var addDayBal=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
+
   try{
     // ── FASE 1: TODOS LOS FETCHES PRIMERO ──────────────────
 
     // 1a. Ventas + mapa de costos (en paralelo)
     var fetchVentas=sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)
-      +(fd?'&fecha=gte.'+fd+'T00:00:00':'')
-      +(fh?'&fecha=lte.'+fh+'T23:59:59':'')
+      +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
+      +(fh?'&fecha=lte.'+addDayBal(fh)+'T03:59:59':'')
       +'&select=items,total&limit=5000'
     );
     var fetchPrds=sg('pos_productos',
@@ -568,6 +571,8 @@ async function balanceBuscar(licId){
 async function balDibujarTendencia(fd,fh,ventaActual,utilActual,licId){
   var canvas=document.getElementById('balGraf1');
   if(!canvas) return;
+  // Paraguay UTC-4: inicio mes T04:00:00, fin mes +1día T03:59:59
+  var addDayTrend=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
   // Construir 6 meses hacia atrás desde fd
   var meses=[];
   var dRef=fd?new Date(fd):new Date();
@@ -583,8 +588,8 @@ async function balDibujarTendencia(fd,fh,ventaActual,utilActual,licId){
     try{
       var v=await sg('pos_ventas',
         'licencia_email=ilike.'+encodeURIComponent(SE)
-        +'&fecha=gte.'+mStr+'-01T00:00:00'
-        +'&fecha=lte.'+mStr+'-'+ultimoDia+'T23:59:59'
+        +'&fecha=gte.'+mStr+'-01T04:00:00'
+        +'&fecha=lte.'+addDayTrend(mStr+'-'+ultimoDia)+'T03:59:59'
         +'&select=total&limit=5000'
       );
       var venta=v.reduce(function(s,x){return s+(x.total||0);},0);
@@ -752,10 +757,14 @@ async function renderIVA(){
     +'</div>'
     +'<div id="ivaBody"></div>';
 
-  // Si hay un período cerrado para este mes, mostrarlo
+  // Si hay un período guardado para este mes mostrarlo; si no, calcular automáticamente
   var periodoActual=periodoVal;
   var liquidActual=historial.find(function(h){return h.periodo===periodoActual;});
-  if(liquidActual) ivaRenderResultado(liquidActual);
+  if(liquidActual){
+    ivaRenderResultado(liquidActual);
+  } else {
+    await ivaCalcular();
+  }
 }
 
 async function ivaCalcular(){
@@ -765,11 +774,12 @@ async function ivaCalcular(){
   var body=document.getElementById('ivaBody');
   body.innerHTML='<div class="loading"><span class="sp"></span>Calculando IVA del período '+periodo+'...</div>';
 
-  var fd=periodo+'-01T00:00:00';
-  // Último día del mes
+  // Paraguay UTC-4: mes empieza T04:00:00 del día 1, termina T03:59:59 del día 1 del mes siguiente
   var partes=periodo.split('-');
   var ultimoDia=new Date(parseInt(partes[0]),parseInt(partes[1]),0).getDate();
-  var fh=periodo+'-'+ultimoDia+'T23:59:59';
+  var addDayIva=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
+  var fd=periodo+'-01T04:00:00';
+  var fh=addDayIva(periodo+'-'+pad(ultimoDia))+'T03:59:59';
 
   try{
     // ── DÉBITO FISCAL (desde pos_ventas) ─────────────────────
@@ -787,7 +797,7 @@ async function ivaCalcular(){
         var qty=parseFloat(it.qty)||1;
         var precio=parseFloat(it.precio||it.price)||0;
         var total=precio*qty;
-        var ivaRate=_iva.prodMap[it.id]||'10';
+        var ivaRate=it.iva||_iva.prodMap[it.id]||'10';
         if(ivaRate==='exento'||ivaRate==='0') ventaExenta+=total;
         else if(ivaRate==='5') venta5+=total;
         else venta10+=total; // default 10%

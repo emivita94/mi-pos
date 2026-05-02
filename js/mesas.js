@@ -130,7 +130,7 @@ function onMesaTap(mesaId){
   } else {
     // Mesa LIBRE → asignar al ticket actual (vaciar si había otro)
     if(mesaActual && mesaActual.id !== mesa.id){
-      // Había otra mesa asignada sin guardar — limpiar
+      if(!confirm('Tenés la mesa '+mesaActual.nombre+' asignada. ¿Cambiar a '+mesa.nombre+'?')) return;
       clearMesaActual();
     }
     // Si hay carrito activo de otra fuente, preguntar
@@ -163,6 +163,7 @@ function guardarConMesa(){
       pendientes[idx].obs     = obs;
       pendientes[idx].mesa_id = mesaActual.id;
       pendientes[idx].fecha   = new Date().toISOString();
+      pendientes[idx].descuentoTicket = ticketDescuento || 0;
       const mesaNombreUpd = mesaActual.nombre;
       guardarPendientesLocal();
       // Limpiar y volver a mesas
@@ -194,6 +195,7 @@ function guardarConMesa(){
     fecha:         new Date().toISOString(),
     mesa_id:       mesaActual.id,
     esPresupuesto: false,
+    descuentoTicket: ticketDescuento || 0,
   });
   guardarPendientesLocal();
 

@@ -648,6 +648,51 @@ async function sateliteSyncPedidosPendientes(){
       if(typeof renderMesasScreen === 'function') renderMesasScreen();
       console.log('[SateliteSync] Removidos', antes - sobrevivientes.length, 'pedidos (cobrados/cancelados)');
     }
+
+    // Reintentar pedidos locales que no llegaron a Supabase (offline al enviar)
+    var sinSync = pendientes.filter(function(p){
+      return p.esSatelite && !p.esSateliteCobrado && !p.supaSync && !p.supabasePedidoId;
+    });
+    for(var si=0; si<sinSync.length; si++){
+      var p = sinSync[si];
+      try {
+        var retryCarts = (p.cart||[]).map(function(i){
+          return { id: i.id||null, name: i.name||'', qty: i.qty||1, price: i.price||0, cat: i.cat||'', obs: i.obs||'', costo: i.costo||0 };
+        });
+        var retryData = {
+          licencia_email:   email,
+          terminal_origen:  terminal,
+          numero_orden:     p.nro,
+          mesa:             p.obs||'',
+          sucursal:         sucursal,
+          tipo_pedido:      p.tipoPedido||'local',
+          estado:           'abierto',
+          items:            JSON.stringify(retryCarts),
+          total:            p.total||0,
+          descuento_ticket: p.descuentoTicket||0,
+          mesero_id:        terminal,
+          created_at:       (p.fecha instanceof Date ? p.fecha : new Date(p.fecha||Date.now())).toISOString(),
+          updated_at:       new Date().toISOString(),
+        };
+        var retryRes = await fetch(SUPA_URL + '/rest/v1/pos_pedidos', {
+          method:  'POST',
+          headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+          body: JSON.stringify(retryData),
+        });
+        if(retryRes.ok){
+          var retryJson = await retryRes.json().catch(function(){ return []; });
+          var retryId = retryJson && retryJson[0] ? retryJson[0].id : null;
+          var idx2 = pendientes.findIndex(function(q){ return q.nro === p.nro && q.esSatelite; });
+          if(idx2 >= 0){
+            pendientes[idx2].supaSync = true;
+            pendientes[idx2].supabasePedidoId = retryId;
+          }
+          console.log('[SateliteRetry] Pedido #'+p.nro+' subido. ID:', retryId);
+        }
+      } catch(e2){ console.warn('[SateliteRetry] Error reintentando pedido #'+p.nro+':', e2.message); }
+    }
+    if(sinSync.length) guardarPendientesLocal();
+
   } catch(e){ console.warn('[SateliteSync] Error:', e.message); }
 }
 

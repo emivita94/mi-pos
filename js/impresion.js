@@ -169,8 +169,11 @@ function abrirVentanaImpresion(html, size){
     const url  = URL.createObjectURL(blob);
     const win  = window.open(url, '_blank');
     if(win){
+      let _printed = false;
       win.onload = function(){
         setTimeout(function(){
+          if(_printed) return;
+          _printed = true;
           win.focus();
           win.print();
           setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
@@ -178,6 +181,8 @@ function abrirVentanaImpresion(html, size){
       };
       // Fallback si onload no dispara (algunos Android)
       setTimeout(function(){
+        if(_printed) return;
+        _printed = true;
         try{ win.focus(); win.print(); }catch(e){ /* safe: fallback print attempt, may fail on some browsers */ }
         setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
       }, 1500);

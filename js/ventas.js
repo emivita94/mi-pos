@@ -275,6 +275,7 @@ function doGuardar() {
       pendientes[idx].obs = obs || pendientes[idx].obs;
       pendientes[idx].fecha = new Date().toISOString();
       pendientes[idx].tipoPedido = tipoPedido || 'local';
+      pendientes[idx].descuentoTicket = ticketDescuento || 0;
     }
     const nro = currentTicketNro;
     setCurrentTicketNro(null);
@@ -294,6 +295,7 @@ function doGuardar() {
       fecha: new Date().toISOString(),
       esPresupuesto: false,
       tipoPedido: tipoPedido || 'local',
+      descuentoTicket: ticketDescuento || 0,
     });
     setCurrentTicketNro(null);
     clearCart();
@@ -404,6 +406,7 @@ function cargarTicket(i) {
         pendientes[idx].cart = JSON.parse(JSON.stringify(cart));
         pendientes[idx].total = totalActual;
         pendientes[idx].fecha = new Date();
+        pendientes[idx].descuentoTicket = ticketDescuento || 0;
       }
     } else {
       pendientes.push({
@@ -413,6 +416,7 @@ function cargarTicket(i) {
         total: totalActual,
         fecha: new Date(),
         esPresupuesto: false,
+        descuentoTicket: ticketDescuento || 0,
       });
       incrementTicketCounter();
     }
@@ -496,9 +500,9 @@ function nuevaVenta() {
       // Editando ticket existente — actualizar en lugar de crear duplicado
       const idx = pendientes.findIndex(p => p.nro === currentTicketNro);
       if (idx !== -1) {
-        pendientes[idx] = { ...pendientes[idx], cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date() };
+        pendientes[idx] = { ...pendientes[idx], cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), descuentoTicket: ticketDescuento || 0 };
       } else {
-        pendientes.push({ nro: currentTicketNro, obs: 'Auto-guardado', cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), esPresupuesto: false });
+        pendientes.push({ nro: currentTicketNro, obs: 'Auto-guardado', cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), esPresupuesto: false, descuentoTicket: ticketDescuento || 0 });
       }
     } else {
       pendientes.push({
@@ -508,6 +512,7 @@ function nuevaVenta() {
         total: totalActual,
         fecha: new Date(),
         esPresupuesto: false,
+        descuentoTicket: ticketDescuento || 0,
       });
       incrementTicketCounter();
     }
