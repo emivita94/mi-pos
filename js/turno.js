@@ -267,21 +267,31 @@ async function stockDescontarVenta(items, comprobante){
 
     await supaPost('stock_comprobante_items', compItems, null, true);
 
-    // Upsert stock con decremento atómico
-    // Intenta RPC descontar_stock_venta (operación atómica, previene race condition multi-terminal).
-    // Si la RPC no existe aún (migration pendiente), cae al upsert clásico.
-    for(const it of itemsInv){
-      const qty   = parseFloat(it.qty)||1;
-      const antes = stockMap[it.id]||0;
-      const desp  = antes - qty;
-      try {
-        await supaRPC('descontar_stock_venta', {
-          p_deposito_id: depId, p_sucursal_id: sucId, p_licencia_id: licId,
-          p_producto_id: it.id, p_cantidad: qty,
-          p_nombre_producto: it.name||it.nombre||''
-        });
-      } catch(_rpcErr) {
-        // Fallback: upsert clásico (no atómico — aplicar migration SQL para corregir)
+    // Decremento atómico via RPC — todos los items en una sola transacción PG.
+    // Firma: descontar_stock_venta(p_deposito_id, p_items jsonb, p_referencia, p_terminal)
+    const rpcItems = itemsInv.map(function(it){
+      return {
+        producto_id:      it.id,
+        cantidad:         parseFloat(it.qty)||1,
+        sucursal_id:      sucId,
+        licencia_id:      licId,
+        nombre_producto:  it.name||it.nombre||''
+      };
+    });
+    try {
+      await supaRPC('descontar_stock_venta', {
+        p_deposito_id: depId,
+        p_items:       rpcItems,
+        p_referencia:  comprobante || ('VENTA-'+Date.now()),
+        p_terminal:    localStorage.getItem('pos_terminal')||'Terminal'
+      });
+      console.log('[Stock] Descontado atómico — '+itemsInv.length+' prods | depósito:', depId);
+    } catch(_rpcErr) {
+      // Fallback: upsert clásico por producto (no atómico)
+      console.warn('[Stock] RPC no disponible, usando fallback:', _rpcErr.message||_rpcErr);
+      for(const it of itemsInv){
+        const qty  = parseFloat(it.qty)||1;
+        const desp = (stockMap[it.id]||0) - qty;
         try {
           await supaPost('stock', {
               deposito_id: depId, sucursal_id: sucId, licencia_id: licId,
@@ -290,8 +300,8 @@ async function stockDescontarVenta(items, comprobante){
             }, 'deposito_id,producto_id', true);
         } catch(e){ console.warn('[Stock] upsert error prod', it.id, ':', e.message); }
       }
+      console.log('[Stock] Descontado fallback — '+itemsInv.length+' prods | depósito:', depId);
     }
-    console.log('[Stock] Descontado — '+itemsInv.length+' productos | depósito:', depId);
   }catch(e){
     console.warn('[Stock] Error descontando:', e.message);
   }
