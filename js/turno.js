@@ -187,26 +187,7 @@ function supaInsertVenta(data){
 }
 
 // ── DESCUENTO DE STOCK POR VENTA ─────────────────────────────────────────
-// ── marcarPedidoSateliteCobrado — actualiza estado en Supabase tras cobrar ───
-// Se llama desde el .then() del INSERT a pos_ventas cuando el pendiente
-// tenía supabasePedidoId. Cambia estado 'abierto' → 'cobrado' en pos_pedidos.
-// También elimina el pendiente local para que desaparezca de la lista y mesas.
-function marcarPedidoSateliteCobrado(pedidoId){
-  if(!pedidoId || USAR_DEMO) return;
-  // PATCH en Supabase
-  supaPatch('pos_pedidos', 'id=eq.' + encodeURIComponent(pedidoId),
-    { estado: 'cobrado', updated_at: new Date().toISOString() }, true)
-  .then(function(){
-    console.log('[CajaSync] Pedido satélite marcado cobrado:', pedidoId);
-  })
-  .catch(function(e){ console.warn('[CajaSync] Error marcando cobrado:', e.message); });
-
-  // Eliminar de pendientes[] local inmediatamente (no esperar a Supabase)
-  setPendientes(pendientes.filter(function(p){ return p.supabasePedidoId !== pedidoId; }));
-  guardarPendientesLocal();
-  updBtnGuardar();
-  if(typeof renderMesasScreen === 'function') renderMesasScreen();
-}
+// marcarPedidoSateliteCobrado: definida en pedidos.js (con filtro licencia_email)
 
 async function stockDescontarVenta(items, comprobante){
   const depId    = parseInt(localStorage.getItem('pos_deposito_id'))||null;

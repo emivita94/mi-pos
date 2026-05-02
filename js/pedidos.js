@@ -142,8 +142,12 @@ async function sateliteEnviarPedido(){
   var existingSupabaseId = null;
   if(currentTicketNro !== null && !esAdicional){
     var existente = pendientes.find(function(p){ return p.nro === currentTicketNro; });
-    if(existente && existente.supabasePedidoId && existente.esSatelite){
-      existingSupabaseId = existente.supabasePedidoId;
+    if(existente && existente.esSatelite){
+      if(existente._syncInProgress){
+        toast('Sincronizando pedido... esperá un momento');
+        return;
+      }
+      if(existente.supabasePedidoId) existingSupabaseId = existente.supabasePedidoId;
     }
   }
 
@@ -602,7 +606,6 @@ async function sateliteSyncPedidosPendientes(){
     var hoy = new Date(); hoy.setHours(0,0,0,0);
     var hoyISO = hoy.toISOString();
     var query = 'licencia_email=eq.' + encodeURIComponent(email)
-              + '&sucursal=eq.'        + encodeURIComponent(sucursal)
               + '&terminal_origen=eq.' + encodeURIComponent(terminal)
               + '&created_at=gte.'     + encodeURIComponent(hoyISO)
               + '&select=id,estado,numero_orden,mesa';
@@ -610,30 +613,29 @@ async function sateliteSyncPedidosPendientes(){
     var rows = await supaGet('pos_pedidos', query);
     if(!rows) return;
 
-    // Crear mapa id → estado
+    // Crear mapa id → estado (solo por UUID — fallback por nro/mesa era unreliable)
     var estadoById = {};
-    var estadoByNroMesa = {};
-    rows.forEach(function(r){
-      if(r.id) estadoById[r.id] = r.estado;
-      var key = (r.numero_orden||'') + '|' + (r.mesa||'');
-      estadoByNroMesa[key] = r.estado;
-    });
+    rows.forEach(function(r){ if(r.id) estadoById[r.id] = r.estado; });
 
-    // Filtrar pendientes: eliminar los que ya fueron cobrados o cancelados
+    // Filtrar pendientes: eliminar cobrados/cancelados y fantasmas > 2h sin UUID
     var antes = pendientes.length;
+    var ahora = Date.now();
+    var DOS_HORAS = 2 * 60 * 60 * 1000;
     var sobrevivientes = pendientes.filter(function(p){
       if(!p.esSatelite) return true;
-      var estado = null;
-      // Matching por UUID si esta disponible (mas confiable)
-      if(p.supabasePedidoId && estadoById[p.supabasePedidoId] !== undefined){
-        estado = estadoById[p.supabasePedidoId];
-      } else {
-        // Fallback: matching por (numero_orden, mesa)
-        var key = (p.nro||'') + '|' + (p.mesa_id||'');
-        if(estadoByNroMesa[key] !== undefined) estado = estadoByNroMesa[key];
+      if(p.supabasePedidoId){
+        // UUID conocido: verificar estado en Supabase
+        var estado = estadoById[p.supabasePedidoId];
+        if(estado === 'cobrado' || estado === 'cancelado') return false;
+        return true;
       }
-      if(estado === 'cobrado' || estado === 'cancelado'){
-        return false; // eliminar
+      // Sin UUID (nunca llegó a Supabase): si tiene > 2 horas, es fantasma → limpiar
+      if(!p._syncInProgress){
+        var fechaMs = p.fecha instanceof Date ? p.fecha.getTime() : (new Date(p.fecha||0)).getTime();
+        if(fechaMs && ahora - fechaMs > DOS_HORAS){
+          console.log('[SateliteSync] Pedido #'+p.nro+' sin UUID tras 2h — removiendo fantasma');
+          return false;
+        }
       }
       return true;
     });
@@ -647,11 +649,14 @@ async function sateliteSyncPedidosPendientes(){
     }
 
     // Reintentar pedidos locales que no llegaron a Supabase (offline al enviar)
+    // _syncInProgress evita que sateliteEnviarPedido duplique el pedido mientras retrying
     var sinSync = pendientes.filter(function(p){
-      return p.esSatelite && !p.esSateliteCobrado && !p.supaSync && !p.supabasePedidoId;
+      return p.esSatelite && !p.esSateliteCobrado && !p.supaSync && !p.supabasePedidoId && !p._syncInProgress;
     });
     for(var si=0; si<sinSync.length; si++){
       var p = sinSync[si];
+      var idx2 = pendientes.findIndex(function(q){ return q.nro === p.nro && q.esSatelite; });
+      if(idx2 >= 0) pendientes[idx2]._syncInProgress = true;
       try {
         var retryCarts = (p.cart||[]).map(function(i){
           return { id: i.id||null, name: i.name||'', qty: i.qty||1, price: i.price||0, cat: i.cat||'', obs: i.obs||'', costo: i.costo||0 };
@@ -661,7 +666,6 @@ async function sateliteSyncPedidosPendientes(){
           terminal_origen:  terminal,
           numero_orden:     p.nro,
           mesa:             p.obs||'',
-          sucursal:         sucursal,
           tipo_pedido:      p.tipoPedido||'local',
           estado:           'abierto',
           items:            JSON.stringify(retryCarts),
@@ -679,7 +683,6 @@ async function sateliteSyncPedidosPendientes(){
         if(retryRes.ok){
           var retryJson = await retryRes.json().catch(function(){ return []; });
           var retryId = retryJson && retryJson[0] ? retryJson[0].id : null;
-          var idx2 = pendientes.findIndex(function(q){ return q.nro === p.nro && q.esSatelite; });
           if(idx2 >= 0){
             pendientes[idx2].supaSync = true;
             pendientes[idx2].supabasePedidoId = retryId;
@@ -687,6 +690,7 @@ async function sateliteSyncPedidosPendientes(){
           console.log('[SateliteRetry] Pedido #'+p.nro+' subido. ID:', retryId);
         }
       } catch(e2){ console.warn('[SateliteRetry] Error reintentando pedido #'+p.nro+':', e2.message); }
+      finally { if(idx2 >= 0) pendientes[idx2]._syncInProgress = false; }
     }
     if(sinSync.length) guardarPendientesLocal();
 

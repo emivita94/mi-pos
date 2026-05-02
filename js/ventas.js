@@ -488,8 +488,18 @@ function cajaAbrirPedidoSatelite(i) {
   goTo('scSale');
   if (typeof renderCatPills === 'function') renderCatPills();
   if (typeof filterP === 'function') filterP();
-  if (typeof toast === 'function')
-    toast('Pedido de ' + (t.terminalOrigen || 'mesero') + ' cargado — agregá items o cobrá');
+  if (typeof toast === 'function') {
+    var _mesaTxt = '';
+    if(t.mesa_id && typeof mesasMesas !== 'undefined'){
+      var _m = mesasMesas.find(function(m){ return m.id === t.mesa_id; });
+      if(_m) _mesaTxt = ' · ' + _m.nombre;
+    } else if(t.tipoPedido === 'delivery'){
+      _mesaTxt = ' · Delivery';
+    } else if(t.obs && t.obs !== (t.terminalOrigen||'')){
+      _mesaTxt = ' · ' + t.obs;
+    }
+    toast('Pedido de ' + (t.terminalOrigen || 'mesero') + _mesaTxt + ' cargado — agregá items o cobrá');
+  }
 }
 
 function nuevaVenta() {
