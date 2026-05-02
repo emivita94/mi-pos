@@ -4,7 +4,14 @@
 -- El código del POS intenta llamar a esta función primero; si no existe, usa upsert clásico
 -- (read-then-write) con riesgo de duplicados bajo carga concurrente.
 
-CREATE OR REPLACE FUNCTION descontar_stock_venta(
+-- Eliminar TODAS las versiones previas con cualquier firma (resuelve error 42725)
+DROP FUNCTION IF EXISTS descontar_stock_venta(INTEGER, INTEGER, INTEGER, INTEGER, NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS descontar_stock_venta(INT, INT, INT, INT, NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS descontar_stock_venta(INT4, INT4, INT4, INT4, NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS descontar_stock_venta(BIGINT, BIGINT, BIGINT, BIGINT, NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS descontar_stock_venta(INT, INT, INT, INT, FLOAT, TEXT);
+
+CREATE FUNCTION descontar_stock_venta(
   p_deposito_id  INTEGER,
   p_sucursal_id  INTEGER,
   p_licencia_id  INTEGER,
@@ -26,5 +33,5 @@ END;
 $$;
 
 -- Permisos para rol anon (cliente del POS)
-GRANT EXECUTE ON FUNCTION descontar_stock_venta TO anon;
-GRANT EXECUTE ON FUNCTION descontar_stock_venta TO authenticated;
+GRANT EXECUTE ON FUNCTION descontar_stock_venta(INTEGER, INTEGER, INTEGER, INTEGER, NUMERIC, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION descontar_stock_venta(INTEGER, INTEGER, INTEGER, INTEGER, NUMERIC, TEXT) TO authenticated;
