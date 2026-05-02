@@ -996,6 +996,196 @@ async function ivaCerrar(id){
 }
 
 // ════════════════════════════════════════════════════════
+// REPORTE: VENTAS POR PRODUCTO
+// ════════════════════════════════════════════════════════
+
+async function renderRepProductos(fdKey){
+  fdKey = fdKey || 'mes';
+  var c = document.getElementById('content');
+  var fd = getFD(fdKey);
+  var labels = {hoy:'Ventas del día de hoy', semana:'Ventas de esta semana', mes:'Ventas de este mes'};
+
+  var pillsHtml =
+    '<div style="display:inline-flex;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:1px;">'+
+      '<button class="atab'+(fdKey==='hoy'?' on':'')+'" onclick="renderRepProductos(\'hoy\')">Hoy</button>'+
+      '<button class="atab'+(fdKey==='semana'?' on':'')+'" onclick="renderRepProductos(\'semana\')">Semana</button>'+
+      '<button class="atab'+(fdKey==='mes'?' on':'')+'" onclick="renderRepProductos(\'mes\')">Mes</button>'+
+    '</div>';
+
+  c.innerHTML =
+    '<div class="ph" style="margin-bottom:14px">'+
+      '<div><div class="pt">Ventas por Producto</div><div class="ps">'+(labels[fdKey]||'')+'</div></div>'+
+      pillsHtml+
+    '</div>'+
+    '<div id="repProdWrap"><div class="loading"><span class="sp"></span>Cargando...</div></div>';
+
+  var wrap = document.getElementById('repProdWrap');
+  try {
+    var ventas = await sg('pos_ventas',
+      'licencia_email=ilike.'+encodeURIComponent(SE)+
+      '&fecha=gte.'+fd.d+'&fecha=lte.'+fd.h+
+      '&select=items,total&limit=3000');
+
+    var prodsMap = {};
+    var totalGeneral = 0;
+    ventas.forEach(function(x){
+      try {
+        var items = typeof x.items==='string' ? JSON.parse(x.items) : (x.items||[]);
+        if(!Array.isArray(items)) return;
+        items.forEach(function(it){
+          if(it.esDescuento) return;
+          var nom = it.name||it.nombre||'—';
+          var cat = it.cat||it.category||it.categoria||'Sin categoría';
+          var qty = Number(it.qty)||1;
+          var price = Number(it.price||it.precio)||0;
+          var sub = price * qty;
+          if(!prodsMap[nom]) prodsMap[nom] = {cat:cat, qty:0, tot:0};
+          prodsMap[nom].qty += qty;
+          prodsMap[nom].tot += sub;
+          totalGeneral += sub;
+        });
+      } catch(e2){}
+    });
+
+    var entries = Object.entries(prodsMap).sort(function(a,b){ return b[1].tot-a[1].tot; });
+
+    if(!entries.length){
+      wrap.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);">Sin ventas en el período seleccionado</div>';
+      return;
+    }
+
+    var maxTot = entries[0][1].tot || 1;
+    var html =
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;padding:16px 20px;display:flex;gap:32px;flex-wrap:wrap;">'+
+        '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Productos distintos</div>'+
+          '<div style="font-size:24px;font-weight:800;color:var(--text);">'+entries.length+'</div></div>'+
+        '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Total del período</div>'+
+          '<div style="font-size:24px;font-weight:800;color:var(--green);">'+gs(totalGeneral)+'</div></div>'+
+        '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Ventas analizadas</div>'+
+          '<div style="font-size:24px;font-weight:800;color:var(--text);">'+ventas.length+'</div></div>'+
+      '</div>'+
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">'+
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+      '<thead><tr style="background:var(--card2);">'+
+        '<th style="padding:10px 14px;text-align:left;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Producto</th>'+
+        '<th style="padding:10px 14px;text-align:left;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Categoría</th>'+
+        '<th style="padding:10px 14px;text-align:right;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Unid.</th>'+
+        '<th style="padding:10px 14px;text-align:right;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Total</th>'+
+        '<th style="padding:10px 14px;text-align:right;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">%</th>'+
+      '</tr></thead><tbody>'+
+      entries.map(function(e){
+        var pct = totalGeneral > 0 ? Math.round(e[1].tot/totalGeneral*100) : 0;
+        var barW = Math.round(e[1].tot/maxTot*100);
+        return '<tr style="border-top:1px solid var(--border);">'+
+          '<td style="padding:10px 14px;">'+
+            '<div style="font-weight:700;color:var(--text);">'+e[0]+'</div>'+
+            '<div style="height:3px;background:var(--border);border-radius:2px;margin-top:5px;">'+
+              '<div style="width:'+barW+'%;height:3px;background:var(--green);border-radius:2px;"></div>'+
+            '</div>'+
+          '</td>'+
+          '<td style="padding:10px 14px;color:var(--muted);font-size:12px;">'+e[1].cat+'</td>'+
+          '<td style="padding:10px 14px;text-align:right;font-weight:600;">'+e[1].qty+'</td>'+
+          '<td style="padding:10px 14px;text-align:right;font-weight:800;color:var(--green);">'+gs(e[1].tot)+'</td>'+
+          '<td style="padding:10px 14px;text-align:right;color:var(--muted);font-size:12px;">'+pct+'%</td>'+
+        '</tr>';
+      }).join('')+
+      '</tbody></table></div>';
+
+    wrap.innerHTML = html;
+  } catch(e) {
+    wrap.innerHTML = '<div style="padding:24px;color:var(--red);">Error: '+e.message+'</div>';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// REPORTE: COMPRAS
+// ════════════════════════════════════════════════════════
+
+async function renderRepCompras(fdKey){
+  fdKey = fdKey || 'mes';
+  var c = document.getElementById('content');
+  var fd = getFD(fdKey);
+  var labels = {hoy:'Compras del día de hoy', semana:'Compras de esta semana', mes:'Compras de este mes'};
+  var p2 = function(n){ return String(n).padStart(2,'0'); };
+
+  var pillsHtml =
+    '<div style="display:inline-flex;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:1px;">'+
+      '<button class="atab'+(fdKey==='hoy'?' on':'')+'" onclick="renderRepCompras(\'hoy\')">Hoy</button>'+
+      '<button class="atab'+(fdKey==='semana'?' on':'')+'" onclick="renderRepCompras(\'semana\')">Semana</button>'+
+      '<button class="atab'+(fdKey==='mes'?' on':'')+'" onclick="renderRepCompras(\'mes\')">Mes</button>'+
+    '</div>';
+
+  c.innerHTML =
+    '<div class="ph" style="margin-bottom:14px">'+
+      '<div><div class="pt">Reporte de Compras</div><div class="ps">'+(labels[fdKey]||'')+'</div></div>'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
+        pillsHtml+
+        '<button class="btn-sv" onclick="renderCompras(\'nuevo\')">+ Nueva compra</button>'+
+      '</div>'+
+    '</div>'+
+    '<div id="repCompWrap"><div class="loading"><span class="sp"></span>Cargando...</div></div>';
+
+  var wrap = document.getElementById('repCompWrap');
+  try {
+    var licId = await planGetLicId();
+    var fd0 = fd.d.substring(0,10);
+    var fh0 = fd.h.substring(0,10);
+    var addDay = function(ds){ var p=ds.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]+1); return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); };
+
+    var rows = await sg('stock_comprobantes',
+      'licencia_id=eq.'+licId+
+      '&tipo=in.(compra,entrada)'+
+      '&fecha=gte.'+fd0+'T04:00:00'+
+      '&fecha=lte.'+addDay(fh0)+'T03:59:59'+
+      '&order=fecha.desc&limit=500');
+
+    var totGeneral = rows.reduce(function(s,x){ return s+(x.total||x.monto||0); }, 0);
+
+    if(!rows.length){
+      wrap.innerHTML =
+        '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;padding:20px;text-align:center;">'+
+          '<div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Sin compras en el período</div>'+
+          '<button class="btn-sv" onclick="renderCompras(\'nuevo\')">+ Registrar compra</button>'+
+        '</div>';
+      return;
+    }
+
+    var html =
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;padding:16px 20px;display:flex;gap:32px;flex-wrap:wrap;">'+
+        '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Total compras</div>'+
+          '<div style="font-size:24px;font-weight:800;color:var(--red);">'+gs(totGeneral)+'</div></div>'+
+        '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;">Registros</div>'+
+          '<div style="font-size:24px;font-weight:800;color:var(--text);">'+rows.length+'</div></div>'+
+      '</div>'+
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">'+
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+      '<thead><tr style="background:var(--card2);">'+
+        '<th style="padding:10px 14px;text-align:left;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Fecha</th>'+
+        '<th style="padding:10px 14px;text-align:left;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Proveedor / Concepto</th>'+
+        '<th style="padding:10px 14px;text-align:left;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Tipo</th>'+
+        '<th style="padding:10px 14px;text-align:right;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Total</th>'+
+      '</tr></thead><tbody>'+
+      rows.map(function(r){
+        var fch = r.fecha ? (function(){ var d=new Date(r.fecha); return p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+d.getFullYear(); })() : '--';
+        var desc = r.proveedor||r.concepto||r.descripcion||'—';
+        var monto = r.total||r.monto||0;
+        var tipo = (r.tipo||'compra').replace('_',' ');
+        return '<tr style="border-top:1px solid var(--border);">'+
+          '<td style="padding:10px 14px;color:var(--muted);font-size:12px;white-space:nowrap;">'+fch+'</td>'+
+          '<td style="padding:10px 14px;font-weight:600;color:var(--text);">'+desc+'</td>'+
+          '<td style="padding:10px 14px;"><span style="font-size:10px;font-weight:700;text-transform:uppercase;background:var(--card2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:var(--muted);">'+tipo+'</span></td>'+
+          '<td style="padding:10px 14px;text-align:right;font-weight:800;color:var(--red);">'+gs(monto)+'</td>'+
+        '</tr>';
+      }).join('')+
+      '</tbody></table></div>';
+
+    wrap.innerHTML = html;
+  } catch(e) {
+    wrap.innerHTML = '<div style="padding:24px;color:var(--red);">Error: '+e.message+'</div>';
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // ADMINISTRACIÓN — TIMBRADOS
 // ════════════════════════════════════════════════════════
 

@@ -138,11 +138,14 @@ function supaInsertVenta(data){
     comprobante:    data.comprobante || '',
     items:          JSON.stringify((data.items||[]).map(i=>({
                       id:     i.id,
+                      name:   i.name,
                       nombre: i.name,
                       qty:    i.qty,
+                      price:  i.price,
                       precio: i.price,
                       costo:  i.costo||0,
                       iva:    i.iva||'10',
+                      cat:    i.cat||i.categoria||'',
                       obs:    i.obs||''
                     }))),
     tiene_factura:  !!(data.factura && data.factura.ruc),
