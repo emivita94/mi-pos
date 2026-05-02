@@ -47,18 +47,27 @@ function getNroFactura(timbrado){
 
 async function avanzarNroFactura(timbrado){
   if(!timbrado) return;
+  if(avanzarNroFactura._lock) return;
+  avanzarNroFactura._lock = true;
   const terminal = localStorage.getItem('pos_terminal')||'Terminal 1';
   const email    = localStorage.getItem('lic_email');
-  // Incrementar local inmediatamente
+  // Optimistic local increment
   if(window._timbradoCache) window._timbradoCache.nro_actual=(window._timbradoCache.nro_actual||1)+1;
   const cached = JSON.parse(localStorage.getItem('pos_timbrado_activo')||'null');
   if(cached){ cached.nro_actual=(cached.nro_actual||1)+1; localStorage.setItem('pos_timbrado_activo',JSON.stringify(cached)); }
-  // Avisar a Supabase sin bloquear
+  // Confirmar en Supabase y sobrescribir con valor autoritativo del servidor
   if(email && !USAR_DEMO){
-    supaRPC('avanzar_correlativo', { p_email:email, p_terminal:terminal }).then(d=>{
-      if(d&&d.ok) console.log('[Correlativo] +1 en Supabase → nro_actual:',d.nro_actual);
-    }).catch(e=>console.warn('[Correlativo]',e.message));
+    try {
+      const d = await supaRPC('avanzar_correlativo', { p_email:email, p_terminal:terminal });
+      if(d && d.nro_actual){
+        if(window._timbradoCache) window._timbradoCache.nro_actual = d.nro_actual;
+        const c2 = JSON.parse(localStorage.getItem('pos_timbrado_activo')||'null');
+        if(c2){ c2.nro_actual = d.nro_actual; localStorage.setItem('pos_timbrado_activo',JSON.stringify(c2)); }
+        console.log('[Correlativo] +1 en Supabase → nro_actual:',d.nro_actual);
+      }
+    } catch(e){ console.warn('[Correlativo]',e.message); }
   }
+  avanzarNroFactura._lock = false;
 }
 
 // ══════════════════════════════════════════════════════

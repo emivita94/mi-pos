@@ -400,6 +400,13 @@ function generarHTMLFactura(data, size){
     else if(item.iva==='5')   grav5   += sub;
     else                       exento  += sub;
   });
+  // Aplicar descuento a nivel ticket proporcionalmente a cada alícuota
+  if(totalDescFact > 0 && subtotalFact > 0){
+    const factor = (subtotalFact - totalDescFact) / subtotalFact;
+    grav10 = Math.round(grav10 * factor);
+    grav5  = Math.round(grav5  * factor);
+    exento = Math.round(exento * factor);
+  }
   const iva10  = Math.round(grav10  * 10/110);
   const iva5   = Math.round(grav5   * 5/105);
   const total  = data.total;

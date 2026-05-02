@@ -1,5 +1,7 @@
 // ── Admin: Productos, Importación, Catálogo ──
 
+function _esc(s){ const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+
 // ── PRODUCTOS ─────────────────────────────────────────────
 
 // ── IMPORTACIÓN DE PRODUCTOS ─────────────────────────────
@@ -126,7 +128,7 @@ function impLeerArchivo(input){
 
 async function impProcesarArchivo(file){
   var dz=document.getElementById('impDropZone');
-  if(dz) dz.innerHTML='<div style="color:var(--muted);font-size:13px">Procesando '+file.name+'...</div>';
+  if(dz){ const _dzt=document.createElement('div'); _dzt.style.cssText='color:var(--muted);font-size:13px'; _dzt.textContent='Procesando '+file.name+'...'; dz.innerHTML=''; dz.appendChild(_dzt); }
   try{
     var rows=[];
     var ext=file.name.split('.').pop().toLowerCase();
@@ -213,7 +215,7 @@ function impValidarYMostrar(rows){
     var ed=document.getElementById('impErrores');
     ed.style.display='block';
     ed.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px;">'+_imp.errores.length+' filas con errores (no se importarán):</div>'+
-      _imp.errores.slice(0,5).map(function(e){return '<div style="font-size:12px;color:var(--red)">• '+e+'</div>';}).join('')+
+      _imp.errores.slice(0,5).map(function(e){return '<div style="font-size:12px;color:var(--red)">• '+_esc(e)+'</div>';}).join('')+
       (_imp.errores.length>5?'<div style="font-size:12px;color:var(--muted)">... y '+(_imp.errores.length-5)+' más</div>':'');
   }
   document.getElementById('impPreviewBody').innerHTML=validados.map(function(r){
@@ -225,9 +227,9 @@ function impValidarYMostrar(rows){
     return '<tr style="opacity:'+(r._valido?'1':'.5')+'">'+
       '<td>'+est+'</td>'+
       '<td style="font-size:11px;color:'+(r._esUpdate?'var(--blue)':'var(--muted)')+'">'+
-        (r._esUpdate?'#'+r.id:'—')+'</td>'+
-      '<td style="font-weight:600">'+r.nombre+'</td>'+
-      '<td>'+r.categoria+'</td>'+
+        (r._esUpdate?'#'+_esc(r.id):'—')+'</td>'+
+      '<td style="font-weight:600">'+_esc(r.nombre)+'</td>'+
+      '<td>'+_esc(r.categoria)+'</td>'+
       '<td style="text-align:right;font-weight:700">'+(r.precio_variable?'<span style="color:var(--orange)">Variable</span>':gs(r.precio))+'</td>'+
       '<td style="text-align:right">'+(r.costo?gs(r.costo):'—')+'</td>'+
       '<td><span class="tag tag-gr">IVA '+(r.iva==='exento'?'Exento':r.iva+'%')+'</span></td>'+
@@ -318,17 +320,11 @@ async function impConfirmar(){
         await supaPatch('pos_productos','id=eq.'+r.id+'&licencia_email=ilike.'+encodeURIComponent(SE),upd);
         ok++;
       }
-      // INSERT: primero obtener el MAX id actual para generar IDs correlativos
+      // INSERT: dejar que Postgres auto-genere el ID (serial/identity)
       if(inserts.length){
-        // Obtener el id máximo actual de la tabla para este licencia
-        var maxRow=await sg('pos_productos','select=id&order=id.desc&limit=1');
-        var maxId=maxRow.length && maxRow[0].id ? parseInt(maxRow[0].id) : 0;
-        var nextId=maxId + 1;
-        console.log('[Import] maxRow:', JSON.stringify(maxRow), '→ nextId:', nextId);
         var ahora=new Date().toISOString();
-        var payload=inserts.map(function(r,ri){
+        var payload=inserts.map(function(r){
           return {
-            id: nextId + ri,
             nombre:r.nombre.toUpperCase(),
             categoria:r.categoria||'Sin categoría',
             precio:r.precio||0,

@@ -801,6 +801,11 @@ function setRucStatus(msg, type) {
  *   6. Genera el recibo y navega a scRecibo
  */
 async function confirmarPago() {
+  if (confirmarPago._running) return;
+  confirmarPago._running = true;
+  const _btnConfirmar = document.querySelector('.btn-confirmar');
+  if (_btnConfirmar) _btnConfirmar.disabled = true;
+  try {
   // ── Obtener fecha del servidor PRIMERO (antes de cualquier await posterior) ──
   // IMPORTANTE: debe ser lo primero en la función para que esté disponible
   // en registrarVentaEnTurno y generarRecibo más abajo.
@@ -930,6 +935,10 @@ async function confirmarPago() {
     factura:     facturaData,
     divPagos:    divPagosCopia,
   });
+  } finally {
+    confirmarPago._running = false;
+    if (_btnConfirmar) _btnConfirmar.disabled = false;
+  }
 }
 
 // ── RECIBO ───────────────────────────────────────────────────
