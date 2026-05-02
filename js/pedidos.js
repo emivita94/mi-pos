@@ -214,18 +214,16 @@ async function sateliteEnviarPedido(){
     }
   }
 
-  // ── Imprimir comanda en cocina (solo si hay impresora configurada) ────────
-  // En satelite sin impresora, no abrir ventana de impresion del navegador
-  var tieneImpresora = isAndroidAPK()
-    || localStorage.getItem('printerType_comanda')
-    || localStorage.getItem('printerType_ticket')
+  // ── Imprimir comanda en cocina (solo si hay impresora de comanda configurada) ─
+  // printerType_ticket es impresora de tickets (recibos), NO de comanda.
+  // En satélite nunca abrir ventana del navegador — rompe el flujo del mesero.
+  var tieneComandaPrinter = isAndroidAPK()
     || localStorage.getItem('btps_mac');
-  if(tieneImpresora){
+  if(tieneComandaPrinter){
     imprimirComandaPreCobro();
   } else {
-    // Marcar items como enviados sin imprimir
     cart.forEach(function(i){ i.enviado = true; });
-    console.log('[Satelite] Sin impresora — comanda no impresa, items marcados como enviados');
+    console.log('[Satelite] Sin impresora de comanda — items marcados como enviados');
   }
 
   // ── Guardar/actualizar backup local en pendientes[] ──────────────────────
@@ -394,7 +392,6 @@ async function cajaSyncPedidosSatelite(){
   try{
     const rows = await supaGet('pos_pedidos',
         'licencia_email=eq.' + encodeURIComponent(email)
-        + '&sucursal=eq.'    + encodeURIComponent(sucursal)
         + '&estado=in.(abierto,en_cobro)'
         + '&order=created_at.asc'
         + '&select=id,numero_orden,mesa,tipo_pedido,estado,items,total,descuento_ticket,terminal_origen,created_at');

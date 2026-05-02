@@ -1097,12 +1097,17 @@ function imprimirComanda(data){
     BTPrinter.print(txt).then(function(r){
       if(r.status !== 'ok'){
         toast('Error comanda: ' + (r.message||'Error'));
-        abrirVentanaImpresion(html, size);
+        // En modo satélite no abrir ventana del navegador (rompe flujo del mesero)
+        if(typeof MODO_TERMINAL === 'undefined' || MODO_TERMINAL !== 'satelite'){
+          abrirVentanaImpresion(html, size);
+        }
       }
     });
     return;
   }
 
+  // Nunca abrir ventana del navegador desde satélite
+  if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'satelite') return;
   abrirVentanaImpresion(html, size);
 }
 
