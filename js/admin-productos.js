@@ -370,17 +370,201 @@ async function impConfirmar(){
 }
 
 async function renderProductos(){
-  document.getElementById('content').innerHTML='<div class="ph"><div><div class="pt">Productos</div><div class="ps">Catálogo sincronizado</div></div><div class="dbar"><button onclick="exportarCatalogo()" style="background:var(--b2);border:1px solid var(--blue);border-radius:7px;color:var(--blue);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar con IDs</button><button onclick="goTo(\'importar\')" style="background:var(--g2);border:1px solid var(--green);border-radius:7px;color:var(--green);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar</button></div></div><div class="card"><div class="card-h"><span class="card-t" id="pCount">—</span><input class="c-srch" placeholder="Buscar..." oninput="filtrP(this.value)"></div><table><thead><tr><th>Producto</th><th>Categoría</th><th>IVA</th><th style="text-align:right">Precio</th></tr></thead><tbody id="pBody"><tr><td colspan="4" class="loading"><span class="sp"></span></td></tr></tbody></table></div>';
+  cerrarProdPanel();
+  var INP='width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:10px 12px;outline:none;box-sizing:border-box';
+  document.getElementById('content').innerHTML=
+    '<div class="ph"><div><div class="pt">Productos</div><div class="ps">Catálogo sincronizado</div></div>'
+    +'<div class="dbar">'
+      +'<button onclick="abrirProdPanel(null)" style="background:var(--green);border:none;border-radius:7px;color:#fff;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nuevo</button>'
+      +'<button onclick="exportarCatalogo()" style="background:var(--b2);border:1px solid var(--blue);border-radius:7px;color:var(--blue);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar</button>'
+      +'<button onclick="goTo(\'importar\')" style="background:var(--card2);border:1px solid var(--border);border-radius:7px;color:var(--text2);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar</button>'
+    +'</div></div>'
+    +'<div class="card"><div class="card-h"><span class="card-t" id="pCount">—</span><input class="c-srch" placeholder="Buscar..." oninput="filtrP(this.value)"></div>'
+    +'<table><thead><tr><th>Producto</th><th>Categoría</th><th>IVA</th><th style="text-align:right">Precio</th><th></th></tr></thead><tbody id="pBody"><tr><td colspan="5" class="loading"><span class="sp"></span></td></tr></tbody></table></div>';
   try{
     allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=500');
     renderPT(allPrds);
-  }catch(e){document.getElementById('pBody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">Sin productos sincronizados</td></tr>';}
+  }catch(e){document.getElementById('pBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Sin productos sincronizados</td></tr>';}
 }
 
 function renderPT(p){
   if(!document.getElementById('pCount')) return;
   document.getElementById('pCount').textContent=p.length+' productos';
-  document.getElementById('pBody').innerHTML=p.length?p.map(function(x){return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:5px;background:'+(x.color||'#546e7a')+';flex-shrink:0"></div><span style="font-weight:600">'+x.nombre+'</span></div></td><td>'+(x.categoria||'—')+'</td><td><span class="tag tag-gr">IVA '+(x.iva==='exento'?'Exento':x.iva+'%')+'</span></td><td style="text-align:right;font-weight:700">'+(x.precio_variable?'<span style="color:var(--orange)">Variable</span>':gs(x.precio))+'</td></tr>';}).join(''):'<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Sin productos</td></tr>';
+  document.getElementById('pBody').innerHTML=p.length
+    ?p.map(function(x){
+      return '<tr style="cursor:pointer" onclick="_clickProd('+x.id+')">'
+        +'<td><div style="display:flex;align-items:center;gap:8px">'
+          +'<div style="width:24px;height:24px;border-radius:5px;background:'+(x.color||'#546e7a')+';flex-shrink:0"></div>'
+          +'<span style="font-weight:600">'+_esc(x.nombre)+'</span>'
+        +'</div></td>'
+        +'<td>'+_esc(x.categoria||'—')+'</td>'
+        +'<td><span class="tag tag-gr">IVA '+(x.iva==='exento'?'Exento':(x.iva||'10')+'%')+'</span></td>'
+        +'<td style="text-align:right;font-weight:700">'+(x.precio_variable?'<span style="color:var(--orange)">Variable</span>':gs(x.precio))+'</td>'
+        +'<td style="text-align:right"><button onclick="event.stopPropagation();_clickProd('+x.id+')" style="background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer">Editar</button></td>'
+      +'</tr>';
+    }).join('')
+    :'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Sin productos</td></tr>';
+}
+
+function _clickProd(id){
+  var p=allPrds.find(function(x){return x.id===id;});
+  if(p) abrirProdPanel(p);
+}
+
+// ── PANEL CREAR / EDITAR PRODUCTO ─────────────────────────────────────────
+
+var _prodPanel={prod:null};
+
+function abrirProdPanel(prod){
+  _prodPanel.prod=prod||null;
+  var esEd=!!prod;
+
+  // Categorías únicas para datalist
+  var cats=[];
+  (allPrds||[]).forEach(function(p){ var c=(p.categoria||'').trim().toUpperCase(); if(c&&cats.indexOf(c)<0) cats.push(c); });
+  cats.sort();
+
+  var nom  = prod ? _esc(prod.nombre||'')        : '';
+  var cat  = prod ? _esc(prod.categoria||'')      : '';
+  var pre  = prod ? (prod.precio||0)              : '';
+  var cos  = prod ? (prod.costo||0)               : '';
+  var iva  = prod ? (prod.iva||'10')              : '10';
+  var preV = prod ? !!prod.precio_variable        : false;
+  var com  = prod ? !!prod.comanda                : false;
+  var col  = prod ? (prod.color||'#546e7a')       : '#546e7a';
+  var cod  = prod ? _esc(prod.codigo||'')         : '';
+
+  var INP='width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:Barlow,sans-serif;font-size:14px;padding:10px 12px;outline:none;box-sizing:border-box';
+  var LBL='font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px';
+  var ivaOpts=['10','5','exento'].map(function(v){
+    var sel=v===iva;
+    return '<button type="button" onclick="_selIva(\''+v+'\')" id="ppIvaBtn'+v+'" style="flex:1;background:'+(sel?'var(--green)':'var(--card2)')+';border:1.5px solid '+(sel?'var(--green)':'var(--border)')+';border-radius:7px;color:'+(sel?'#fff':'var(--text2)')+';font-family:Barlow,sans-serif;font-size:13px;font-weight:700;padding:8px;cursor:pointer">'+(v==='exento'?'Exento':v+'%')+'</button>';
+  }).join('');
+
+  var overlay=document.getElementById('prodPanelOverlay');
+  if(!overlay){ overlay=document.createElement('div'); overlay.id='prodPanelOverlay'; document.body.appendChild(overlay); }
+  overlay.style.cssText='position:fixed;inset:0;z-index:200;display:flex;justify-content:flex-end';
+
+  overlay.innerHTML=
+    '<div onclick="cerrarProdPanel()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>'
+    +'<div style="position:relative;width:100%;max-width:460px;background:var(--card);height:100%;overflow-y:auto;display:flex;flex-direction:column;border-left:1px solid var(--border)">'
+      // Header
+      +'<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--card);z-index:1">'
+        +'<button type="button" onclick="cerrarProdPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;display:flex"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+        +'<span style="font-size:16px;font-weight:800">'+(esEd?'Editar producto':'Nuevo producto')+'</span>'
+        +(esEd?'<button type="button" onclick="_desactivarProd()" style="margin-left:auto;background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer">Desactivar</button>':'')
+      +'</div>'
+      // Formulario
+      +'<div style="padding:20px;flex:1;display:flex;flex-direction:column;gap:16px">'
+        // Nombre
+        +'<div><label style="'+LBL+'">Nombre *</label>'
+          +'<input id="ppNom" type="text" value="'+nom+'" oninput="this.value=this.value.toUpperCase()" placeholder="NOMBRE DEL PRODUCTO" style="'+INP+';font-weight:600" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
+        // Categoría
+        +'<div><label style="'+LBL+'">Categoría</label>'
+          +'<input id="ppCat" type="text" value="'+cat+'" list="ppCatList" oninput="this.value=this.value.toUpperCase()" placeholder="SIN CATEGORÍA" style="'+INP+'" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'">'
+          +'<datalist id="ppCatList">'+cats.map(function(c){return '<option value="'+c+'">';}).join('')+'</datalist></div>'
+        // Precio + Costo
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+          +'<div><label style="'+LBL+'">Precio (₲)</label><input id="ppPre" type="number" min="0" value="'+pre+'" placeholder="0" style="'+INP+';font-weight:700" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
+          +'<div><label style="'+LBL+'">Costo (₲)</label><input id="ppCos" type="number" min="0" value="'+cos+'" placeholder="0" style="'+INP+';font-weight:700" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
+        +'</div>'
+        // IVA
+        +'<div><label style="'+LBL+'">IVA</label>'
+          +'<input type="hidden" id="ppIva" value="'+iva+'">'
+          +'<div style="display:flex;gap:8px">'+ivaOpts+'</div>'
+        +'</div>'
+        // Toggles
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+          +'<label style="display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer">'
+            +'<input type="checkbox" id="ppPreV"'+(preV?' checked':'')+' style="width:16px;height:16px;accent-color:var(--green);cursor:pointer">'
+            +'<span style="font-size:13px;font-weight:600">Precio variable</span></label>'
+          +'<label style="display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer">'
+            +'<input type="checkbox" id="ppCom"'+(com?' checked':'')+' style="width:16px;height:16px;accent-color:var(--green);cursor:pointer">'
+            +'<span style="font-size:13px;font-weight:600">Va a comanda</span></label>'
+        +'</div>'
+        // Color + Código
+        +'<div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:end">'
+          +'<div><label style="'+LBL+'">Color</label>'
+            +'<input id="ppCol" type="color" value="'+col+'" style="width:52px;height:40px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px"></div>'
+          +'<div><label style="'+LBL+'">Código / SKU</label>'
+            +'<input id="ppCod" type="text" value="'+cod+'" placeholder="Opcional" style="'+INP+'" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
+        +'</div>'
+        // Botón guardar
+        +'<button id="ppBtnSv" type="button" onclick="_guardarProd()" style="width:100%;background:var(--green);border:none;border-radius:9px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:13px;cursor:pointer;margin-top:4px">Guardar producto</button>'
+      +'</div>'
+    +'</div>';
+
+  setTimeout(function(){ var el=document.getElementById('ppNom'); if(el) el.focus(); },80);
+}
+
+function _selIva(val){
+  document.getElementById('ppIva').value=val;
+  ['10','5','exento'].forEach(function(v){
+    var b=document.getElementById('ppIvaBtn'+v);
+    if(!b) return;
+    var sel=v===val;
+    b.style.background=sel?'var(--green)':'var(--card2)';
+    b.style.borderColor=sel?'var(--green)':'var(--border)';
+    b.style.color=sel?'#fff':'var(--text2)';
+  });
+}
+
+function cerrarProdPanel(){
+  var o=document.getElementById('prodPanelOverlay');
+  if(o) o.style.display='none';
+}
+
+async function _guardarProd(){
+  var nom=(document.getElementById('ppNom').value||'').trim().toUpperCase();
+  if(!nom){ toast('Ingresá un nombre'); document.getElementById('ppNom').focus(); return; }
+  var cat=(document.getElementById('ppCat').value||'').trim().toUpperCase()||'Sin categoría';
+  var pre=parseFloat(document.getElementById('ppPre').value)||0;
+  var cos=parseFloat(document.getElementById('ppCos').value)||0;
+  var iva=document.getElementById('ppIva').value||'10';
+  var preV=document.getElementById('ppPreV').checked;
+  var com=document.getElementById('ppCom').checked;
+  var col=document.getElementById('ppCol').value||'#546e7a';
+  var cod=(document.getElementById('ppCod').value||'').trim();
+
+  var btn=document.getElementById('ppBtnSv');
+  if(btn){btn.disabled=true;btn.textContent='Guardando...';}
+
+  var payload={
+    nombre:nom, categoria:cat,
+    precio:preV?0:pre, costo:cos, iva:iva,
+    precio_variable:preV, comanda:com,
+    color:col, codigo:cod,
+    activo:true, licencia_email:SE,
+    updated_at:new Date().toISOString()
+  };
+
+  try{
+    if(_prodPanel.prod){
+      await supaPatch('pos_productos','id=eq.'+_prodPanel.prod.id+'&licencia_email=ilike.'+encodeURIComponent(SE),payload);
+      toast('✓ Producto actualizado');
+    } else {
+      await supaPost('pos_productos',payload,null,true);
+      toast('✓ Producto creado');
+    }
+    cerrarProdPanel();
+    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=500');
+    renderPT(allPrds);
+  }catch(e){
+    toast('Error: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='Guardar producto';}
+  }
+}
+
+async function _desactivarProd(){
+  if(!_prodPanel.prod) return;
+  if(!confirm('¿Desactivar "'+_prodPanel.prod.nombre+'"? Dejará de aparecer en ventas.')) return;
+  try{
+    await supaPatch('pos_productos','id=eq.'+_prodPanel.prod.id+'&licencia_email=ilike.'+encodeURIComponent(SE),{activo:false,updated_at:new Date().toISOString()});
+    toast('Producto desactivado');
+    cerrarProdPanel();
+    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=500');
+    renderPT(allPrds);
+  }catch(e){ toast('Error: '+e.message); }
 }
 
 async function exportarCatalogo(){
