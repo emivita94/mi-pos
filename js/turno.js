@@ -141,6 +141,7 @@ function supaInsertVenta(data){
                       nombre: i.name,
                       qty:    i.qty,
                       precio: i.price,
+                      costo:  i.costo||0,
                       iva:    i.iva||'10',
                       obs:    i.obs||''
                     }))),
@@ -266,22 +267,29 @@ async function stockDescontarVenta(items, comprobante){
 
     await supaPost('stock_comprobante_items', compItems, null, true);
 
-    // Upsert stock (actualizar cantidades)
+    // Upsert stock con decremento atómico
+    // Intenta RPC descontar_stock_venta (operación atómica, previene race condition multi-terminal).
+    // Si la RPC no existe aún (migration pendiente), cae al upsert clásico.
     for(const it of itemsInv){
       const qty   = parseFloat(it.qty)||1;
       const antes = stockMap[it.id]||0;
       const desp  = antes - qty;
       try {
-        await supaPost('stock', {
-            deposito_id: depId,
-            sucursal_id: sucId,
-            licencia_id: licId,
-            producto_id: it.id,
-            nombre_producto: it.name||it.nombre||'',
-            cantidad: desp,
-            updated_at: new Date().toISOString()
-          }, 'deposito_id,producto_id', true);
-      } catch(e){ console.warn('[Stock] upsert error prod', it.id, ':', e.message); }
+        await supaRPC('descontar_stock_venta', {
+          p_deposito_id: depId, p_sucursal_id: sucId, p_licencia_id: licId,
+          p_producto_id: it.id, p_cantidad: qty,
+          p_nombre_producto: it.name||it.nombre||''
+        });
+      } catch(_rpcErr) {
+        // Fallback: upsert clásico (no atómico — aplicar migration SQL para corregir)
+        try {
+          await supaPost('stock', {
+              deposito_id: depId, sucursal_id: sucId, licencia_id: licId,
+              producto_id: it.id, nombre_producto: it.name||it.nombre||'',
+              cantidad: desp, updated_at: new Date().toISOString()
+            }, 'deposito_id,producto_id', true);
+        } catch(e){ console.warn('[Stock] upsert error prod', it.id, ':', e.message); }
+      }
     }
     console.log('[Stock] Descontado — '+itemsInv.length+' productos | depósito:', depId);
   }catch(e){

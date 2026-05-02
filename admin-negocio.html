@@ -442,8 +442,22 @@ async function saveConf(){
 (function(){
   applyAdminTheme();
   var e=localStorage.getItem('ae'),p=localStorage.getItem('ap'),v=localStorage.getItem('av');
-  // Solo auto-login si hay sesión previamente validada (no Demo)
-  var li=localStorage.getItem('ali');if(e&&p&&p!=='Demo'){SE=e.toLowerCase().trim();SP=p;SV=v;SLI=li?parseInt(li):null;showApp();}
+  var li=localStorage.getItem('ali');
+  if(e&&p&&p!=='Demo'){
+    SE=e.toLowerCase().trim();SP=p;SV=v;SLI=li?parseInt(li):null;
+    // Verificar sesión contra Supabase (previene bypass por DevTools en localStorage)
+    sg('licencias','email_cliente=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id&limit=1')
+      .then(function(rows){
+        if(rows&&rows.length){
+          showApp();
+        } else {
+          doLogout();
+        }
+      })
+      .catch(function(){
+        showApp(); // Sin conexión — confiar en sesión cacheada
+      });
+  }
 })();
 
 

@@ -429,7 +429,8 @@ async function balanceBuscar(licId){
       var items=[];
       try{ items=typeof v.items==='string'?JSON.parse(v.items):(v.items||[]); }catch(e){ console.warn('[Balance] Error parseando items:', e.message); }
       items.forEach(function(it){
-        costoVentas+=(costoMap[it.id]||0)*(parseFloat(it.qty)||1);
+        var costoUnit = it.costo != null ? parseFloat(it.costo) : (costoMap[it.id]||0);
+        costoVentas += costoUnit * (parseFloat(it.qty)||1);
       });
     });
     var utilidadBruta=ventaBruta-costoVentas;
