@@ -218,17 +218,10 @@ async function sateliteEnviarPedido(){
     }
   }
 
-  // ── Imprimir comanda en cocina (solo si hay impresora de comanda configurada) ─
-  // printerType_ticket es impresora de tickets (recibos), NO de comanda.
-  // En satélite nunca abrir ventana del navegador — rompe el flujo del mesero.
-  var tieneComandaPrinter = isAndroidAPK()
-    || localStorage.getItem('btps_mac');
-  if(tieneComandaPrinter){
-    imprimirComandaPreCobro();
-  } else {
-    cart.forEach(function(i){ i.enviado = true; });
-    console.log('[Satelite] Sin impresora de comanda — items marcados como enviados');
-  }
+  // Satélite: nunca abrir diálogo de impresión — solo marcar items como enviados.
+  // La caja es quien imprime el ticket al cobrar.
+  cart.forEach(function(i){ i.enviado = true; });
+  console.log('[Satelite] Items marcados como enviados (sin imprimir comanda)');
 
   // ── Guardar/actualizar backup local en pendientes[] ──────────────────────
   // Si el cart vino de un pendiente ya guardado (currentTicketNro != null),
