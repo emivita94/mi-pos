@@ -935,14 +935,12 @@ async function sateliteVerificarCajaActiva(){
   if(MODO_TERMINAL !== 'satelite') return true;
   if(!navigator.onLine || USAR_DEMO) return true;
 
-  var email    = localStorage.getItem('lic_email');
-  var sucursal = localStorage.getItem('pos_sucursal') || 'Principal';
+  var email = localStorage.getItem('lic_email');
   if(!email) return false;
 
   try{
     var rows = await supaGet('pos_turno',
         'licencia_email=eq.' + encodeURIComponent(email)
-        + '&sucursal=eq.'    + encodeURIComponent(sucursal)
         + '&estado=eq.abierto'
         + '&limit=1'
         + '&select=id,terminal,fecha_apertura');
@@ -955,7 +953,7 @@ async function sateliteVerificarCajaActiva(){
     return hayTurno;
   } catch(e){
     console.warn('[Satelite] Error verificando caja:', e.message);
-    return !navigator.onLine;
+    return true; // en caso de error, permitir operar (no bloquear)
   }
 }
 
@@ -1067,7 +1065,6 @@ async function sateliteReintentarCaja(){
   try{
     var rows = await supaGet('pos_turno',
         'licencia_email=eq.' + encodeURIComponent(email)
-        + '&sucursal=eq.'    + encodeURIComponent(sucursal)
         + '&estado=eq.abierto'
         + '&limit=1'
         + '&select=id,terminal,fecha_apertura');
