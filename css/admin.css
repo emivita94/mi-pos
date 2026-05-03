@@ -1,22 +1,25 @@
 /* ── Admin Panel Styles ── */
 *{margin:0;padding:0;box-sizing:border-box;}
 :root,[data-theme="dark"]{
-  --bg:#0f0f0f;--card:#161616;--card2:#1e1e1e;
+  /* capas oscuras con leve tinte azul-frío: bg → card → card2 son claramente distintas */
+  --bg:#0d0d14;--card:#15151f;--card2:#1f1f2e;
   --green:#4caf50;--g2:rgba(76,175,80,.15);
   --red:#ef5350;--r2:rgba(239,83,80,.15);
   --orange:#ff9800;--o2:rgba(255,152,0,.15);
   --blue:#42a5f5;--b2:rgba(66,165,245,.15);
-  --border:#222;--muted:#666;
-  --text:#fff;--text2:#ccc;--input-bg:#1e1e1e;--input-border:#2a2a2a;
+  --border:#28283a;--muted:#66668a;
+  --text:#f0f0ff;--text2:#b0b0cc;--input-bg:#1f1f2e;--input-border:#333350;
 }
 [data-theme="light"]{
-  --bg:#f5f5f5;--card:#ffffff;--card2:#f0f0f0;
+  /* fondo azul-gris frío, cards blancas con sombra → se ven flotando sobre el fondo */
+  --bg:#e8ecf5;--card:#ffffff;--card2:#edf0fa;
   --green:#43a047;--g2:rgba(67,160,71,.12);
   --red:#e53935;--r2:rgba(229,57,53,.12);
   --orange:#f57c00;--o2:rgba(245,124,0,.12);
   --blue:#1e88e5;--b2:rgba(30,136,229,.12);
-  --border:#e0e0e0;--muted:#757575;
-  --text:#212121;--text2:#424242;--input-bg:#fff;--input-border:#bdbdbd;
+  --border:#cdd2e8;--muted:#7880a0;
+  --text:#1a1a2e;--text2:#3a3a5a;--input-bg:#f4f6ff;--input-border:#c0c8e0;
+  --card-shadow:0 1px 3px rgba(0,0,32,.08),0 0 0 1px rgba(0,0,32,.04);
 }
 body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
@@ -161,3 +164,19 @@ tr:last-child td{border-bottom:none;}
 .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);background:#2a2a2a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;pointer-events:none;}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 @media(min-width:900px){.toast{bottom:20px;}}
+
+/* Light mode: cards flotan con sombra sobre fondo azul-gris */
+[data-theme="light"] .card,
+[data-theme="light"] .kc,
+[data-theme="light"] .cj,
+[data-theme="light"] .li,
+[data-theme="light"] .tc,
+[data-theme="light"] .tim-card,
+[data-theme="light"] .cfg-s,
+[data-theme="light"] .sbar,
+[data-theme="light"] .lbox{box-shadow:var(--card-shadow);}
+[data-theme="light"] #sidebar{box-shadow:2px 0 12px rgba(0,0,32,.08);}
+[data-theme="light"] tr:hover td{background:rgba(0,0,40,.025);}
+
+/* Dark mode: hover sutil en filas de tabla */
+[data-theme="dark"] tr:hover td{background:rgba(255,255,255,.025);}
