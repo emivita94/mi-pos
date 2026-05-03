@@ -275,7 +275,7 @@ function renderInvTabla(lista){
     else{stag='OK';scol='tag-g';}
     return '<tr>'
       +'<td><div style="font-weight:600">'+(r.nombre_producto||'Producto '+r.producto_id)+'</div></td>'
-      +'<td style="color:var(--muted);font-size:12px">—</td>'
+      +'<td style="color:var(--muted);font-size:12px">'+(r.categoria||'—')+'</td>'
       +'<td style="text-align:center;font-size:17px;font-weight:800;color:'+(q<=0?'var(--red)':m>0&&q<=m?'var(--orange)':'var(--text)')+'">'+q+'</td>'
       +'<td style="text-align:center;color:var(--muted)">'+(m>0?m:'—')+'</td>'
       +'<td style="text-align:center;color:var(--muted)">'+(r.costo_unitario?gs(r.costo_unitario):'—')+'</td>'
@@ -335,6 +335,7 @@ async function cargarHistorial(){
   document.getElementById('invMEnt').textContent='\u2014';
   document.getElementById('invMSal').textContent='\u2014';
   var licId=await invGetLicId();
+  var addDayInv=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
   try{
     // Buscar comprobantes que tienen este producto como ítem
     // Usando la tabla stock_comprobante_items para filtrar
@@ -363,8 +364,8 @@ async function cargarHistorial(){
     var qComp='id=in.('+compIds.join(',')+')'
       +'&licencia_id=eq.'+licId
       +(depIds.length?'&deposito_id=in.('+depIds.join(',')+')'  :'')
-      +(fd?'&fecha=gte.'+fd+'T00:00:00':'')
-      +(fh?'&fecha=lte.'+fh+'T23:59:59':'')
+      +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
+      +(fh?'&fecha=lte.'+addDayInv(fh)+'T03:59:59':'')
       +'&order=fecha.desc&limit=500';
     var comps=await sg('stock_comprobantes',qComp);
 
@@ -806,6 +807,7 @@ async function extBuscar(){
   var depId=parseInt((document.getElementById('extDep')||{}).value||'0')||null;
 
   var licId=await extGetLicId();
+  var addDayExt=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
 
   // Ocultar todo mientras carga
   ['extKpis','extGrafCard','extTablaCard','extEmpty'].forEach(function(id){
@@ -837,7 +839,7 @@ async function extBuscar(){
         var qPrevC='id=in.('+prevCompIds.join(',')+')'
           +'&licencia_id=eq.'+licId
           +(depIds.length?'&deposito_id=in.('+depIds.join(',')+')'  :'')
-          +'&fecha=lt.'+fd+'T00:00:00&select=id&limit=5000';
+          +'&fecha=lt.'+fd+'T04:00:00&select=id&limit=5000';
         var prevComps=await sg('stock_comprobantes',qPrevC);
         var prevCompSet=new Set(prevComps.map(function(c){return c.id;}));
         prevItems.forEach(function(i){if(prevCompSet.has(i.comprobante_id))saldoAnt+=(i.cantidad||0);});
@@ -860,8 +862,8 @@ async function extBuscar(){
     var qComp='id=in.('+compIds.join(',')+')'
       +'&licencia_id=eq.'+licId
       +(depIds.length?'&deposito_id=in.('+depIds.join(',')+')'  :'')
-      +(fd?'&fecha=gte.'+fd+'T00:00:00':'')
-      +(fh?'&fecha=lte.'+fh+'T23:59:59':'')
+      +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
+      +(fh?'&fecha=lte.'+addDayExt(fh)+'T03:59:59':'')
       +'&order=fecha.asc,id.asc&limit=5000';
     var comps=await sg('stock_comprobantes',qComp);
 
@@ -1607,14 +1609,15 @@ async function movFiltrarLista(tiposStr){
   var tbody=document.getElementById('mlBody');
   if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="8" class="loading"><span class="sp"></span>Buscando...</td></tr>';
+  var addDayMov=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
 
   try{
     var tipos=tiposStr.split(',');
     var q='licencia_id=eq.'+licId
       +'&tipo=in.('+tipos.join(',')+')'
       +(depId?'&deposito_id=eq.'+depId:'')
-      +(fd?'&fecha=gte.'+fd+'T00:00:00':'')
-      +(fh?'&fecha=lte.'+fh+'T23:59:59':'')
+      +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
+      +(fh?'&fecha=lte.'+addDayMov(fh)+'T03:59:59':'')
       +'&order=fecha.desc&limit=300';
     var comps=await sg('stock_comprobantes',q);
 

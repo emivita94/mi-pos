@@ -40,20 +40,20 @@
       <div style="font-size:11px;color:var(--muted);" id="sbEmail">—</div>
     </div>
     <div class="sb-nav">
-      <div style="font-size:10px;color:#3a3a3a;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:10px 14px 3px;">Principal</div>
+      <div class="sb-sep">Principal</div>
       <div class="sb-i on" id="sbi-dashboard" onclick="goTo('dashboard')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</div>
       <div class="sb-i" id="sbi-terminales" onclick="goTo('terminales')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Terminales</div>
-      <div style="font-size:10px;color:#3a3a3a;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:10px 14px 3px;">Gestión</div>
+      <div class="sb-sep">Operaciones</div>
       <div class="sb-i" id="sbi-cajas" onclick="goTo('cajas')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Cajas / Turnos</div>
-      <div class="sb-i" id="sbi-importar" onclick="goTo('importar')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Importar productos
-      </div>
+      <div class="sb-sep">Catálogo</div>
       <div class="sb-i" id="sbi-productos" onclick="goTo('productos')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Productos</div>
+      <div class="sb-i" id="sbi-importar" onclick="goTo('importar')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar productos</div>
+      <div class="sb-sep">Inventario</div>
       <div class="sb-i" id="sbi-inventarios" onclick="goTo('inventarios')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Inventarios</div>
       <div class="sb-i" id="sbi-extracto" onclick="goTo('extracto')">
@@ -64,22 +64,23 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Movimientos de Stock</div>
       <div class="sb-i" id="sbi-conteo" onclick="goTo('conteo')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Conteo Físico</div>
+      <div class="sb-sep">Finanzas</div>
       <div class="sb-i" id="sbi-gastos" onclick="goTo(&apos;gastos&apos;)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Gastos Fijos</div>
       <div class="sb-i" id="sbi-plan-gastos" onclick="goTo(&apos;plan-gastos&apos;)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Plan de Gastos</div>
-      <div style="font-size:10px;color:#3a3a3a;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:10px 14px 3px;">Reportes</div>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Plan de Gastos</div>
+      <div class="sb-i" id="sbi-balance" onclick="goTo(&apos;balance&apos;)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Balance P&amp;G</div>
+      <div class="sb-i" id="sbi-iva" onclick="goTo(&apos;iva&apos;)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Liquidación IVA</div>
+      <div class="sb-sep">Reportes</div>
       <div class="sb-i" id="sbi-ventas" onclick="goTo('ventas')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Historial de Ventas</div>
       <div class="sb-i" id="sbi-rep-productos" onclick="goTo('rep-productos')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h2v5H7zM11 5h2v8h-2zM15 10h2v3h-2z"/></svg>Ventas por Producto</div>
       <div class="sb-i" id="sbi-rep-compras" onclick="goTo(&apos;rep-compras&apos;)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Reporte de Compras</div>
-      <div class="sb-i" id="sbi-balance" onclick="goTo(&apos;balance&apos;)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Balance P&amp;G</div>
-      <div class="sb-i" id="sbi-iva" onclick="goTo(&apos;iva&apos;)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Liquidación IVA</div>
-      <div style="font-size:10px;color:#3a3a3a;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:10px 14px 3px;">Sistema</div>
+      <div class="sb-sep">Sistema</div>
       <div class="sb-i" id="sbi-admin" onclick="goTo('admin')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Administración</div>
       <div class="sb-i" id="sbi-config" onclick="goTo('config')">
@@ -88,7 +89,7 @@
     <div class="sb-ft">
       <div class="sb-av" id="sbAv">?</div>
       <div style="flex:1;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="sbUser">—</div>
-      <button id="sbThemeBtn" onclick="toggleAdminTheme()" title="Cambiar tema" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;">🌙</button>
+      <button id="sbThemeBtn" onclick="toggleAdminTheme()" title="Cambiar tema" style="background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0;color:var(--muted);display:flex;align-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <button style="background:none;border:none;color:var(--muted);cursor:pointer;" onclick="doLogout()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
@@ -102,7 +103,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-size:12px;color:var(--muted);" id="topTitle">Dashboard</span>
-      <button class="btn-ic" id="themeToggleBtn" onclick="toggleAdminTheme()" title="Cambiar tema" style="font-size:16px;padding:4px 6px;">🌙</button>
+      <button class="btn-ic" id="themeToggleBtn" onclick="toggleAdminTheme()" title="Cambiar tema" style="padding:4px 6px;display:flex;align-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <button class="btn-ic" onclick="doLogout()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
@@ -221,26 +222,28 @@
 <script src="js/admin-inventario.js"></script>
 <script src="js/admin-finanzas.js"></script>
 <script>
+var _iconMoon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+var _iconSun  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
 function toggleAdminTheme(){
   var current = document.documentElement.getAttribute('data-theme') || 'dark';
   var next = current === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('admin_theme', next);
-  var icon = next === 'dark' ? '🌙' : '☀️';
+  var icon = next === 'dark' ? _iconMoon : _iconSun;
   var btn = document.getElementById('themeToggleBtn');
   var sbBtn = document.getElementById('sbThemeBtn');
-  if(btn) btn.textContent = icon;
-  if(sbBtn) sbBtn.textContent = icon;
+  if(btn) btn.innerHTML = icon;
+  if(sbBtn) sbBtn.innerHTML = icon;
 }
 
 function applyAdminTheme(){
   var saved = localStorage.getItem('admin_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
-  var icon = saved === 'dark' ? '🌙' : '☀️';
+  var icon = saved === 'dark' ? _iconMoon : _iconSun;
   var btn = document.getElementById('themeToggleBtn');
   var sbBtn = document.getElementById('sbThemeBtn');
-  if(btn) btn.textContent = icon;
-  if(sbBtn) sbBtn.textContent = icon;
+  if(btn) btn.innerHTML = icon;
+  if(sbBtn) sbBtn.innerHTML = icon;
 }
 
 // ── CREDENCIALES vienen de js/config.js ──
