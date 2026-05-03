@@ -351,6 +351,15 @@ async function loadDashChartsData(f){
     await _render7Dias(hoy,fmt,p2,textColor,gridColor,fontFam);
     _renderInsights(hoy,fmt,p2);
 
+    // Mapa producto_id → categoria (para ventas históricas sin campo cat en items)
+    var _catPorId={};
+    try{
+      var _prods=await sg('pos_productos',
+        'licencia_email=ilike.'+encodeURIComponent(SE)+
+        '&activo=eq.true&select=id,categoria&limit=2000');
+      _prods.forEach(function(p){ if(p.id) _catPorId[p.id]=p.categoria||''; });
+    }catch(e2){ console.warn('[Dash] No se pudo cargar productos para categorías:', e2.message); }
+
     // Parsear items del período
     var catsMap={}, prodsMap={};
     v.forEach(function(x){
@@ -359,7 +368,7 @@ async function loadDashChartsData(f){
         if(!Array.isArray(items)) return;
         items.forEach(function(it){
           if(it.esDescuento) return;
-          var cat=it.cat||it.category||it.categoria||'Sin categoría';
+          var cat=it.cat||it.category||it.categoria||_catPorId[it.id]||'Sin categoría';
           var nom=it.name||it.nombre||'—';
           var qty=it.qty||1;
           var sub=(it.price||it.precio||0)*qty;
