@@ -996,6 +996,67 @@ async function ivaCerrar(id){
 }
 
 // ════════════════════════════════════════════════════════
+// PDF EXPORT — abre ventana de impresión con formato limpio
+// ════════════════════════════════════════════════════════
+function repExportPDF(opts){
+  var win = window.open('','_blank');
+  if(!win){ toast('Habilitá popups para exportar PDF'); return; }
+  var sc = opts.statCards||[];
+  var hds = opts.headers||[];
+  var now = new Date().toLocaleDateString('es-PY',{day:'2-digit',month:'long',year:'numeric'});
+  var css =
+    '*{box-sizing:border-box;margin:0;padding:0}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;background:#fff;font-size:13px}'+
+    '.page{max-width:800px;margin:0 auto;padding:36px 32px}'+
+    '.hd{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;margin-bottom:24px;border-bottom:3px solid #0d47a1}'+
+    '.hd-l h1{font-size:20px;font-weight:900;color:#0d47a1;margin-bottom:5px}'+
+    '.hd-l p{font-size:11px;color:#666;margin-bottom:2px}'+
+    '.hd-r{text-align:right}'+
+    '.hd-r p{font-size:11px;color:#777;margin-bottom:8px}'+
+    '.pbtn{background:#0d47a1;color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.3px}'+
+    '.stats{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}'+
+    '.stat{flex:1;min-width:130px;background:#edf2ff;border-radius:8px;padding:12px 16px;border-left:4px solid #0d47a1}'+
+    '.stat.red{border-left-color:#c62828;background:#fff0f0}'+
+    '.stat .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#666;font-weight:700;margin-bottom:5px}'+
+    '.stat .val{font-size:20px;font-weight:900;color:#0d47a1}'+
+    '.stat.red .val{color:#c62828}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:24px}'+
+    'th{background:#0d47a1;color:#fff;padding:8px 11px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}'+
+    'th.r{text-align:right}'+
+    'td{padding:8px 11px;border-bottom:1px solid #e5eaf2;font-size:12px}'+
+    'td.r{text-align:right;font-weight:700}'+
+    'tr:nth-child(even) td{background:#f7f9fc}'+
+    '.ft{margin-top:4px;padding-top:12px;border-top:1px solid #ddd;text-align:center;font-size:10px;color:#aaa}'+
+    '@media print{.np{display:none}@page{margin:12mm}}';
+  var html =
+    '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'+
+    '<title>'+opts.titulo+'</title><style>'+css+'</style></head><body>'+
+    '<div class="page">'+
+    '<div class="hd">'+
+      '<div class="hd-l"><h1>'+opts.titulo+'</h1>'+
+        '<p>Período: <strong>'+opts.periodo+'</strong></p>'+
+        '<p>'+opts.empresa+'</p>'+
+      '</div>'+
+      '<div class="hd-r"><p>'+now+'</p>'+
+        '<button class="pbtn np" onclick="window.print()">↓ Guardar PDF</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="stats">'+
+      sc.map(function(s){
+        return '<div class="stat'+(s.red?' red':'')+'"><div class="lbl">'+s.lbl+'</div><div class="val">'+s.val+'</div></div>';
+      }).join('')+
+    '</div>'+
+    '<table><thead><tr>'+
+      hds.map(function(h){ return '<th'+(h.r?' class="r"':'')+'>'+h.t+'</th>'; }).join('')+
+    '</tr></thead><tbody>'+opts.rows+'</tbody></table>'+
+    '<div class="ft">Sistema POS NODO &middot; '+new Date().getFullYear()+'</div>'+
+    '</div></body></html>';
+  win.document.write(html);
+  win.document.close();
+  setTimeout(function(){ win.print(); }, 500);
+}
+
+// ════════════════════════════════════════════════════════
 // REPORTE: VENTAS POR PRODUCTO
 // ════════════════════════════════════════════════════════
 
@@ -1003,19 +1064,35 @@ async function renderRepProductos(fdKey){
   fdKey = fdKey || 'mes';
   var c = document.getElementById('content');
   var fd = getFD(fdKey);
-  var labels = {hoy:'Ventas del día de hoy', semana:'Ventas de esta semana', mes:'Ventas de este mes'};
-
-  var pillsHtml =
-    '<div style="display:inline-flex;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:1px;">'+
-      '<button class="atab'+(fdKey==='hoy'?' on':'')+'" onclick="renderRepProductos(\'hoy\')">Hoy</button>'+
-      '<button class="atab'+(fdKey==='semana'?' on':'')+'" onclick="renderRepProductos(\'semana\')">Semana</button>'+
-      '<button class="atab'+(fdKey==='mes'?' on':'')+'" onclick="renderRepProductos(\'mes\')">Mes</button>'+
-    '</div>';
+  var isCustom = fdKey.startsWith('custom_');
+  var p2 = function(n){ return String(n).padStart(2,'0'); };
+  var addDay = function(ds){ var p=ds.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); };
+  var fd0 = fd.d.slice(0,10), fh0 = fd.h.slice(0,10);
+  var customPts = isCustom ? fdKey.slice(7).split('_') : [];
+  var rangoLabel = getFDLabel(fdKey);
+  var icoPDF = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>';
 
   c.innerHTML =
-    '<div class="ph" style="margin-bottom:14px">'+
-      '<div><div class="pt">Ventas por Producto</div><div class="ps">'+(labels[fdKey]||'')+'</div></div>'+
-      pillsHtml+
+    '<div class="ph" style="margin-bottom:14px;flex-wrap:wrap;gap:10px">'+
+      '<div>'+
+        '<div class="pt">Ventas por Producto</div>'+
+        '<div class="ps" style="color:var(--muted);">'+rangoLabel+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+
+        '<div style="display:inline-flex;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:1px;">'+
+          '<button class="atab'+(fdKey==='hoy'?' on':'')+'" onclick="renderRepProductos(\'hoy\')">Hoy</button>'+
+          '<button class="atab'+(fdKey==='semana'?' on':'')+'" onclick="renderRepProductos(\'semana\')">Semana</button>'+
+          '<button class="atab'+(fdKey==='mes'?' on':'')+'" onclick="renderRepProductos(\'mes\')">Mes</button>'+
+          '<button class="atab'+(fdKey==='30d'?' on':'')+'" onclick="renderRepProductos(\'30d\')">30 días</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:4px;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 8px;">'+
+          '<input type="date" id="rpPD" value="'+(customPts[0]||fd0)+'" class="d-inp" style="font-size:12px;padding:3px 5px;min-width:126px;border:none;background:transparent;">'+
+          '<span style="color:var(--muted);font-size:11px;padding:0 2px;">–</span>'+
+          '<input type="date" id="rpPH" value="'+(customPts[1]||fh0)+'" class="d-inp" style="font-size:12px;padding:3px 5px;min-width:126px;border:none;background:transparent;">'+
+          '<button class="atab'+(isCustom?' on':'')+'" style="white-space:nowrap;margin-left:2px;padding:6px 12px;" onclick="(function(){var d=document.getElementById(\'rpPD\').value,h=document.getElementById(\'rpPH\').value;if(!d||!h){toast(\'Seleccioná ambas fechas\');return;}if(d>h){toast(\'La fecha inicial debe ser menor\');return;}renderRepProductos(\'custom_\'+d+\'_\'+h);})()">Aplicar</button>'+
+        '</div>'+
+        '<button id="repProdPdfBtn" style="display:flex;gap:5px;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:var(--text);font-family:Barlow,sans-serif;font-weight:700;">'+icoPDF+' PDF</button>'+
+      '</div>'+
     '</div>'+
     '<div id="repProdWrap"><div class="loading"><span class="sp"></span>Cargando...</div></div>';
 
@@ -1023,8 +1100,9 @@ async function renderRepProductos(fdKey){
   try {
     var ventas = await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
-      '&fecha=gte.'+fd.d+'&fecha=lte.'+fd.h+
-      '&select=items,total&limit=3000');
+      '&fecha=gte.'+fd0+'T04:00:00'+
+      '&fecha=lte.'+addDay(fh0)+'T03:59:59'+
+      '&select=items,total&limit=5000');
 
     var prodsMap = {};
     var totalGeneral = 0;
@@ -1048,6 +1126,35 @@ async function renderRepProductos(fdKey){
     });
 
     var entries = Object.entries(prodsMap).sort(function(a,b){ return b[1].tot-a[1].tot; });
+
+    var pdfBtn = document.getElementById('repProdPdfBtn');
+    if(pdfBtn){
+      pdfBtn.onclick = function(){
+        repExportPDF({
+          titulo: 'Ventas por Producto',
+          periodo: rangoLabel,
+          empresa: SE||'',
+          statCards: [
+            {lbl:'Productos distintos', val:String(entries.length)},
+            {lbl:'Ventas analizadas', val:String(ventas.length)},
+            {lbl:'Total del período', val:gs(totalGeneral)}
+          ],
+          headers: [
+            {t:'Producto'},{t:'Categoría'},{t:'Unid.',r:true},{t:'Total',r:true},{t:'%',r:true}
+          ],
+          rows: entries.map(function(e){
+            var pct = totalGeneral>0 ? Math.round(e[1].tot/totalGeneral*100) : 0;
+            return '<tr>'+
+              '<td>'+e[0]+'</td>'+
+              '<td style="color:#666;font-size:11px;">'+e[1].cat+'</td>'+
+              '<td class="r">'+e[1].qty+'</td>'+
+              '<td class="r">'+gs(e[1].tot)+'</td>'+
+              '<td class="r" style="color:#888;font-size:11px;">'+pct+'%</td>'+
+            '</tr>';
+          }).join('')
+        });
+      };
+    }
 
     if(!entries.length){
       wrap.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);">Sin ventas en el período seleccionado</div>';
@@ -1105,22 +1212,35 @@ async function renderRepCompras(fdKey){
   fdKey = fdKey || 'mes';
   var c = document.getElementById('content');
   var fd = getFD(fdKey);
-  var labels = {hoy:'Compras del día de hoy', semana:'Compras de esta semana', mes:'Compras de este mes'};
+  var isCustom = fdKey.startsWith('custom_');
   var p2 = function(n){ return String(n).padStart(2,'0'); };
-
-  var pillsHtml =
-    '<div style="display:inline-flex;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:1px;">'+
-      '<button class="atab'+(fdKey==='hoy'?' on':'')+'" onclick="renderRepCompras(\'hoy\')">Hoy</button>'+
-      '<button class="atab'+(fdKey==='semana'?' on':'')+'" onclick="renderRepCompras(\'semana\')">Semana</button>'+
-      '<button class="atab'+(fdKey==='mes'?' on':'')+'" onclick="renderRepCompras(\'mes\')">Mes</button>'+
-    '</div>';
+  var addDay = function(ds){ var p=ds.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); };
+  var fd0 = fd.d.slice(0,10), fh0 = fd.h.slice(0,10);
+  var customPts = isCustom ? fdKey.slice(7).split('_') : [];
+  var rangoLabel = getFDLabel(fdKey);
+  var icoPDF = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>';
 
   c.innerHTML =
-    '<div class="ph" style="margin-bottom:14px">'+
-      '<div><div class="pt">Reporte de Compras</div><div class="ps">'+(labels[fdKey]||'')+'</div></div>'+
-      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
-        pillsHtml+
+    '<div class="ph" style="margin-bottom:14px;flex-wrap:wrap;gap:10px">'+
+      '<div>'+
+        '<div class="pt">Reporte de Compras</div>'+
+        '<div class="ps" style="color:var(--muted);">'+rangoLabel+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+
+        '<div style="display:inline-flex;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:1px;">'+
+          '<button class="atab'+(fdKey==='hoy'?' on':'')+'" onclick="renderRepCompras(\'hoy\')">Hoy</button>'+
+          '<button class="atab'+(fdKey==='semana'?' on':'')+'" onclick="renderRepCompras(\'semana\')">Semana</button>'+
+          '<button class="atab'+(fdKey==='mes'?' on':'')+'" onclick="renderRepCompras(\'mes\')">Mes</button>'+
+          '<button class="atab'+(fdKey==='30d'?' on':'')+'" onclick="renderRepCompras(\'30d\')">30 días</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:4px;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 8px;">'+
+          '<input type="date" id="rpCD" value="'+(customPts[0]||fd0)+'" class="d-inp" style="font-size:12px;padding:3px 5px;min-width:126px;border:none;background:transparent;">'+
+          '<span style="color:var(--muted);font-size:11px;padding:0 2px;">–</span>'+
+          '<input type="date" id="rpCH" value="'+(customPts[1]||fh0)+'" class="d-inp" style="font-size:12px;padding:3px 5px;min-width:126px;border:none;background:transparent;">'+
+          '<button class="atab'+(isCustom?' on':'')+'" style="white-space:nowrap;margin-left:2px;padding:6px 12px;" onclick="(function(){var d=document.getElementById(\'rpCD\').value,h=document.getElementById(\'rpCH\').value;if(!d||!h){toast(\'Seleccioná ambas fechas\');return;}if(d>h){toast(\'La fecha inicial debe ser menor\');return;}renderRepCompras(\'custom_\'+d+\'_\'+h);})()">Aplicar</button>'+
+        '</div>'+
         '<button class="btn-sv" onclick="renderCompras(\'nuevo\')">+ Nueva compra</button>'+
+        '<button id="repCompPdfBtn" style="display:flex;gap:5px;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;color:var(--text);font-family:Barlow,sans-serif;font-weight:700;">'+icoPDF+' PDF</button>'+
       '</div>'+
     '</div>'+
     '<div id="repCompWrap"><div class="loading"><span class="sp"></span>Cargando...</div></div>';
@@ -1128,9 +1248,6 @@ async function renderRepCompras(fdKey){
   var wrap = document.getElementById('repCompWrap');
   try {
     var licId = await planGetLicId();
-    var fd0 = fd.d.substring(0,10);
-    var fh0 = fd.h.substring(0,10);
-    var addDay = function(ds){ var p=ds.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]+1); return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); };
 
     var rows = await sg('stock_comprobantes',
       'licencia_id=eq.'+licId+
@@ -1140,6 +1257,36 @@ async function renderRepCompras(fdKey){
       '&order=fecha.desc&limit=500');
 
     var totGeneral = rows.reduce(function(s,x){ return s+(x.total||x.monto||0); }, 0);
+
+    var pdfBtn = document.getElementById('repCompPdfBtn');
+    if(pdfBtn){
+      pdfBtn.onclick = function(){
+        repExportPDF({
+          titulo: 'Reporte de Compras',
+          periodo: rangoLabel,
+          empresa: SE||'',
+          statCards: [
+            {lbl:'Total compras', val:gs(totGeneral), red:true},
+            {lbl:'Registros', val:String(rows.length)}
+          ],
+          headers: [
+            {t:'Fecha'},{t:'Proveedor / Concepto'},{t:'Tipo'},{t:'Total',r:true}
+          ],
+          rows: rows.map(function(r){
+            var fch = r.fecha ? (function(){ var d=new Date(r.fecha); return p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+d.getFullYear(); })() : '--';
+            var desc = r.proveedor||r.concepto||r.descripcion||'—';
+            var monto = r.total||r.monto||0;
+            var tipo = (r.tipo||'compra').replace('_',' ');
+            return '<tr>'+
+              '<td style="color:#666;font-size:11px;white-space:nowrap;">'+fch+'</td>'+
+              '<td style="font-weight:600;">'+desc+'</td>'+
+              '<td style="font-size:11px;text-transform:uppercase;color:#666;">'+tipo+'</td>'+
+              '<td class="r" style="color:#c62828;">'+gs(monto)+'</td>'+
+            '</tr>';
+          }).join('')
+        });
+      };
+    }
 
     if(!rows.length){
       wrap.innerHTML =

@@ -284,7 +284,18 @@ function getFD(f){
   if(f==='hoy') return {d:fmt2(h)+'T00:00:00',h:fmt2(h)+'T23:59:59'};
   if(f==='semana'){var l=new Date(h);l.setDate(h.getDate()-((h.getDay()||7)-1));return {d:fmt2(l)+'T00:00:00',h:fmt2(h)+'T23:59:59'};}
   if(f==='mes'){var i=new Date(h.getFullYear(),h.getMonth(),1);return {d:fmt2(i)+'T00:00:00',h:fmt2(h)+'T23:59:59'};}
+  if(f==='30d'){var t=new Date(h);t.setDate(h.getDate()-29);return {d:fmt2(t)+'T00:00:00',h:fmt2(h)+'T23:59:59'};}
+  if(typeof f==='string'&&f.startsWith('custom_')){var pts=f.slice(7).split('_');return {d:(pts[0]||fmt2(h))+'T00:00:00',h:(pts[1]||fmt2(h))+'T23:59:59'};}
   return {d:f+'T00:00:00',h:f+'T23:59:59'};
+}
+function getFDLabel(f){
+  var mn=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var fl=function(iso){var p=iso.split('-');return p[2]+' '+mn[+p[1]-1]+' '+p[0];};
+  var fd=getFD(f),d1=fd.d.slice(0,10),d2=fd.h.slice(0,10);
+  var p1=d1.split('-'),p2=d2.split('-');
+  if(d1===d2) return fl(d1);
+  if(p1[0]===p2[0]&&p1[1]===p2[1]) return p1[2]+' – '+p2[2]+' '+mn[+p1[1]-1]+' '+p1[0];
+  return fl(d1)+' – '+fl(d2);
 }
 
 // ── LOGIN ─────────────────────────────────────────────────
