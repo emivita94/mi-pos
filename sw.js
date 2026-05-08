@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v20260502-cierre-pc-print';
+const CACHE = 'ampersand-pos-v20260508-comanda-pendientes';
 
 const ASSETS = [
   '/',

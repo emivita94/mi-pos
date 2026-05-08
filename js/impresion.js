@@ -836,6 +836,8 @@ function imprimirTicketActual(){
   ultimoReciboData = data;
   const html = generarHTMLTicket(data, size);
   mostrarPreviewRecibo(html, size);
+  // Render del resumen + toggle de botones de comanda según config
+  if(typeof renderReciboResumen === 'function') renderReciboResumen(data);
   const titulo = document.getElementById('reciboTitulo');
   if(titulo) titulo.textContent = 'Ticket #' + String(data.nroTicket).padStart(4,'0');
   goTo('scRecibo');
@@ -863,6 +865,8 @@ function imprimirTicketPendiente(idx){
   ultimoReciboData = data;
   const html = generarHTMLTicket(data, size);
   mostrarPreviewRecibo(html, size);
+  // Render del resumen + toggle de botones de comanda según config
+  if(typeof renderReciboResumen === 'function') renderReciboResumen(data);
   const titulo = document.getElementById('reciboTitulo');
   if(titulo) titulo.textContent = 'Ticket #'+String(t.nro).padStart(4,'0');
   goTo('scRecibo');
