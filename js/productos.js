@@ -561,9 +561,9 @@ function renderArtList(filter){
   const list = document.getElementById('artList');
   if(!list) return;
 
-  // Todos los productos (excluir ítem libre y descuentos — esos tienen su propia pantalla)
+  // Todos los productos (excluir ítem libre, descuentos y INSUMOS — se gestionan en el panel admin)
   let items = PRODS.filter(p =>
-    !p.itemLibre &&
+    !p.itemLibre && !p.esInsumo &&
     (!filter ||
       p.name.toLowerCase().includes(filter.toLowerCase()) ||
       (p.codigo && p.codigo.includes(filter)))
@@ -934,7 +934,7 @@ function renderCatListScreen(){
   if(!CATEGORIAS.length){ list.innerHTML='<div class="cat-empty-msg"><p>No hay categorías</p></div>'; return; }
   list.innerHTML = '';
   CATEGORIAS.forEach((cat, i) => {
-    const count = PRODS.filter(p => p.cat === cat.nombre && p.activo!==false).length;
+    const count = PRODS.filter(p => p.cat === cat.nombre && p.activo!==false && !p.esInsumo).length;
     const div = document.createElement('div');
     if(cat.activa === false) div.style.opacity = '0.5';
     div.className = 'cat-list-item';
@@ -1130,8 +1130,8 @@ function eliminarCategoria(){
   if(catEditIdx < 0) return;
   const cat = CATEGORIAS[catEditIdx];
   // Contar productos activos (no inactivos)
-  const activeCount = PRODS.filter(p => p.cat === cat.nombre && p.activo !== false).length;
-  const totalCount  = PRODS.filter(p => p.cat === cat.nombre).length;
+  const activeCount = PRODS.filter(p => p.cat === cat.nombre && p.activo !== false && !p.esInsumo).length;
+  const totalCount  = PRODS.filter(p => p.cat === cat.nombre && !p.esInsumo).length;
   if(activeCount > 0){
     toast('No se puede eliminar: tiene '+activeCount+' artículo'+(activeCount!==1?'s':'')+' activo'+(activeCount!==1?'s':''));
     return;
@@ -1156,7 +1156,7 @@ let asignarSeleccionados = new Set();
 function asignarArticulosCategoria(){
   asignarCatNombre = document.getElementById('catNombreInput').value.trim() || 'esta categoría';
   document.getElementById('asignarTitle').textContent = 'Asignar artículos a '+asignarCatNombre;
-  asignarSeleccionados = new Set(PRODS.filter(p=>p.cat===asignarCatNombre).map(p=>p.id));
+  asignarSeleccionados = new Set(PRODS.filter(p=>p.cat===asignarCatNombre && !p.esInsumo).map(p=>p.id));
   document.getElementById('asignarSearch').value = '';
   renderAsignarList();
   goTo('scAsignarArticulos');
@@ -1166,7 +1166,7 @@ function renderAsignarList(){
   const q = document.getElementById('asignarSearch').value.toLowerCase();
   const list = document.getElementById('asignarList');
   if(!list) return;
-  let items = PRODS.filter(p=>!p.itemLibre);
+  let items = PRODS.filter(p=>!p.itemLibre && !p.esInsumo);
   if(q) items = items.filter(p=>p.name.toLowerCase().includes(q));
   list.innerHTML = '';
   items.forEach(p => {
@@ -1354,7 +1354,7 @@ function renderModifOpciones(){
 function renderModifProductos(){
   const cont = document.getElementById('modifProductosContainer');
   if(!cont) return;
-  const prods = PRODS.filter(p => !p.itemLibre && p.activo !== false);
+  const prods = PRODS.filter(p => !p.itemLibre && !p.esInsumo && p.activo !== false);
   cont.innerHTML = prods.map(p => {
     const sel = modifProdsSel.has(p.id);
     return `<div onclick="toggleModifProd(${p.id})"
@@ -1549,7 +1549,7 @@ function _renderFlujoSheet(){
 
   } else if(_flujo.paso === 2){
     // ── Paso 2: segundo sabor ──
-    const pizzas = PRODS.filter(p => p.mitad && p.activo !== false && !p.itemLibre);
+    const pizzas = PRODS.filter(p => p.mitad && p.activo !== false && !p.itemLibre && !p.esInsumo);
     const previewHTML = `
       <div style="display:flex;gap:0;border:1.5px solid var(--border2);margin-bottom:14px;">
         <div style="flex:1;padding:10px;text-align:center;border-right:1.5px solid var(--border2);">
@@ -1657,7 +1657,7 @@ function _selSabor2(prodId){
 function _filterMitadSearch(q){
   const cont = document.getElementById('mitadOptsList');
   if(!cont) return;
-  const pizzas = PRODS.filter(p => p.mitad && p.activo !== false && !p.itemLibre);
+  const pizzas = PRODS.filter(p => p.mitad && p.activo !== false && !p.itemLibre && !p.esInsumo);
   const filtradas = q ? pizzas.filter(p => p.name.toLowerCase().includes(q.toLowerCase())) : pizzas;
   cont.innerHTML = filtradas.map(p => {
     const sel = _flujo.prod2 && _flujo.prod2.id === p.id;
@@ -1823,6 +1823,7 @@ async function supaLoadProductos(){
         colorPropio:    p.color_propio || false,
         mitad:          p.mitad || false,
         inventario:     p.inventario || false,
+        esInsumo:       p.es_insumo === true,
         comanda:        p.comanda || false,
         itemLibre:      false,
         activo:         p.activo !== false && p.activo !== 0,

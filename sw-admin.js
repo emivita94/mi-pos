@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260501-dash-fix';
+const CACHE = 'ampersand-admin-v20260511-insumos';
 
 const ASSETS = [
   '/admin-negocio.html',

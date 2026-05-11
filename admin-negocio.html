@@ -51,6 +51,8 @@
       <div class="sb-sep">Catálogo</div>
       <div class="sb-i" id="sbi-productos" onclick="goTo('productos')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Productos</div>
+      <div class="sb-i" id="sbi-insumos" onclick="goTo('insumos')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Insumos</div>
       <div class="sb-i" id="sbi-importar" onclick="goTo('importar')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar productos</div>
       <div class="sb-sep">Inventario</div>
@@ -389,7 +391,7 @@ function goTo(p){
   curPage=p; closeSB();
   document.querySelectorAll('.sb-i').forEach(function(el){el.classList.toggle('on',el.id==='sbi-'+p);});
   document.querySelectorAll('.bn').forEach(function(el){el.classList.toggle('on',el.id==='bni-'+p);});
-  var titles={dashboard:'Dashboard',ventas:'Ventas',terminales:'Terminales',cajas:'Cajas / Turnos',cierres:'Cierres de Turno',importar:'Importar productos',productos:'Productos',inventarios:'Inventarios',extracto:'Extracto de Producto',compras:'Compras',movstock:'Movimientos de Stock',conteo:'Conteo Físico','rep-productos':'Ventas por Producto','rep-compras':'Reporte de Compras',gastos:'Gastos Fijos','plan-gastos':'Plan de Gastos',balance:'Balance P&G',iva:'Liquidación IVA',admin:'Administración',config:'Configuración'};
+  var titles={dashboard:'Dashboard',ventas:'Ventas',terminales:'Terminales',cajas:'Cajas / Turnos',cierres:'Cierres de Turno',importar:'Importar productos',productos:'Productos',insumos:'Insumos',inventarios:'Inventarios',extracto:'Extracto de Producto',compras:'Compras',movstock:'Movimientos de Stock',conteo:'Conteo Físico','rep-productos':'Ventas por Producto','rep-compras':'Reporte de Compras',gastos:'Gastos Fijos','plan-gastos':'Plan de Gastos',balance:'Balance P&G',iva:'Liquidación IVA',admin:'Administración',config:'Configuración'};
   document.getElementById('topTitle').textContent=titles[p]||p;
   var c=document.getElementById('content');
   c.innerHTML='<div class="loading"><span class="sp"></span>Cargando...</div>';
@@ -403,6 +405,7 @@ function renderPage(p){
   else if(p==='cajas')  renderCajas();
   else if(p==='importar') renderImportar();
   else if(p==='productos') renderProductos();
+  else if(p==='insumos') renderInsumos();
   else if(p==='inventarios') renderInventarios();
   else if(p==='extracto') renderExtracto();
   else if(p==='compras') renderCompras();

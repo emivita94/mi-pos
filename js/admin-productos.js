@@ -366,7 +366,7 @@ async function impConfirmar(){
 
   _imp.rows=[];
   if(btn){btn.disabled=false;btn.textContent='Importar ahora';}
-  try{allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=500');}catch(e){ console.warn('[Import] Error recargando productos:', e.message); }
+  try{allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.false&order=nombre.asc&limit=500');}catch(e){ console.warn('[Import] Error recargando productos:', e.message); }
 }
 
 async function renderProductos(){
@@ -382,7 +382,8 @@ async function renderProductos(){
     +'<div class="card"><div class="card-h"><span class="card-t" id="pCount">—</span><input class="c-srch" placeholder="Buscar..." oninput="filtrP(this.value)"></div>'
     +'<table><thead><tr><th>Producto</th><th>Categoría</th><th>IVA</th><th style="text-align:right">Precio</th><th></th></tr></thead><tbody id="pBody"><tr><td colspan="5" class="loading"><span class="sp"></span></td></tr></tbody></table></div>';
   try{
-    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=500');
+    // Excluir insumos (es_insumo=true). is.false captura false y NULL legacy.
+    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.false&order=nombre.asc&limit=500');
     renderPT(allPrds);
   }catch(e){document.getElementById('pBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Sin productos sincronizados</td></tr>';}
 }
@@ -534,7 +535,7 @@ async function _guardarProd(){
     precio:preV?0:pre, costo:cos, iva:iva,
     precio_variable:preV, comanda:com,
     color:col, codigo:cod,
-    activo:true, licencia_email:SE,
+    activo:true, es_insumo:false, licencia_email:SE,
     updated_at:new Date().toISOString()
   };
 
@@ -547,7 +548,7 @@ async function _guardarProd(){
       toast('✓ Producto creado');
     }
     cerrarProdPanel();
-    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=500');
+    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.false&order=nombre.asc&limit=500');
     renderPT(allPrds);
   }catch(e){
     toast('Error: '+e.message);
@@ -562,14 +563,14 @@ async function _desactivarProd(){
     await supaPatch('pos_productos','id=eq.'+_prodPanel.prod.id+'&licencia_email=ilike.'+encodeURIComponent(SE),{activo:false,updated_at:new Date().toISOString()});
     toast('Producto desactivado');
     cerrarProdPanel();
-    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=500');
+    allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.false&order=nombre.asc&limit=500');
     renderPT(allPrds);
   }catch(e){ toast('Error: '+e.message); }
 }
 
 async function exportarCatalogo(){
   toast('Preparando exportación...');
-  var prods = allPrds.length ? allPrds : await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&order=nombre.asc&limit=2000');
+  var prods = allPrds.length ? allPrds : await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.false&order=nombre.asc&limit=2000');
   if(!prods.length){ toast('Sin productos para exportar'); return; }
   var headers = ['id','nombre','categoria','precio','costo','iva','stock','stock_min','comanda','precio_variable','codigo','color'];
   var rows = prods.map(function(p){
@@ -599,6 +600,218 @@ async function exportarCatalogo(){
     var s=document.createElement('script');
     s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
     s.onload=function(){ exportarCatalogo(); };
+    document.head.appendChild(s);
+  }
+}
+
+// ── INSUMOS ───────────────────────────────────────────────
+// Mercaderías que se compran y se controlan en stock,
+// pero NO se venden (harina, queso, servilletas, gas, etc.)
+// Conviven en pos_productos con flag es_insumo=true.
+// Se fuerzan: inventario=true, precio=0, comanda=false, precio_variable=false.
+
+var allInsumos = [];
+
+async function renderInsumos(){
+  cerrarInsumoPanel();
+  document.getElementById('content').innerHTML=
+    '<div class="ph"><div><div class="pt">Insumos</div><div class="ps">Mercaderías para control de stock y compras — no se venden</div></div>'
+    +'<div class="dbar">'
+      +'<button onclick="abrirInsumoPanel(null)" style="background:var(--green);border:none;border-radius:7px;color:#fff;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nuevo insumo</button>'
+      +'<button onclick="exportarInsumos()" style="background:var(--b2);border:1px solid var(--blue);border-radius:7px;color:var(--blue);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar</button>'
+    +'</div></div>'
+    +'<div class="card" style="margin-bottom:14px;background:rgba(33,150,243,.04);border-left:3px solid var(--blue)">'
+      +'<div style="padding:12px 18px;font-size:12px;color:var(--muted);line-height:1.5">'
+        +'<strong style="color:var(--blue)">¿Qué es un insumo?</strong> '
+        +'Es lo que <strong>comprás pero no vendés</strong>: harina, queso, aceite, vasos, servilletas, gas, bolsas, etc. '
+        +'Se cargan acá para que aparezcan en <strong>Compras</strong> e <strong>Inventarios</strong>, pero <strong>nunca salen en la pantalla de ventas</strong>.'
+      +'</div>'
+    +'</div>'
+    +'<div class="card"><div class="card-h"><span class="card-t" id="insCount">—</span><input class="c-srch" placeholder="Buscar..." oninput="filtrIns(this.value)"></div>'
+    +'<table><thead><tr><th>Insumo</th><th>Categoría</th><th>Código</th><th style="text-align:right">Costo</th><th></th></tr></thead><tbody id="insBody"><tr><td colspan="5" class="loading"><span class="sp"></span></td></tr></tbody></table></div>';
+  try{
+    allInsumos=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=500');
+    renderInsT(allInsumos);
+  }catch(e){
+    document.getElementById('insBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Sin insumos cargados todavía. Tocá "Nuevo insumo" para empezar.</td></tr>';
+  }
+}
+
+function renderInsT(p){
+  if(!document.getElementById('insCount')) return;
+  document.getElementById('insCount').textContent=p.length+' insumos';
+  document.getElementById('insBody').innerHTML=p.length
+    ?p.map(function(x){
+      return '<tr style="cursor:pointer" onclick="_clickInsumo('+x.id+')">'
+        +'<td><div style="display:flex;align-items:center;gap:8px">'
+          +'<div style="width:24px;height:24px;border-radius:5px;background:'+(x.color||'#546e7a')+';flex-shrink:0"></div>'
+          +'<span style="font-weight:600">'+_esc(x.nombre)+'</span>'
+        +'</div></td>'
+        +'<td>'+_esc(x.categoria||'—')+'</td>'
+        +'<td style="font-size:12px;color:var(--muted)">'+_esc(x.codigo||'—')+'</td>'
+        +'<td style="text-align:right;font-weight:700">'+(x.costo?gs(x.costo):'—')+'</td>'
+        +'<td style="text-align:right"><button onclick="event.stopPropagation();_clickInsumo('+x.id+')" style="background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer">Editar</button></td>'
+      +'</tr>';
+    }).join('')
+    :'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Sin insumos</td></tr>';
+}
+
+function filtrIns(q){
+  if(!allInsumos) return;
+  var f=(q||'').toLowerCase();
+  var fil=!f?allInsumos:allInsumos.filter(function(r){
+    return (r.nombre||'').toLowerCase().includes(f)
+      || (r.codigo||'').toLowerCase().includes(f)
+      || (r.categoria||'').toLowerCase().includes(f);
+  });
+  renderInsT(fil);
+}
+
+function _clickInsumo(id){
+  var p=allInsumos.find(function(x){return x.id===id;});
+  if(p) abrirInsumoPanel(p);
+}
+
+// ── PANEL CREAR / EDITAR INSUMO ───────────────────────────────────────────
+
+var _insPanel={ins:null};
+
+function abrirInsumoPanel(ins){
+  _insPanel.ins=ins||null;
+  var esEd=!!ins;
+
+  // Categorías únicas de insumos para datalist
+  var cats=[];
+  (allInsumos||[]).forEach(function(p){ var c=(p.categoria||'').trim().toUpperCase(); if(c&&cats.indexOf(c)<0) cats.push(c); });
+  cats.sort();
+
+  var nom = ins ? _esc(ins.nombre||'')   : '';
+  var cat = ins ? _esc(ins.categoria||'') : '';
+  var cos = ins ? (ins.costo||0)          : '';
+  var col = ins ? (ins.color||'#546e7a')  : '#546e7a';
+  var cod = ins ? _esc(ins.codigo||'')    : '';
+
+  var INP='width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:Barlow,sans-serif;font-size:14px;padding:10px 12px;outline:none;box-sizing:border-box';
+  var LBL='font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px';
+
+  var overlay=document.getElementById('insPanelOverlay');
+  if(!overlay){ overlay=document.createElement('div'); overlay.id='insPanelOverlay'; document.body.appendChild(overlay); }
+  overlay.style.cssText='position:fixed;inset:0;z-index:200;display:flex;justify-content:flex-end';
+
+  overlay.innerHTML=
+    '<div onclick="cerrarInsumoPanel()" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>'
+    +'<div style="position:relative;width:100%;max-width:460px;background:var(--card);height:100%;overflow-y:auto;display:flex;flex-direction:column;border-left:1px solid var(--border)">'
+      +'<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--card);z-index:1">'
+        +'<button type="button" onclick="cerrarInsumoPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;display:flex"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+        +'<span style="font-size:16px;font-weight:800">'+(esEd?'Editar insumo':'Nuevo insumo')+'</span>'
+        +(esEd?'<button type="button" onclick="_desactivarInsumo()" style="margin-left:auto;background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer">Desactivar</button>':'')
+      +'</div>'
+      +'<div style="padding:20px;flex:1;display:flex;flex-direction:column;gap:16px">'
+        // Aviso
+        +'<div style="background:rgba(33,150,243,.06);border:1px solid rgba(33,150,243,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.5">'
+          +'<strong style="color:var(--blue)">Este insumo NO sale en ventas.</strong> Sí aparece en Compras, Inventarios, Movimientos y Conteo.'
+        +'</div>'
+        // Nombre
+        +'<div><label style="'+LBL+'">Nombre *</label>'
+          +'<input id="ipNom" type="text" value="'+nom+'" oninput="this.value=this.value.toUpperCase()" placeholder="EJ: HARINA TIPO 000" style="'+INP+';font-weight:600" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
+        // Categoría
+        +'<div><label style="'+LBL+'">Categoría</label>'
+          +'<input id="ipCat" type="text" value="'+cat+'" list="ipCatList" oninput="this.value=this.value.toUpperCase()" placeholder="EJ: SECOS, LACTEOS, DESCARTABLES..." style="'+INP+'" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'">'
+          +'<datalist id="ipCatList">'+cats.map(function(c){return '<option value="'+c+'">';}).join('')+'</datalist></div>'
+        // Costo
+        +'<div><label style="'+LBL+'">Costo unitario (₲)</label>'
+          +'<input id="ipCos" type="number" min="0" value="'+cos+'" placeholder="0" style="'+INP+';font-weight:700" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
+        // Color + Código
+        +'<div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:end">'
+          +'<div><label style="'+LBL+'">Color</label>'
+            +'<input id="ipCol" type="color" value="'+col+'" style="width:52px;height:40px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px"></div>'
+          +'<div><label style="'+LBL+'">Código / SKU</label>'
+            +'<input id="ipCod" type="text" value="'+cod+'" placeholder="Opcional" style="'+INP+'" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
+        +'</div>'
+        // Botón guardar
+        +'<button id="ipBtnSv" type="button" onclick="_guardarInsumo()" style="width:100%;background:var(--green);border:none;border-radius:9px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:13px;cursor:pointer;margin-top:4px">Guardar insumo</button>'
+      +'</div>'
+    +'</div>';
+
+  setTimeout(function(){ var el=document.getElementById('ipNom'); if(el) el.focus(); },80);
+}
+
+function cerrarInsumoPanel(){
+  var o=document.getElementById('insPanelOverlay');
+  if(o) o.style.display='none';
+}
+
+async function _guardarInsumo(){
+  var nom=(document.getElementById('ipNom').value||'').trim().toUpperCase();
+  if(!nom){ toast('Ingresá un nombre'); document.getElementById('ipNom').focus(); return; }
+  var cat=(document.getElementById('ipCat').value||'').trim().toUpperCase()||'Sin categoría';
+  var cos=parseFloat(document.getElementById('ipCos').value)||0;
+  var col=document.getElementById('ipCol').value||'#546e7a';
+  var cod=(document.getElementById('ipCod').value||'').trim();
+
+  var btn=document.getElementById('ipBtnSv');
+  if(btn){btn.disabled=true;btn.textContent='Guardando...';}
+
+  // Insumos: no se venden → precio 0, sin comanda, sin precio variable,
+  // siempre con inventario para que entren al sistema de stock/compras.
+  var payload={
+    nombre:nom, categoria:cat,
+    precio:0, costo:cos, iva:'10',
+    precio_variable:false, comanda:false,
+    inventario:true, es_insumo:true,
+    color:col, codigo:cod,
+    activo:true, licencia_email:SE,
+    updated_at:new Date().toISOString()
+  };
+
+  try{
+    if(_insPanel.ins){
+      await supaPatch('pos_productos','id=eq.'+_insPanel.ins.id+'&licencia_email=ilike.'+encodeURIComponent(SE),payload);
+      toast('✓ Insumo actualizado');
+    } else {
+      await supaPost('pos_productos',payload,null,true);
+      toast('✓ Insumo creado');
+    }
+    cerrarInsumoPanel();
+    allInsumos=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=500');
+    renderInsT(allInsumos);
+  }catch(e){
+    toast('Error: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='Guardar insumo';}
+  }
+}
+
+async function _desactivarInsumo(){
+  if(!_insPanel.ins) return;
+  if(!confirm('¿Desactivar "'+_insPanel.ins.nombre+'"? Dejará de aparecer en compras e inventario.')) return;
+  try{
+    await supaPatch('pos_productos','id=eq.'+_insPanel.ins.id+'&licencia_email=ilike.'+encodeURIComponent(SE),{activo:false,updated_at:new Date().toISOString()});
+    toast('Insumo desactivado');
+    cerrarInsumoPanel();
+    allInsumos=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=500');
+    renderInsT(allInsumos);
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+async function exportarInsumos(){
+  toast('Preparando exportación...');
+  var ins = allInsumos.length ? allInsumos : await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=2000');
+  if(!ins.length){ toast('Sin insumos para exportar'); return; }
+  var headers = ['id','nombre','categoria','costo','codigo','color'];
+  var rows = ins.map(function(p){
+    return [p.id||'', p.nombre||'', p.categoria||'', p.costo||0, p.codigo||'', p.color||''];
+  });
+  if(typeof XLSX !== 'undefined'){
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
+    ws['!cols'] = headers.map(function(h){return {wch:h==='nombre'?30:h==='id'?8:16};});
+    XLSX.utils.book_append_sheet(wb, ws, 'Insumos');
+    XLSX.writeFile(wb, 'catalogo_insumos.xlsx');
+    toast('Insumos exportados ('+ins.length+')');
+  } else {
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=function(){ exportarInsumos(); };
     document.head.appendChild(s);
   }
 }

@@ -768,10 +768,10 @@ function _filterPInternal(){
     }
   }
 
-  // Productos normales — excluir inactivos e ítem libre
+  // Productos normales — excluir inactivos, ítem libre e INSUMOS (no se venden)
   // NO filtrar por cat=Descuentos ya que eso rompe productos mal categorizados
   let l = (curCat==='Todos los artículos' ? PRODS : PRODS.filter(p=>p.cat===curCat))
-           .filter(p=>!p.itemLibre && p.activo!==false && p.activo!==0);
+           .filter(p=>!p.itemLibre && !p.esInsumo && p.activo!==false && p.activo!==0);
   if(q) l = l.filter(p=>p.name.toLowerCase().includes(q));
 
   // Ítem libre siempre al final (en todas las vistas, sin búsqueda activa)

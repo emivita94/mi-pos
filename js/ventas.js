@@ -56,7 +56,7 @@ function _setupLongPressGrid(){
       if(!m) return;
       var id = parseInt(m[1]);
       var p = PRODS.find(function(x){ return x.id === id; });
-      if(!p) return;
+      if(!p || p.esInsumo) return;
       // Abrir el flujo completo
       var mods = typeof modificadores !== 'undefined'
         ? modificadores.filter(function(mm){ return mm.productos && mm.productos.includes(p.id); })
@@ -106,6 +106,10 @@ if(document.readyState === 'loading'){
 
 function addCart(id, tileEl){
   const p=PRODS.find(x=>x.id===id); if(!p)return;
+  if(p.esInsumo){
+    if(typeof toast === 'function') toast('No se puede vender un insumo');
+    return;
+  }
   if(p.precioVariable){ addCartConPrecioVariable(id); return; }
 
   // Detectar modificadores del producto

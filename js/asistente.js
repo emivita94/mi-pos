@@ -465,7 +465,7 @@ function _buscarProductosConAlternativas(texto){
 
   for(var i = 0; i < PRODS.length; i++){
     var p = PRODS[i];
-    if(!p || !p.name || p.itemLibre) continue;
+    if(!p || !p.name || p.itemLibre || p.esInsumo) continue;
     var nombreNorm = _asistNormalizar(p.name);
     var tokensProd = _asistTokensProducto(p.name);
     if(!tokensProd.length) continue;
@@ -618,7 +618,7 @@ function _asistBuscarPermisivo(texto){
   var mejor = null, mejorScore = 0;
   for(var i = 0; i < PRODS.length; i++){
     var p = PRODS[i];
-    if(!p || !p.name || p.itemLibre) continue;
+    if(!p || !p.name || p.itemLibre || p.esInsumo) continue;
     var nombreNorm = _asistNormalizar(p.name);
     var tokensProd = _asistTokensProducto(p.name);
     if(!tokensProd.length) continue;
