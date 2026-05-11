@@ -544,6 +544,8 @@ async function _guardarProd(){
       await supaPatch('pos_productos','id=eq.'+_prodPanel.prod.id+'&licencia_email=ilike.'+encodeURIComponent(SE),payload);
       toast('✓ Producto actualizado');
     } else {
+      // pos_productos.id no tiene autoincrement → calcular max+1 desde la DB
+      payload.id = await _nextProductoId();
       await supaPost('pos_productos',payload,null,true);
       toast('✓ Producto creado');
     }
@@ -601,6 +603,20 @@ async function exportarCatalogo(){
     s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
     s.onload=function(){ exportarCatalogo(); };
     document.head.appendChild(s);
+  }
+}
+
+// ── HELPER: próximo id libre para pos_productos ───────────
+// La tabla pos_productos no tiene autoincrement en `id` —
+// hay que pasarlo explícito. Usamos max(id)+1 leído de la DB
+// para minimizar el riesgo de colisión (no es a prueba de
+// race conditions concurrentes, pero alcanza para alta humana).
+async function _nextProductoId(){
+  try{
+    var r = await sg('pos_productos','select=id&order=id.desc&limit=1');
+    return (r && r.length && r[0].id ? r[0].id : 0) + 1;
+  }catch(e){
+    return Date.now() % 1000000; // fallback: id grande basado en timestamp
   }
 }
 
@@ -769,6 +785,8 @@ async function _guardarInsumo(){
       await supaPatch('pos_productos','id=eq.'+_insPanel.ins.id+'&licencia_email=ilike.'+encodeURIComponent(SE),payload);
       toast('✓ Insumo actualizado');
     } else {
+      // pos_productos.id no tiene autoincrement → calcular max+1 desde la DB
+      payload.id = await _nextProductoId();
       await supaPost('pos_productos',payload,null,true);
       toast('✓ Insumo creado');
     }
