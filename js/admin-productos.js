@@ -636,11 +636,15 @@ async function renderInsumos(){
       +'<button onclick="abrirInsumoPanel(null)" style="background:var(--green);border:none;border-radius:7px;color:#fff;font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nuevo insumo</button>'
       +'<button onclick="exportarInsumos()" style="background:var(--b2);border:1px solid var(--blue);border-radius:7px;color:var(--blue);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar</button>'
     +'</div></div>'
-    +'<div class="card" style="margin-bottom:14px;background:rgba(33,150,243,.04);border-left:3px solid var(--blue)">'
-      +'<div style="padding:12px 18px;font-size:12px;color:var(--muted);line-height:1.5">'
-        +'<strong style="color:var(--blue)">¿Qué es un insumo?</strong> '
-        +'Es lo que <strong>comprás pero no vendés</strong>: harina, queso, aceite, vasos, servilletas, gas, bolsas, etc. '
-        +'Se cargan acá para que aparezcan en <strong>Compras</strong> e <strong>Inventarios</strong>, pero <strong>nunca salen en la pantalla de ventas</strong>.'
+    +'<div class="card" style="margin-bottom:14px;background:rgba(255,152,0,.08);border-left:4px solid var(--orange)">'
+      +'<div style="padding:14px 18px;font-size:13px;color:var(--text);line-height:1.55">'
+        +'<div style="font-size:14px;font-weight:800;color:var(--orange);margin-bottom:6px;display:flex;align-items:center;gap:8px">'
+          +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+          +'Atención — esto NO es para productos de venta'
+        +'</div>'
+        +'<div style="color:var(--muted)">Lo que cargues acá <strong style="color:var(--text)">nunca aparece en la pantalla de ventas del POS</strong>. Sirve para llevar el stock y las compras de mercaderías que se consumen pero no se venden directo (harina, queso, vasos, gas, etc.). '
+        +'<br><br>Si querés vender algo, cargalo en <a onclick="goTo(\'productos\')" style="color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline">Productos</a>.'
+        +'</div>'
       +'</div>'
     +'</div>'
     +'<div class="card"><div class="card-h"><span class="card-t" id="insCount">—</span><input class="c-srch" placeholder="Buscar..." oninput="filtrIns(this.value)"></div>'
@@ -720,12 +724,15 @@ function abrirInsumoPanel(ins){
       +'<div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--card);z-index:1">'
         +'<button type="button" onclick="cerrarInsumoPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;display:flex"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
         +'<span style="font-size:16px;font-weight:800">'+(esEd?'Editar insumo':'Nuevo insumo')+'</span>'
-        +(esEd?'<button type="button" onclick="_desactivarInsumo()" style="margin-left:auto;background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer">Desactivar</button>':'')
+        +(esEd?'<button type="button" onclick="_convertirInsumoAProducto()" style="margin-left:auto;background:var(--g2);border:1px solid var(--green);border-radius:6px;color:var(--green);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer" title="Pasar este registro a Productos (aparecerá en ventas)">→ Mover a Productos</button>':'')
+        +(esEd?'<button type="button" onclick="_desactivarInsumo()" style="background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 11px;cursor:pointer">Desactivar</button>':'')
       +'</div>'
       +'<div style="padding:20px;flex:1;display:flex;flex-direction:column;gap:16px">'
         // Aviso
-        +'<div style="background:rgba(33,150,243,.06);border:1px solid rgba(33,150,243,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.5">'
-          +'<strong style="color:var(--blue)">Este insumo NO sale en ventas.</strong> Sí aparece en Compras, Inventarios, Movimientos y Conteo.'
+        +'<div style="background:rgba(255,152,0,.08);border:1px solid var(--orange);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);line-height:1.5">'
+          +'<strong style="color:var(--orange)">⚠ Este registro NO sale en la pantalla de ventas.</strong> '
+          +'Sí aparece en Compras, Inventarios, Movimientos y Conteo. '
+          +(esEd?'Si era un producto de venta, tocá <strong>"→ Mover a Productos"</strong> arriba.':'Si esto era un producto que querés vender, cancelá y cargalo en <a onclick="cerrarInsumoPanel();goTo(\'productos\')" style="color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline">Productos</a>.')
         +'</div>'
         // Nombre
         +'<div><label style="'+LBL+'">Nombre *</label>'
@@ -805,6 +812,22 @@ async function _desactivarInsumo(){
   try{
     await supaPatch('pos_productos','id=eq.'+_insPanel.ins.id+'&licencia_email=ilike.'+encodeURIComponent(SE),{activo:false,updated_at:new Date().toISOString()});
     toast('Insumo desactivado');
+    cerrarInsumoPanel();
+    allInsumos=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=500');
+    renderInsT(allInsumos);
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+// Convierte un insumo en producto de venta — útil cuando el usuario
+// cargó algo por error en la pantalla de Insumos.
+// Solo cambia es_insumo:false. NO toca precio/inventario para
+// que el usuario los corrija después en el panel de Productos.
+async function _convertirInsumoAProducto(){
+  if(!_insPanel.ins) return;
+  if(!confirm('¿Pasar "'+_insPanel.ins.nombre+'" a Productos?\n\nVa a empezar a aparecer en la pantalla de ventas del POS. Después podés editarle el precio desde la pantalla de Productos.')) return;
+  try{
+    await supaPatch('pos_productos','id=eq.'+_insPanel.ins.id+'&licencia_email=ilike.'+encodeURIComponent(SE),{es_insumo:false,updated_at:new Date().toISOString()});
+    toast('✓ Movido a Productos');
     cerrarInsumoPanel();
     allInsumos=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=500');
     renderInsT(allInsumos);
