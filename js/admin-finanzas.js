@@ -389,9 +389,10 @@ async function balanceBuscar(licId){
   try{
     // ── FASE 1: TODOS LOS FETCHES PRIMERO ──────────────────
 
-    // 1a. Ventas + mapa de costos (en paralelo)
+    // 1a. Ventas + mapa de costos (en paralelo) — excluye anuladas
     var fetchVentas=sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)
+      +'&anulada=is.false'
       +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
       +(fh?'&fecha=lte.'+addDayBal(fh)+'T03:59:59':'')
       +'&select=items,total&limit=5000'
@@ -645,6 +646,7 @@ async function balDibujarTendencia(fd,fh,ventaActual,utilActual,licId){
     try{
       var v=await sg('pos_ventas',
         'licencia_email=ilike.'+encodeURIComponent(SE)
+        +'&anulada=is.false'
         +'&fecha=gte.'+mStr+'-01T04:00:00'
         +'&fecha=lte.'+addDayTrend(mStr+'-'+ultimoDia)+'T03:59:59'
         +'&select=total&limit=5000'
@@ -841,9 +843,10 @@ async function ivaCalcular(){
   var fh=addDayIva(periodo+'-'+pad(ultimoDia))+'T03:59:59';
 
   try{
-    // ── DÉBITO FISCAL (desde pos_ventas) ─────────────────────
+    // ── DÉBITO FISCAL (desde pos_ventas) — excluye anuladas
     var ventas=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)
+      +'&anulada=is.false'
       +'&fecha=gte.'+fd+'&fecha=lte.'+fh
       +'&select=items,total,tiene_factura&limit=5000'
     );
@@ -1158,6 +1161,7 @@ async function renderRepProductos(fdKey){
   try {
     var ventas = await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
+      '&anulada=is.false'+
       '&fecha=gte.'+fd0+'T04:00:00'+
       '&fecha=lte.'+addDay(fh0)+'T03:59:59'+
       '&select=items,total&limit=5000');

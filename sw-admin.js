@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260512-insumos-en-pyg';
+const CACHE = 'ampersand-admin-v20260512-anular-ventas';
 
 const ASSETS = [
   '/admin-negocio.html',

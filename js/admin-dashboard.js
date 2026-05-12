@@ -255,6 +255,7 @@ async function loadDashData(f){
     console.log('[Dash] Query ventas → email:', SE, '| desde:', desdeTZ, '| hasta:', hastaTZ);
     var v=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
+      '&anulada=is.false'+
       '&fecha=gte.'+desdeTZ+'&fecha=lte.'+hastaTZ+'&order=fecha.desc&limit=500');
     console.log('[Dash] Resultados:', v.length, 'ventas, primera:', v[0]||'—');
     var tot=v.reduce(function(s,x){return s+(x.total||0);},0);
@@ -277,6 +278,7 @@ async function loadDashData(f){
     var hAntTZ=hAntNextDay+'T03:59:59';
     var vAnt=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
+      '&anulada=is.false'+
       '&fecha=gte.'+dAntTZ+'&fecha=lte.'+hAntTZ+'&limit=500');
     var totAnt=vAnt.reduce(function(s,x){return s+(x.total||0);},0);
     var cntAnt=vAnt.length;
@@ -492,6 +494,7 @@ async function _render7Dias(hoy,fmt,p2,textColor,gridColor,fontFam){
   var hasta7TZ=hasta7NextDay+'T03:59:59';
   var v7=await sg('pos_ventas',
     'licencia_email=ilike.'+encodeURIComponent(SE)+
+    '&anulada=is.false'+
     '&fecha=gte.'+desde7TZ+'&fecha=lte.'+hasta7TZ+'&limit=1000');
   v7.forEach(function(x){
     var d=new Date(x.fecha);
@@ -550,6 +553,7 @@ async function _renderInsights(hoy,fmt,p2){
   try{
     var vH=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
+      '&anulada=is.false'+
       '&fecha=gte.'+desdeITZ+'&fecha=lte.'+hastaITZ+'&limit=2000');
     // Día más activo — mismo mapeo que heatmap: lun=0 ... dom=6
     var diaMap=new Array(7).fill(0), diaCount=new Array(7).fill(0);
@@ -694,6 +698,7 @@ async function _renderHeatmap(hoy,fmt,p2,textColor){
   var hastaHTZ=hastaHNextDay+'T03:59:59';
   var vH=await sg('pos_ventas',
     'licencia_email=ilike.'+encodeURIComponent(SE)+
+    '&anulada=is.false'+
     '&fecha=gte.'+desdeHTZ+'&fecha=lte.'+hastaHTZ+'&limit=2000');
   vH.forEach(function(x){var d4=new Date(x.fecha);heatData[(d4.getDay()||7)-1][d4.getHours()]+=(x.total||0);});
   var maxH=Math.max.apply(null,heatData.map(function(r){return Math.max.apply(null,r);}));
@@ -768,6 +773,11 @@ function renderVentas(){
     '.vh-bdg-tr{background:var(--o2);color:var(--orange);}'+
     '.vh-tot{font-size:14px;font-weight:800;color:var(--green);}'+
     '.vh-arr{color:var(--muted);font-size:11px;text-align:center;}'+
+    '.vh-bdg-anul{background:var(--r2);color:var(--red);border:1px solid rgba(239,83,80,.35);}'+
+    '.vh-row-anul{opacity:.5;}'+
+    '.vh-row-anul .vh-tot{text-decoration:line-through;color:var(--red);}'+
+    '.vh-btn-anul{background:var(--r2);border:1px solid var(--red);color:var(--red);font-family:\'Barlow\',sans-serif;font-size:11px;font-weight:700;border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap;}'+
+    '.vh-btn-anul:hover{background:var(--red);color:#fff;}'+
     '</style>'+
     '<div class="vh-wrap">'+
     '<div class="vh-head">'+
@@ -824,9 +834,10 @@ function renderVentas(){
             '<th>Tipo</th>'+
             '<th>Metodo</th>'+
             '<th style="text-align:right;">Total</th>'+
+            '<th style="text-align:center;width:90px;">Estado</th>'+
             '<th style="width:32px;"></th>'+
           '</tr></thead>'+
-          '<tbody id="vBody"><tr><td colspan="6" class="loading"><span class="sp"></span></td></tr></tbody>'+
+          '<tbody id="vBody"><tr><td colspan="7" class="loading"><span class="sp"></span></td></tr></tbody>'+
         '</table>'+
       '</div>'+
     '</div>'+
@@ -892,8 +903,10 @@ async function loadVData(f){
 
 function renderVT(v){
   if(!document.getElementById('vCount')) return;
-  var tot=v.reduce(function(s,x){return s+(x.total||0);},0);
-  var ef=v.filter(function(x){return (x.metodo_pago||'').toUpperCase()==='EFECTIVO';}).reduce(function(s,x){return s+(x.total||0);},0);
+  // KPIs solo cuentan ventas ACTIVAS (no anuladas)
+  var vAct = v.filter(function(x){ return !x.anulada; });
+  var tot=vAct.reduce(function(s,x){return s+(x.total||0);},0);
+  var ef=vAct.filter(function(x){return (x.metodo_pago||'').toUpperCase()==='EFECTIVO';}).reduce(function(s,x){return s+(x.total||0);},0);
   // ventas count: document.getElementById('vCount').textContent=v.length+' ventas — Total: \u20B2'+gs(tot);
 
   // KPIs nuevos (header arriba de la tabla)
@@ -902,7 +915,8 @@ function renderVT(v){
   var pctEl=tot>0?100-pctEf:0;
   var setT=function(id,val){var e2=document.getElementById(id); if(e2) e2.textContent=val;};
   setT('vKTot', gs(tot));
-  setT('vKTotC', v.length+' ventas');
+  var nAnul = v.length - vAct.length;
+  setT('vKTotC', vAct.length+' ventas activas'+(nAnul?' · '+nAnul+' anuladas':''));
   setT('vKEf', gs(ef));
   setT('vKEfC', pctEf+'% del total');
   setT('vKEl', gs(el));
@@ -937,7 +951,7 @@ function renderVT(v){
     try{ items=typeof x.items==='string'?JSON.parse(x.items):(x.items||[]); }catch(e){ console.warn('[Ventas] Error parseando items:', e.message); }
     var factura=null;
     try{ factura=x.factura?(typeof x.factura==='string'?JSON.parse(x.factura):x.factura):null; }catch(e){ console.warn('[Ventas] Error parseando factura detalle:', e.message); }
-    return '<tr id="det_'+x.id+'" style="display:none;"><td colspan="6" style="padding:0;background:var(--card2);">'+
+    return '<tr id="det_'+x.id+'" style="display:none;"><td colspan="7" style="padding:0;background:var(--card2);">'+
       '<div style="padding:14px;border-top:2px solid var(--green);">'+
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px;">'+
       '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;">Terminal</div><div style="font-weight:700;">'+(x.terminal||'—')+'</div></div>'+
@@ -962,7 +976,12 @@ function renderVT(v){
 
   document.getElementById('vBody').innerHTML=v.length?v.map(function(x){
     var dt=splitDT(x.fecha);
-    return '<tr onclick="vDetalle(\''+x.id+'\')">'+
+    var anul = !!x.anulada;
+    var rowCls = anul ? ' class="vh-row-anul"' : '';
+    var estadoCell = anul
+      ? '<span class="vh-bdg vh-bdg-anul" title="'+_esc(x.motivo_anulacion||'')+'">ANULADA</span>'
+      : '<button class="vh-btn-anul" onclick="event.stopPropagation();vAnularVenta('+x.id+')" title="Anular esta venta">Anular</button>';
+    return '<tr'+rowCls+' onclick="vDetalle(\''+x.id+'\')">'+
       '<td><div class="vh-fc-d">'+dt.d+'</div><div class="vh-fc-h">'+dt.h+' hs</div></td>'+
       '<td><div class="vh-tm-n">'+(x.terminal||'--')+'</div>'+
         (x.sucursal?'<div class="vh-tm-s">'+x.sucursal+'</div>':'')+
@@ -970,10 +989,81 @@ function renderVT(v){
       '<td>'+tipoTag(x)+'</td>'+
       '<td>'+mb(x.metodo_pago)+'</td>'+
       '<td style="text-align:right;"><span class="vh-tot">'+gs(x.total)+'</span></td>'+
+      '<td style="text-align:center;">'+estadoCell+'</td>'+
       '<td><span class="vh-arr" id="arr_'+x.id+'">+</span></td>'+
       '</tr>'+
       detalleHtml(x);
-  }).join(''):'<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Sin ventas en el periodo seleccionado</td></tr>';
+  }).join(''):'<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Sin ventas en el periodo seleccionado</td></tr>';
+}
+
+// ── Helper para escapar HTML (evita XSS via motivo de anulación) ──
+function _esc(s){ var d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+
+// ── ANULAR VENTA DESDE ADMIN ──────────────────────────────
+// Marca pos_ventas.anulada=true + guarda motivo y timestamp.
+// NO revierte stock automáticamente (porque no sabemos el depósito
+// que pagó la venta). Si la venta había movido stock, hay que ajustar
+// manualmente desde Inventarios → Movimientos.
+function vAnularVenta(id){
+  var venta = (allVP||[]).find(function(x){ return String(x.id) === String(id); });
+  if(!venta){ toast('Venta no encontrada'); return; }
+  if(venta.anulada){ toast('Esta venta ya está anulada'); return; }
+
+  var prev = document.getElementById('vAnulOv');
+  if(prev) prev.remove();
+
+  var tieneFac = !!venta.tiene_factura;
+
+  var ov = document.createElement('div');
+  ov.id = 'vAnulOv';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1001;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Barlow,sans-serif;';
+  ov.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--red);border-radius:14px;max-width:460px;width:100%;padding:24px">'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:var(--r2);display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+        +'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef5350" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+      +'</div>'
+      +'<div>'
+        +'<div style="font-size:16px;font-weight:800;color:var(--text)">Anular venta #'+venta.id+'</div>'
+        +'<div style="font-size:12px;color:var(--muted)">Total: '+gs(venta.total)+' · '+(venta.metodo_pago||'EFECTIVO').toUpperCase()+'</div>'
+      +'</div>'
+    +'</div>'
+    +(tieneFac
+      ?'<div style="background:var(--r2);border:1px solid rgba(239,83,80,.35);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--red);font-weight:700">⚠ Esta venta tiene factura asociada. Quedará marcada como anulada en los reportes.</div>'
+      :'')
+    +'<div style="background:rgba(255,152,0,.08);border:1px solid var(--orange);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text);line-height:1.5">'
+      +'<strong style="color:var(--orange)">Importante:</strong> esta acción <strong>NO revierte stock automáticamente</strong>. Si la venta había descontado mercadería, ajustá desde Inventarios → Movimientos.'
+    +'</div>'
+    +'<label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px">Motivo de anulación (obligatorio)</label>'
+    +'<input type="text" id="vAnulMot" class="cfg-inp" style="width:100%;margin-bottom:18px" placeholder="Ej: Error de carga, prueba, devolución del cliente...">'
+    +'<div style="display:flex;gap:10px">'
+      +'<button onclick="document.getElementById(\'vAnulOv\').remove()" class="btn-dn" style="flex:1;padding:12px">Cancelar</button>'
+      +'<button onclick="vAnularVentaConfirmar('+venta.id+')" class="btn-sv" style="flex:1.5;padding:12px;background:var(--red);border-color:var(--red)">Confirmar anulación</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){ var inp=document.getElementById('vAnulMot'); if(inp) inp.focus(); }, 50);
+}
+
+async function vAnularVentaConfirmar(id){
+  var motivo = (document.getElementById('vAnulMot')||{}).value || '';
+  if(!motivo.trim()){ toast('El motivo es obligatorio'); return; }
+  var btn = document.querySelector('[onclick="vAnularVentaConfirmar('+id+')"]');
+  if(btn){ btn.disabled = true; btn.textContent = 'Procesando...'; }
+  try{
+    await supaPatch('pos_ventas','id=eq.'+id+'&licencia_email=ilike.'+encodeURIComponent(SE),{
+      anulada: true,
+      fecha_anulacion: new Date().toISOString(),
+      motivo_anulacion: motivo.trim().substring(0,500)
+    });
+    var ov = document.getElementById('vAnulOv'); if(ov) ov.remove();
+    toast('✓ Venta anulada');
+    // Refrescar la lista
+    if(typeof loadVData === 'function') loadVData(filtroV||'hoy');
+  }catch(e){
+    toast('Error al anular: '+e.message);
+    if(btn){ btn.disabled = false; btn.textContent = 'Confirmar anulación'; }
+  }
 }
 
 function vDetalle(id){
@@ -1046,7 +1136,7 @@ async function renderTerminales(){
     try{acts=await sg('activaciones','email=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id,device_id,nombre_terminal,sucursal,updated_at');}catch(e2){console.warn('activaciones err:',e2.message);}
     // Also query pos_ventas to get activity stats per terminal
     var v=[];
-    try{v=await sg('pos_ventas','licencia_email=ilike.'+encodeURIComponent(SE)+'&order=fecha.desc&limit=1000');}catch(e3){console.warn('ventas err:',e3.message);}
+    try{v=await sg('pos_ventas','licencia_email=ilike.'+encodeURIComponent(SE)+'&anulada=is.false&order=fecha.desc&limit=1000');}catch(e3){console.warn('ventas err:',e3.message);}
     var m={};
     v.forEach(function(x){
       var k=(x.terminal||'Principal');
@@ -1204,6 +1294,7 @@ async function loadCajasRango(){
       try{
         var vPorId = await sg('pos_ventas',
           'turno_id=in.('+idsParaBuscar.join(',')+')'
+          +'&anulada=is.false'
           +'&select=turno_id,total,metodo_pago&limit=10000');
         vPorId.forEach(function(v){
           var tid = v.turno_id;
@@ -1227,6 +1318,7 @@ async function loadCajasRango(){
         try{
           var vLegacy = await sg('pos_ventas',
             'licencia_email=ilike.'+encodeURIComponent(SE)
+            +'&anulada=is.false'
             +'&fecha=gte.'+encodeURIComponent(minF)
             +'&fecha=lte.'+encodeURIComponent(maxF)
             +'&select=turno_id,total,metodo_pago,fecha&limit=10000');
@@ -1532,12 +1624,13 @@ async function verVentasTurno(idx){
     var ventas=[];
     // Primero por turno_id
     if(c.id){
-      ventas=await sg('pos_ventas','turno_id=eq.'+c.id+'&order=fecha.asc&limit=300');
+      ventas=await sg('pos_ventas','turno_id=eq.'+c.id+'&anulada=is.false&order=fecha.asc&limit=300');
     }
     // Fallback por rango de fecha (encodeURIComponent evita el bug del +00:00 → espacio)
     if(!ventas.length&&c.fecha_apertura&&c.fecha_cierre){
       ventas=await sg('pos_ventas',
         'licencia_email=ilike.'+encodeURIComponent(SE)+
+        '&anulada=is.false'+
         '&fecha=gte.'+encodeURIComponent(c.fecha_apertura)+
         '&fecha=lte.'+encodeURIComponent(c.fecha_cierre)+
         '&order=fecha.asc&limit=300');
