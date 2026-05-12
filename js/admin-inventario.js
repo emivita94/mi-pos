@@ -1578,6 +1578,9 @@ async function movCargarLista(tipos, wraId){
       return '<option value="'+d.id+'">'+d.nombre+(s?' ('+s+')':'')+'</option>';
     }).join('');
 
+  // ¿La lista incluye compras? Si sí, mostramos columna "Total" y KPI con monto total
+  var incluyeCompra = tipos.indexOf('compra') >= 0;
+
   wrap.innerHTML=
     '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">'
       +'<div><label style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Desde</label>'
@@ -1588,14 +1591,21 @@ async function movCargarLista(tipos, wraId){
         +'<select id="mlDep" class="d-inp">'+depOpts+'</select></div>'
       +'<button onclick="movFiltrarLista(\''+tiposStr+'\')" class="btn-sv" style="padding:9px 18px">Buscar</button>'
     +'</div>'
+    +(incluyeCompra
+      ?'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px">'
+        +'<div class="kc" style="--c:var(--blue)"><div class="kc-l">Comprobantes</div><div class="kc-v" id="mlKCount">—</div></div>'
+        +'<div class="kc" style="--c:var(--green)"><div class="kc-l">Total comprado</div><div class="kc-v" id="mlKTotal">—</div></div>'
+      +'</div>'
+      :'')
     +'<div class="card"><div class="card-h"><span class="card-t" id="mlCount">—</span></div>'
       +'<div style="overflow-x:auto"><table><thead><tr>'
         +'<th>Fecha</th><th>Tipo</th><th>Comprobante</th>'
         +'<th>Depósito</th><th style="text-align:center">Productos</th>'
+        +(incluyeCompra?'<th style="text-align:right">Total</th>':'')
         +'<th>Observación</th><th style="text-align:center">Estado</th>'
         +'<th style="text-align:center">Acciones</th>'
       +'</tr></thead>'
-      +'<tbody id="mlBody"><tr><td colspan="8" class="loading"><span class="sp"></span>Cargando...</td></tr></tbody>'
+      +'<tbody id="mlBody"><tr><td colspan="'+(incluyeCompra?9:8)+'" class="loading"><span class="sp"></span>Cargando...</td></tr></tbody>'
       +'</table></div></div>';
 
   await movFiltrarLista(tiposStr);
@@ -1613,6 +1623,7 @@ async function movFiltrarLista(tiposStr){
 
   try{
     var tipos=tiposStr.split(',');
+    var incluyeCompra = tipos.indexOf('compra') >= 0;
     var q='licencia_id=eq.'+licId
       +'&tipo=in.('+tipos.join(',')+')'
       +(depId?'&deposito_id=eq.'+depId:'')
@@ -1621,24 +1632,38 @@ async function movFiltrarLista(tiposStr){
       +'&order=fecha.desc&limit=300';
     var comps=await sg('stock_comprobantes',q);
 
-    // Cargar conteo de items por comprobante
+    // Cargar items por comprobante para conteo + total monetario
     var compIds=comps.map(function(c){return c.id;});
-    var itemsCount={};
+    var itemsCount={}, itemsTotal={};
     if(compIds.length){
       var items=await sg('stock_comprobante_items',
         'comprobante_id=in.('+compIds.join(',')+')'
-        +'&select=comprobante_id,producto_id&limit=5000'
+        +'&select=comprobante_id,producto_id,cantidad,costo_unitario&limit=5000'
       );
       items.forEach(function(i){
         itemsCount[i.comprobante_id]=(itemsCount[i.comprobante_id]||0)+1;
+        var subt = (parseFloat(i.cantidad)||0) * (parseFloat(i.costo_unitario)||0);
+        itemsTotal[i.comprobante_id]=(itemsTotal[i.comprobante_id]||0)+subt;
       });
     }
+
+    // Totales globales del listado (solo compras activas, excluye anulados)
+    var totMontoCompras = 0, cantCompras = 0;
+    comps.forEach(function(c){
+      if(c.tipo!=='compra') return;
+      var anul = c.observacion && c.observacion.indexOf('[ANULADO]') >= 0;
+      if(anul) return;
+      totMontoCompras += itemsTotal[c.id] || 0;
+      cantCompras++;
+    });
+    if(document.getElementById('mlKCount')) document.getElementById('mlKCount').textContent = cantCompras;
+    if(document.getElementById('mlKTotal')) document.getElementById('mlKTotal').textContent = gs(totMontoCompras);
 
     if(document.getElementById('mlCount'))
       document.getElementById('mlCount').textContent=comps.length+' comprobantes';
 
     if(!comps.length){
-      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--muted)">Sin comprobantes en el período</td></tr>';
+      tbody.innerHTML='<tr><td colspan="'+(incluyeCompra?9:8)+'" style="text-align:center;padding:28px;color:var(--muted)">Sin comprobantes en el período</td></tr>';
       return;
     }
 
@@ -1658,12 +1683,21 @@ async function movFiltrarLista(tiposStr){
       var anulado=c.observacion&&c.observacion.includes('[ANULADO]');
       var esAnulacion=c.tipo==='anulacion'||(c.referencia&&c.referencia.startsWith('ANU-'));
       var canAnular=!anulado&&!esAnulacion;
+      var tot = itemsTotal[c.id]||0;
+      var totCell = '';
+      if(incluyeCompra){
+        // Solo mostramos monto en compras. Otros tipos (ajuste, transfer, etc.) no llevan costo.
+        totCell = '<td style="text-align:right;font-weight:700;color:'+(tot>0?'var(--green)':'var(--muted)')+'">'
+          +(c.tipo==='compra' && tot>0 ? gs(tot) : '—')
+          +'</td>';
+      }
       return '<tr style="opacity:'+(anulado?'0.5':'1')+'">'
         +'<td style="font-size:12px;white-space:nowrap">'+fmtDT(c.fecha)+'</td>'
         +'<td><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:'+tc.bg+';color:'+tc.col+'">'+tc.lbl+'</span></td>'
         +'<td style="font-weight:600;font-size:13px">'+(c.referencia||'—')+'</td>'
         +'<td style="font-size:12px;color:var(--muted)">'+dep+'</td>'
         +'<td style="text-align:center;font-weight:700">'+(itemsCount[c.id]||0)+'</td>'
+        +totCell
         +'<td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(c.observacion||'')+'</td>'
         +'<td style="text-align:center">'
           +(anulado
@@ -1708,8 +1742,13 @@ async function movVerDetalle(compId){
       'transferencia_salida':'Transferencia (Salida)','transferencia_entrada':'Transferencia (Entrada)',
       'anulacion':'Anulación'
     };
-    var totEnt=0,totSal=0;
-    items.forEach(function(i){if((i.cantidad||0)>0)totEnt+=i.cantidad;else totSal+=Math.abs(i.cantidad);});
+    var totEnt=0,totSal=0,totMonto=0;
+    items.forEach(function(i){
+      var cant = i.cantidad||0;
+      if(cant>0) totEnt+=cant; else totSal+=Math.abs(cant);
+      totMonto += (parseFloat(i.cantidad)||0) * (parseFloat(i.costo_unitario)||0);
+    });
+    var esCompra = c.tipo === 'compra';
 
     document.getElementById('movDetBody').innerHTML=
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
@@ -1728,10 +1767,13 @@ async function movVerDetalle(compId){
         +'</div>'
       +'</div>'
       +(c.observacion?'<div style="background:var(--card2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2)">'+c.observacion+'</div>':'')
-      +'<div style="display:flex;gap:16px;margin-bottom:12px">'
+      +'<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;align-items:center">'
         +'<span style="font-size:12px;color:var(--muted)">'+items.length+' productos</span>'
         +(totEnt?'<span style="font-size:12px;font-weight:700;color:var(--green)">+'+totEnt+' uds entrada</span>':'')
         +(totSal?'<span style="font-size:12px;font-weight:700;color:var(--red)">-'+totSal+' uds salida</span>':'')
+        +(esCompra && totMonto>0
+          ?'<span style="margin-left:auto;background:var(--g2);border:1px solid var(--green);border-radius:8px;padding:6px 14px;font-size:14px;font-weight:800;color:var(--green)">Total compra: '+gs(totMonto)+'</span>'
+          :'')
       +'</div>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'
         +'<th style="padding:8px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;background:var(--card2)">Producto</th>'
@@ -1739,17 +1781,24 @@ async function movVerDetalle(compId){
         +'<th style="padding:8px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;background:var(--card2)">Movimiento</th>'
         +'<th style="padding:8px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;background:var(--card2)">Después</th>'
         +'<th style="padding:8px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:right;background:var(--card2)">Costo unit.</th>'
+        +(esCompra?'<th style="padding:8px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:right;background:var(--card2)">Subtotal</th>':'')
       +'</tr></thead><tbody>'
       +items.map(function(i){
         var cant=i.cantidad||0;
+        var subt = (parseFloat(i.cantidad)||0) * (parseFloat(i.costo_unitario)||0);
         return '<tr style="border-bottom:1px solid var(--border)">'
           +'<td style="padding:9px 12px;font-size:13px;font-weight:600">'+i.nombre_producto+'</td>'
           +'<td style="padding:9px 12px;text-align:center;color:var(--muted)">'+(i.cantidad_antes!=null?i.cantidad_antes:'—')+'</td>'
           +'<td style="padding:9px 12px;text-align:center;font-weight:800;font-size:14px;color:'+(cant>0?'var(--green)':'var(--red)')+'">'+(cant>0?'+':'')+cant+'</td>'
           +'<td style="padding:9px 12px;text-align:center;font-weight:700">'+(i.cantidad_despues!=null?i.cantidad_despues:'—')+'</td>'
           +'<td style="padding:9px 12px;text-align:right;color:var(--muted)">'+(i.costo_unitario?gs(i.costo_unitario):'—')+'</td>'
+          +(esCompra?'<td style="padding:9px 12px;text-align:right;font-weight:700">'+(subt>0?gs(subt):'—')+'</td>':'')
         +'</tr>';
       }).join('')
+      +(esCompra && totMonto>0
+        ?'<tr style="background:var(--card2)"><td colspan="5" style="padding:10px 12px;text-align:right;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-size:11px">Total</td>'
+          +'<td style="padding:10px 12px;text-align:right;font-weight:800;font-size:15px;color:var(--green)">'+gs(totMonto)+'</td></tr>'
+        :'')
       +'</tbody></table></div>';
   }catch(e){
     document.getElementById('movDetBody').innerHTML='<div style="color:var(--red)">Error: '+e.message+'</div>';

@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260512-mover-a-productos';
+const CACHE = 'ampersand-admin-v20260512-total-compras';
 
 const ASSETS = [
   '/admin-negocio.html',
