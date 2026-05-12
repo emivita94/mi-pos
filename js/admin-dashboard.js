@@ -1133,7 +1133,7 @@ async function renderTerminales(){
     var now=new Date();
     // Query activaciones (source of truth for registered terminals)
     var acts=[];
-    try{acts=await sg('activaciones','email=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id,device_id,nombre_terminal,sucursal,updated_at');}catch(e2){console.warn('activaciones err:',e2.message);}
+    try{acts=await sg('activaciones','email=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id,device_id,nombre_terminal,sucursal,ultima_consulta,fecha_activacion');}catch(e2){console.warn('activaciones err:',e2.message);}
     // Also query pos_ventas to get activity stats per terminal
     var v=[];
     try{v=await sg('pos_ventas','licencia_email=ilike.'+encodeURIComponent(SE)+'&anulada=is.false&order=fecha.desc&limit=1000');}catch(e3){console.warn('ventas err:',e3.message);}
@@ -1145,10 +1145,18 @@ async function renderTerminales(){
       if(!m[k].ul||x.fecha>m[k].ul)m[k].ul=x.fecha;
     });
     // Merge activaciones into map (show all registered terminals, even those with no sales)
+    // En activaciones la columna de última actividad es `ultima_consulta`.
+    // Fallback a fecha_activacion si la terminal nunca consultó.
     acts.forEach(function(a){
       var k=a.nombre_terminal||a.device_id||'—';
-      if(!m[k])m[k]={t:k,s:a.sucursal||'—',tot:0,ops:0,ul:a.updated_at||null};
-      else{m[k].t=k;if(a.sucursal)m[k].s=a.sucursal;}
+      var lastAct = a.ultima_consulta || a.fecha_activacion || null;
+      if(!m[k])m[k]={t:k,s:a.sucursal||'—',tot:0,ops:0,ul:lastAct};
+      else{
+        m[k].t=k;
+        if(a.sucursal)m[k].s=a.sucursal;
+        // si la activación tiene una "última consulta" más reciente que la última venta, usar esa
+        if(lastAct && (!m[k].ul || lastAct > m[k].ul)) m[k].ul=lastAct;
+      }
       m[k].device_id=a.device_id;
       m[k].activ_id=a.id;
     });
