@@ -397,7 +397,7 @@ async function balanceBuscar(licId){
       +'&select=items,total&limit=5000'
     );
     var fetchPrds=sg('pos_productos',
-      'licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&select=id,costo&limit=1000'
+      'licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&select=id,costo,es_insumo&limit=1000'
     );
     // 1b. Gastos
     var fetchGastos=sg('gastos',
@@ -411,17 +411,57 @@ async function balanceBuscar(licId){
       +(fd?'&periodo=gte.'+fd.substring(0,7):'')
       +'&select=iva_pagar,iva_favor,debito_total,credito_total,periodo&limit=1'
     ).catch(function(e){ console.warn('[Balance] Error cargando IVA:', e.message); return []; });
+    // 1d. Compras del período (para sumar las de insumos como gasto operativo)
+    //    NO incluye anuladas: filtramos por observación más abajo
+    var fetchCompras=sg('stock_comprobantes',
+      'licencia_id=eq.'+licId+'&tipo=eq.compra'
+      +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
+      +(fh?'&fecha=lte.'+addDayBal(fh)+'T03:59:59':'')
+      +'&select=id,observacion&limit=2000'
+    ).catch(function(e){ console.warn('[Balance] Error cargando compras:', e.message); return []; });
 
-    var results=await Promise.all([fetchVentas,fetchPrds,fetchGastos,fetchIva]);
+    var results=await Promise.all([fetchVentas,fetchPrds,fetchGastos,fetchIva,fetchCompras]);
     var ventas=results[0];
     var prds=results[1];
     var gastos=results[2];
     var ivaRows=results[3];
+    var compras=results[4];
 
     // ── FASE 2: COMPUTAR TODOS LOS VALORES ─────────────────
 
     var costoMap={};
-    prds.forEach(function(p){ costoMap[p.id]=parseFloat(p.costo)||0; });
+    var insumoSet={}; // producto_id → true si es insumo
+    prds.forEach(function(p){
+      costoMap[p.id]=parseFloat(p.costo)||0;
+      if(p.es_insumo===true) insumoSet[p.id]=true;
+    });
+
+    // ── COMPRAS DE INSUMOS DEL PERÍODO ──
+    // Excluimos comprobantes anulados (observación contiene [ANULADO])
+    // y filtramos items cuyos producto_id correspondan a insumos.
+    var totalComprasInsumos = 0;
+    var cantComprasInsumos = 0; // # de comprobantes con al menos 1 insumo
+    if(compras && compras.length){
+      var idsValidos = compras.filter(function(c){
+        return !(c.observacion && c.observacion.indexOf('[ANULADO]') >= 0);
+      }).map(function(c){ return c.id; });
+      if(idsValidos.length){
+        try{
+          var itemsCompra = await sg('stock_comprobante_items',
+            'comprobante_id=in.('+idsValidos.join(',')+')'
+            +'&select=comprobante_id,producto_id,cantidad,costo_unitario&limit=20000'
+          );
+          var compsConInsumo = {};
+          itemsCompra.forEach(function(i){
+            if(!insumoSet[i.producto_id]) return;
+            var subt = (parseFloat(i.cantidad)||0) * (parseFloat(i.costo_unitario)||0);
+            totalComprasInsumos += subt;
+            compsConInsumo[i.comprobante_id] = true;
+          });
+          cantComprasInsumos = Object.keys(compsConInsumo).length;
+        }catch(e){ console.warn('[Balance] Error sumando compras de insumos:', e.message); }
+      }
+    }
 
     var ventaBruta=0, costoVentas=0;
     ventas.forEach(function(v){
@@ -453,7 +493,7 @@ async function balanceBuscar(licId){
       gastosXCat[key].conceptos[ckey].total+=(g.monto||0);
     });
 
-    var utilidadNeta=utilidadBruta-totalGastos;
+    var utilidadNeta=utilidadBruta-totalGastos-totalComprasInsumos;
     var utilColor=utilidadNeta>=0?'var(--green)':'var(--red)';
 
     var ivaData=(ivaRows&&ivaRows.length)?ivaRows[0]:null;
@@ -518,6 +558,22 @@ async function balanceBuscar(licId){
         +'</div>'
         +(gastosHTML||'<div style="padding:16px 18px;color:var(--muted);font-size:13px">Sin gastos registrados en el período</div>')
       +'</div>'
+      // COMPRAS DE INSUMOS
+      +'<div class="card" style="margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:var(--o2);border-bottom:1px solid var(--border)">'
+          +'<span style="font-size:14px;font-weight:800;color:var(--orange)">COMPRAS DE INSUMOS</span>'
+          +'<span style="font-size:18px;font-weight:800;color:var(--orange)">'+gs(totalComprasInsumos)+'</span>'
+        +'</div>'
+        +'<div style="display:flex;justify-content:space-between;padding:10px 18px">'
+          +'<span style="color:var(--muted)">'
+            +(cantComprasInsumos
+              ?cantComprasInsumos+' compras con insumos en el período'
+              :'Sin compras de insumos en el período')
+            +' — <button onclick="goTo(&apos;compras&apos;)" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;text-decoration:underline;font-family:Barlow,sans-serif">Ver detalle</button>'
+          +'</span>'
+          +'<span style="font-weight:700">'+gs(totalComprasInsumos)+'</span>'
+        +'</div>'
+      +'</div>'
       // RESULTADO NETO (utilidad antes de IVA)
       +'<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:'+utilColor+';border-radius:12px;margin-top:4px">'
         +'<span style="font-size:16px;font-weight:800;color:#fff">'+(utilidadNeta>=0?'UTILIDAD ANTES DE IVA':'PÉRDIDA ANTES DE IVA')+'</span>'
@@ -562,7 +618,7 @@ async function balanceBuscar(licId){
     // Esperar al siguiente frame para que el canvas esté en el DOM
     await new Promise(function(r){setTimeout(r,50);});
     balDibujarTendencia(fd,fh,ventaBruta,utilidadFinal!==null?utilidadFinal:utilidadNeta,licId);
-    balDibujarComposicion(ventaBruta,costoVentas,totalGastos,ivaAPagar||0);
+    balDibujarComposicion(ventaBruta,costoVentas,totalGastos,ivaAPagar||0,totalComprasInsumos);
 
   }catch(e){
     body.innerHTML='<div style="padding:24px;color:var(--red)">Error: '+e.message+'</div>';
@@ -650,16 +706,18 @@ async function balDibujarTendencia(fd,fh,ventaActual,utilActual,licId){
   ctx.fillText('Ventas − Gastos',PAD.l+86,16);
 }
 
-function balDibujarComposicion(venta,costo,gastos,iva){
+function balDibujarComposicion(venta,costo,gastos,iva,comprasIns){
   var canvas=document.getElementById('balGraf2');
   var leyenda=document.getElementById('balGraf2Leyenda');
   if(!canvas||!venta) return;
-  var util=Math.max(0,venta-costo-gastos-iva);
+  comprasIns = comprasIns || 0;
+  var util=Math.max(0,venta-costo-gastos-iva-comprasIns);
   var segmentos=[
-    {label:'Costo de ventas',  valor:costo,  color:'#ef5350'},
-    {label:'Gastos',           valor:gastos, color:'#ff9800'},
-    {label:'IVA estimado',     valor:iva,    color:'#9c27b0'},
-    {label:'Utilidad neta',    valor:util,   color:'#4caf50'},
+    {label:'Costo de ventas',     valor:costo,      color:'#ef5350'},
+    {label:'Compras de insumos',  valor:comprasIns, color:'#ffb74d'},
+    {label:'Gastos',              valor:gastos,     color:'#ff9800'},
+    {label:'IVA estimado',        valor:iva,        color:'#9c27b0'},
+    {label:'Utilidad neta',       valor:util,       color:'#4caf50'},
   ].filter(function(s){return s.valor>0;});
 
   var ctx=canvas.getContext('2d');
