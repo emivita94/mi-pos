@@ -659,6 +659,10 @@ async function renderVentasList(){
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Emitir factura
         </button>` : ''}
+        <button class="venta-act-btn" style="background:var(--bg-dark);color:var(--text);border:1.5px solid var(--border);" onclick="reimprimirVentaTurno(${v.id})">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Reimprimir
+        </button>
         <button class="venta-act-btn cambiar-pago" onclick="cambiarMetodoPago(${v.id})">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4m0 0l4-4M4 7l4 4M4 17h16m0 0l-4-4m4 4l-4 4"/></svg>
           Cambiar pago

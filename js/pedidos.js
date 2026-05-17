@@ -60,11 +60,13 @@ function goCobrar(){
 //     numero_orden, mesa, tipo_pedido, estado, items jsonb, total, mesero_id,
 //     created_at, updated_at)
 //
-// REGLA DE PROPIEDAD DEL PEDIDO:
+// REGLA DE PROPIEDAD DEL PEDIDO (mayo 2026):
 //   mesero_id = nombre del terminal que creó el pedido.
-//   Los pedidos adicionales a la misma mesa crean un nuevo registro
-//   en pos_pedidos con tipo_pedido='adicional', NO editan el original.
-//   Esto garantiza que cocina siempre recibe una comanda nueva y clara.
+//   Una vez ENVIADO, el mozo NO puede editar el pedido. Si quiere agregar más
+//   a la misma mesa, se crea un POST NUEVO en pos_pedidos con tipo='adicional'
+//   que contiene SOLO los items nuevos. Nunca se hace PATCH desde el satélite.
+//   La caja es la única autoridad que puede editar items ya enviados.
+//   Esto evita conflictos de edición simultánea mozo↔caja.
 // ══════════════════════════════════════════════════════════════════════════════
 async function sateliteEnviarPedido(){
   // ── Validación básica ────────────────────────────────────────────────────
@@ -72,7 +74,18 @@ async function sateliteEnviarPedido(){
     toast('Agrega productos primero');
     return;
   }
-  if(calcTotal() === 0){
+
+  // Solo se envían items NO enviados (los marcados enviado=true ya están
+  // en un pos_pedidos previo, no se vuelven a mandar). Esto es lo que
+  // implementa la regla "el mozo no edita lo que ya envió".
+  var itemsNuevos = cart.filter(function(i){ return !i.enviado; });
+  if(itemsNuevos.length === 0){
+    toast('Este pedido ya fue enviado. Para modificarlo avisá a caja.');
+    return;
+  }
+
+  var totalNuevos = itemsNuevos.reduce(function(s,i){ return s + (i.price||0)*(i.qty||1); }, 0);
+  if(totalNuevos === 0){
     toast('El total del pedido no puede ser cero');
     return;
   }
@@ -91,19 +104,18 @@ async function sateliteEnviarPedido(){
   var tipo     = tipoPedido || 'llevar';
   var mesaNombre = mesaActual ? mesaActual.nombre : null;
 
-  // Número de orden visible (ej: Orden #0012 en la comanda)
-  // Usamos ticketCounter que ya existe y se autoincrementa
-  const nroOrden = ticketCounter;
+  // Cada envío usa un nro de orden nuevo — un pedido nunca se "edita"
+  const nroOrden = incrementTicketCounter();
 
   // ── Detectar si es pedido ADICIONAL a una mesa ya ocupada ───────────────
-  // Si la mesa ya tiene un pendiente local, marcarlo como adicional
+  // Si la mesa ya tiene un pendiente local enviado, este envío es adicional
   const esAdicional = mesaActual
-    ? pendientes.some(p => p.mesa_id === mesaActual.id && !p.esSateliteCobrado)
+    ? pendientes.some(p => p.mesa_id === mesaActual.id && p.esSatelite && !p.esSateliteCobrado)
     : false;
   const tipoFinal = esAdicional ? 'adicional' : tipo;
 
-  // ── Armar payload para Supabase ──────────────────────────────────────────
-  const itemsParaSupabase = cart.map(function(i){
+  // ── Armar payload SOLO con los items nuevos ─────────────────────────────
+  const itemsParaSupabase = itemsNuevos.map(function(i){
     return {
       id:    i.id    || null,
       name:  i.name  || '',
@@ -125,145 +137,77 @@ async function sateliteEnviarPedido(){
     tipo_pedido:     tipoFinal,
     estado:          'abierto',
     items:           JSON.stringify(itemsParaSupabase),
-    total:           calcTotal(),
+    total:           totalNuevos,
     descuento_ticket: ticketDescuento || 0,
     mesero_id:       terminal,
     created_at:      new Date().toISOString(),
     updated_at:      new Date().toISOString(),
   };
 
-  // ── Detectar si hay un pedido Supabase existente para ACTUALIZAR ──────────
-  // Si el mesero vuelve a entrar a la mesa y agrega items, el pendiente local
-  // tiene supabasePedidoId del pedido original. En ese caso hacemos PATCH
-  // para actualizar items y total, en vez de crear un POST nuevo que
-  // generaria dos pedidos separados para la misma mesa.
-  // Excepción: si es ADICIONAL (mesa ya tiene un pedido distinto y estamos
-  // creando uno nuevo encima), SIEMPRE POST — nunca pisar el pedido original.
-  var existingSupabaseId = null;
-  if(currentTicketNro !== null && !esAdicional){
-    var existente = pendientes.find(function(p){ return p.nro === currentTicketNro; });
-    if(existente && existente.esSatelite){
-      if(existente._syncInProgress){
-        toast('Sincronizando pedido... esperá un momento');
-        return;
-      }
-      if(existente.supabasePedidoId) existingSupabaseId = existente.supabasePedidoId;
-    }
-  }
-
-  // ── Intentar sincronizar con Supabase ────────────────────────────────────
+  // ── SIEMPRE POST — el mozo nunca edita pedidos previos ──────────────────
   let supaOk = false;
-  let supabasePedidoId = existingSupabaseId; // preservar el UUID si hay uno
+  let supabasePedidoId = null;
   if(navigator.onLine && email && !USAR_DEMO){
-    if(existingSupabaseId){
-      // PATCH: actualizar el pedido existente
-      try {
-        var patchUrl = SUPA_URL + '/rest/v1/pos_pedidos?id=eq.' + encodeURIComponent(existingSupabaseId);
-        // En el PATCH NO cambiamos tipo_pedido — mantener el original.
-        // El "adicional" no aplica: es el MISMO pedido con mas items.
-        var patchBody = {
-          items:      pedidoData.items,
-          total:      pedidoData.total,
-          updated_at: new Date().toISOString(),
-        };
-        const resP = await fetch(patchUrl, {
-          method:  'PATCH',
-          headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
-          body: JSON.stringify(patchBody),
-        });
-        supaOk = resP.ok;
-        if(resP.ok){
-          console.log('[Satélite] Pedido ' + existingSupabaseId + ' ACTUALIZADO (PATCH). Total:', pedidoData.total);
-        } else {
-          const errText = await resP.text();
-          console.warn('[Satélite] Error actualizando pedido:', resP.status, errText);
-          // Fallback: si el PATCH falla (404 = el row no existe o fue cobrado),
-          // crear un pedido NUEVO con POST
-          existingSupabaseId = null;
-          supabasePedidoId = null;
+    try{
+      const res = await fetch(SUPA_URL + '/rest/v1/pos_pedidos', {
+        method:  'POST',
+        headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+        body: JSON.stringify(pedidoData),
+      });
+      supaOk = res.ok;
+      if(!res.ok){
+        const errText = await res.text();
+        console.warn('[Satélite] Error al enviar pedido a Supabase:', res.status, errText);
+        if(res.status === 404 || res.status === 400){
+          console.warn('[Satélite] Tabla pos_pedidos no encontrada. Ejecutar SQL de setup.');
         }
-      } catch(e){
-        console.warn('[Satélite] Sin conexión al actualizar pedido:', e.message);
-        existingSupabaseId = null; // intentar POST como fallback
-      }
-    }
-
-    if(!existingSupabaseId){
-      // POST: crear pedido nuevo
-      try{
-        const res = await fetch(SUPA_URL + '/rest/v1/pos_pedidos', {
-          method:  'POST',
-          headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
-          body: JSON.stringify(pedidoData),
-        });
-        supaOk = res.ok;
-        if(!res.ok){
-          const errText = await res.text();
-          console.warn('[Satélite] Error al enviar pedido a Supabase:', res.status, errText);
-          if(res.status === 404 || res.status === 400){
-            console.warn('[Satélite] Tabla pos_pedidos no encontrada. Ejecutar SQL de setup.');
+      } else {
+        try {
+          var inserted = await res.json();
+          if(inserted && inserted[0] && inserted[0].id){
+            supabasePedidoId = inserted[0].id;
           }
-        } else {
-          try {
-            var inserted = await res.json();
-            if(inserted && inserted[0] && inserted[0].id){
-              supabasePedidoId = inserted[0].id;
-            }
-          } catch(ep){ console.warn('[Satélite] No se pudo leer UUID del response'); }
-          console.log('[Satélite] Pedido #' + nroOrden + ' CREADO (POST). ID:', supabasePedidoId);
-        }
-      } catch(e){
-        console.warn('[Satélite] Sin conexión al enviar pedido:', e.message);
+        } catch(ep){ console.warn('[Satélite] No se pudo leer UUID del response'); }
+        console.log('[Satélite] Pedido #' + nroOrden + ' CREADO (POST). ID:', supabasePedidoId, '| Tipo:', tipoFinal);
       }
+    } catch(e){
+      console.warn('[Satélite] Sin conexión al enviar pedido:', e.message);
     }
   }
 
-  // Satélite: nunca abrir diálogo de impresión — solo marcar items como enviados.
-  // La caja es quien imprime el ticket al cobrar.
-  cart.forEach(function(i){ i.enviado = true; });
-  console.log('[Satelite] Items marcados como enviados (sin imprimir comanda)');
+  // Marcar los items NUEVOS como enviados (los que ya estaban enviados no se tocan)
+  itemsNuevos.forEach(function(i){ i.enviado = true; });
+  console.log('[Satelite]', itemsNuevos.length, 'items nuevos marcados enviados (sin imprimir comanda)');
 
-  // ── Guardar/actualizar backup local en pendientes[] ──────────────────────
-  // Si el cart vino de un pendiente ya guardado (currentTicketNro != null),
-  // REEMPLAZAR ese pendiente en vez de agregar uno nuevo. Esto evita duplicados
-  // en el flujo "Guardar → Enviar".
-  var nro;
-  var idxExistente = -1;
-  if(currentTicketNro !== null){
-    idxExistente = pendientes.findIndex(function(p){ return p.nro === currentTicketNro; });
-  }
+  // ── Guardar pendiente NUEVO en pendientes[] (nunca reemplaza al previo) ──
+  // Cada envío genera su propio pendiente local con su supabasePedidoId.
+  // Si la mesa ya tenía pendientes (adicional), conviven todos en el array.
   var entradaPendiente = {
-    nro:              currentTicketNro !== null ? currentTicketNro : incrementTicketCounter(),
+    nro:              nroOrden,
     obs:              mesaNombre || (tipo === 'delivery' ? 'Delivery' : 'Para llevar'),
-    cart:             JSON.parse(JSON.stringify(cart)),
-    total:            calcTotal(),
+    cart:             JSON.parse(JSON.stringify(itemsNuevos)), // solo los items recién enviados
+    total:            totalNuevos,
     fecha:            new Date().toISOString(),
     mesa_id:          mesaActual ? mesaActual.id : null,
     esSatelite:       true,
     esSateliteCobrado:false,
     supaSync:         supaOk,
-    supabasePedidoId: supabasePedidoId, // UUID para reconciliación
+    supabasePedidoId: supabasePedidoId,
     esPresupuesto:    false,
+    tipoPedido:       tipoFinal,
   };
-  nro = entradaPendiente.nro;
-  if(idxExistente >= 0){
-    pendientes[idxExistente] = entradaPendiente;
-  } else {
-    addPendiente(entradaPendiente);
-  }
+  addPendiente(entradaPendiente);
   guardarPendientesLocal();
 
   // ── Feedback al mesero ───────────────────────────────────────────────────
-  // Si se actualizo un pedido existente, el mensaje lo refleja.
-  var fueActualizacion = existingSupabaseId != null;
   const mesaMsg  = mesaNombre
     ? 'Mesa ' + mesaNombre
     : (tipo === 'delivery' ? 'Delivery' : 'Para llevar');
   const syncMsg  = supaOk
     ? ' — caja notificada'
     : ' — sin conexión, guardado local';
-  var verbo = fueActualizacion ? 'actualizado' : 'enviado';
-  toast('Pedido #' + String(nro).padStart(4, '0') + ' ' + verbo + ' · ' + mesaMsg + syncMsg);
+  var tipoMsg = esAdicional ? 'Pedido adicional' : 'Pedido';
+  toast(tipoMsg + ' #' + String(nroOrden).padStart(4, '0') + ' enviado · ' + mesaMsg + syncMsg);
 
   // ── Limpiar estado para próximo pedido ───────────────────────────────────
   clearCart();

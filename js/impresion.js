@@ -992,22 +992,121 @@ function imprimirDirecto(html, size){
   }, 300);
 }
 
-function imprimirRecibo(){
-  if(!ultimoReciboData){ toast('Sin datos para imprimir'); return; }
+// ── REIMPRIMIR VENTA DEL TURNO ────────────────────────────
+// Reimprime un ticket ya cobrado del turno actual. Se invoca desde el botón
+// "Reimprimir" en la lista de ventas (scVentas tab vendidas).
+// Estrategia:
+//   1) Primero busca la venta en turnoData.ventas[] (memoria), que tiene el
+//      objeto factura completo (con timbrado, nro_factura, etc.) — ideal para
+//      reimprimir facturas tal cual se imprimieron originalmente.
+//   2) Si no la encuentra ahí, cae a leer db.ventas (IndexedDB) y reconstruye
+//      el data lo mejor posible. En este caso la factura puede quedar parcial
+//      (solo RUC y nombre) porque dbSaveVenta no guarda el timbrado completo.
+async function reimprimirVentaTurno(idVenta){
+  if(!idVenta){ toast('Venta inválida'); return; }
+
+  // Buscar en turnoData.ventas[] por dbId
+  var data = null;
+  if(typeof turnoData !== 'undefined' && turnoData.ventas){
+    var v = turnoData.ventas.find(function(x){ return x.dbId === idVenta; });
+    if(v){
+      data = {
+        items:       v.items,
+        total:       v.total,
+        metodo:      v.metodo,
+        comprobante: v.comprobante || '',
+        fecha:       v.fecha,
+        nroTicket:   v.nroTicket,
+        nroOrden:    v.nroTicket,
+        factura:     v.factura || null,
+        divPagos:    v.divPagos || null,
+        efectivo:    '',
+        vuelto:      '',
+        tipoPedido:  'llevar',
+        mesa:        null,
+      };
+    }
+  }
+
+  // Fallback: leer de IndexedDB
+  if(!data && typeof db !== 'undefined' && db){
+    try {
+      var dbv = await db.ventas.get(idVenta);
+      if(!dbv){ toast('No se encontró la venta'); return; }
+      var items = [];
+      try { items = typeof dbv.items === 'string' ? JSON.parse(dbv.items) : (dbv.items || []); } catch(e){}
+      // Normalizar items al shape que esperan generarHTMLTicket/Factura
+      items = items.map(function(i){
+        return {
+          id:    i.id,
+          name:  i.name || i.nombre || '',
+          qty:   i.qty || i.cantidad || 1,
+          price: i.price || i.precio || 0,
+          costo: i.costo || 0,
+          iva:   i.iva || '10',
+          cat:   i.cat || i.categoria || '',
+          obs:   i.obs || '',
+        };
+      });
+      var fact = null;
+      if(dbv.tiene_factura){
+        try { fact = typeof dbv.factura === 'string' ? JSON.parse(dbv.factura) : (dbv.factura || null); } catch(e){}
+        if(!fact){
+          fact = { ruc: dbv.factura_ruc || '', nombre: dbv.factura_nombre || '' };
+        }
+      }
+      var divP = null;
+      if(dbv.div_pagos){
+        try { divP = typeof dbv.div_pagos === 'string' ? JSON.parse(dbv.div_pagos) : dbv.div_pagos; } catch(e){}
+      }
+      data = {
+        items:       items,
+        total:       dbv.total,
+        metodo:      dbv.metodo_pago || 'EFECTIVO',
+        comprobante: dbv.comprobante || '',
+        fecha:       dbv.fecha,
+        nroTicket:   dbv.id,
+        nroOrden:    dbv.id,
+        factura:     fact,
+        divPagos:    divP,
+        efectivo:    '',
+        vuelto:      '',
+        tipoPedido:  'llevar',
+        mesa:        null,
+      };
+    } catch(e){
+      console.warn('[Reimprimir] Error leyendo venta:', e.message);
+      toast('Error al leer la venta');
+      return;
+    }
+  }
+
+  if(!data){ toast('No se pudieron recuperar los datos'); return; }
+
+  // Reimprimir sin tocar ultimoReciboData (no es la venta actual)
+  imprimirRecibo(data);
+  toast('Reimprimiendo ticket...');
+}
+
+function imprimirRecibo(dataOverride){
+  // dataOverride permite reimprimir cualquier ticket sin depender del último
+  // (lo usa reimprimirVentaTurno desde la lista de ventas del turno).
+  const data = dataOverride || ultimoReciboData;
+  if(!data){ toast('Sin datos para imprimir'); return; }
 
   // BT Print Server tiene prioridad si hay MAC guardada
   const btpsTipo = localStorage.getItem('printerType_ticket');
   const btpsMac  = localStorage.getItem('btps_mac');
   if(btpsTipo === 'btps' || btpsMac){
-    BTPrinter.imprimirRecibo(ultimoReciboData);
+    BTPrinter.imprimirRecibo(data);
     return;
   }
 
   const size = getPaperSize('ticket');
-  const esFactura = ultimoReciboData.factura && ultimoReciboData.factura.timbrado;
+  const esFactura = data.factura && data.factura.timbrado;
   const html = esFactura
-    ? generarHTMLFactura(ultimoReciboData, size)
-    : generarHTMLTicket(ultimoReciboData, size);
+    ? generarHTMLFactura(data, size)
+    : generarHTMLTicket(data, size);
   const p = printers['ticket'];
   if(isAndroidAPK() && typeof window.AndroidPrint !== 'undefined'){
     imprimirAndroidNativo(html, size);

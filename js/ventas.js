@@ -431,6 +431,23 @@ function cargarTicket(i) {
   }
   setCart(JSON.parse(JSON.stringify(t.cart)));
   setCurrentTicketNro(t.nro);
+
+  // ── REGLA: la caja se vuelve dueña al cargar un pedido satélite ──────────
+  // Mismo motivo que en cajaAbrirPedidoSatelite: evitar que el sync de
+  // Supabase pise los cambios que la caja haga sobre el ticket.
+  if(t.esSatelite){
+    pendientes[i].esSatelite = false;
+    pendientes[i]._tomadoPorCaja = true;
+    if(typeof guardarPendientesLocal === 'function') guardarPendientesLocal();
+    if(t.supabasePedidoId && navigator.onLine && typeof USAR_DEMO !== 'undefined' && !USAR_DEMO && typeof supaPatch === 'function'){
+      supaPatch('pos_pedidos',
+        'id=eq.' + encodeURIComponent(t.supabasePedidoId),
+        { estado: 'en_cobro', updated_at: new Date().toISOString() },
+        true
+      ).catch(function(e){ console.warn('[Caja] No se pudo marcar en_cobro:', e.message); });
+    }
+  }
+
   updUI();
   updBtnGuardar();
   goTo('scSale');
@@ -472,6 +489,28 @@ function cajaAbrirPedidoSatelite(i) {
   }
   setCart(JSON.parse(JSON.stringify(t.cart || [])));
   setCurrentTicketNro(t.nro);
+
+  // ── REGLA: la caja se vuelve dueña del pedido al tocarlo ──────────────────
+  // Marcar el pendiente como local (no satélite) para que el polling/realtime
+  // de Supabase no lo pise. Esto resuelve el bug "vuelve a lo que mandó el mozo":
+  // a partir de acá, cualquier cambio que la caja haga al cart no se pierde.
+  // El supabasePedidoId se preserva para que al cobrar siga el flujo de
+  // marcarPedidoSateliteCobrado y el pos_pedidos en Supabase quede en estado 'cobrado'.
+  pendientes[i].esSatelite = false;
+  pendientes[i]._tomadoPorCaja = true; // marca informativa
+  if(typeof guardarPendientesLocal === 'function') guardarPendientesLocal();
+
+  // Informar a Supabase (best-effort, no bloquea la UI) — pasa de 'abierto' a 'en_cobro'.
+  // Si está offline o falla, no importa: la dueñería local ya está aplicada.
+  if(t.supabasePedidoId && navigator.onLine && typeof USAR_DEMO !== 'undefined' && !USAR_DEMO){
+    if(typeof supaPatch === 'function'){
+      supaPatch('pos_pedidos',
+        'id=eq.' + encodeURIComponent(t.supabasePedidoId),
+        { estado: 'en_cobro', updated_at: new Date().toISOString() },
+        true
+      ).catch(function(e){ console.warn('[Caja] No se pudo marcar en_cobro:', e.message); });
+    }
+  }
 
   // Setear tipo de pedido y mesa si corresponde
   if (typeof setTipoPedido === 'function') {
