@@ -314,15 +314,20 @@ async function iniciarApp(){
   // ── SYNC ESTADO DE PEDIDOS (solo modo satélite) ─────────────────────────
   // El satélite reconcilia su array local con el estado real en Supabase,
   // así se eliminan los pedidos ya cobrados o cancelados por la caja.
+  // Polling cada 5s + suscripción realtime para reaccionar en <1s a UPDATEs.
   if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'satelite'){
     if(typeof sateliteSyncPedidosPendientes === 'function'){
       setTimeout(sateliteSyncPedidosPendientes, 3000);
-      setInterval(sateliteSyncPedidosPendientes, 10000);
+      setInterval(sateliteSyncPedidosPendientes, 5000);
       document.addEventListener('visibilitychange', function(){
         if(document.visibilityState === 'visible'){
           setTimeout(sateliteSyncPedidosPendientes, 200);
         }
       });
+    }
+    // Realtime via WebSocket: reacciona instantáneamente cuando la caja cobra
+    if(typeof sateliteSuscribirRealtime === 'function'){
+      setTimeout(sateliteSuscribirRealtime, 3000);
     }
   }
 }

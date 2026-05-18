@@ -75,6 +75,22 @@ async function sateliteEnviarPedido(){
     return;
   }
 
+  // GUARDA: si el cart venía de un ticket que la caja cobró mientras
+  // estaba abierto en pantalla, abortar — no crear un adicional huérfano.
+  if(currentTicketNro !== null){
+    var existeAun = pendientes.some(function(p){ return p.nro === currentTicketNro; });
+    if(!existeAun){
+      toast('Este pedido ya fue cobrado por caja. Empezá uno nuevo.');
+      clearCart();
+      setCurrentTicketNro(null);
+      clearMesaActual();
+      if(typeof updMesaBtn === 'function') updMesaBtn();
+      if(typeof updUI === 'function') updUI();
+      if(typeof updBtnGuardar === 'function') updBtnGuardar();
+      return;
+    }
+  }
+
   // Solo se envían items NO enviados (los marcados enviado=true ya están
   // en un pos_pedidos previo, no se vuelven a mandar). Esto es lo que
   // implementa la regla "el mozo no edita lo que ya envió".
@@ -424,22 +440,22 @@ async function cajaSyncPedidosSatelite(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CAJA → REALTIME via Supabase WebSocket
+// REALTIME via Supabase WebSocket — funciona tanto para CAJA como para SATELITE
 //
-// En lugar de solo hacer polling cada 6s, abrimos una conexion WebSocket a
-// Supabase Realtime. Cuando un satelite INSERTA un pedido nuevo, recibimos
-// un evento inmediato y disparamos cajaSyncPedidosSatelite() en milisegundos
-// en vez de esperar hasta el proximo poll.
+// CAJA: escucha INSERT/UPDATE para enterarse de nuevos pedidos del mozo y de
+// cambios de estado, sin esperar el polling.
 //
-// Si Realtime falla o se desconecta, el polling cada 6s sigue siendo el
-// fallback confiable.
+// SATELITE: escucha UPDATE para enterarse cuando la caja cobra/cancela un
+// pedido, así no permite reenviar un ticket fantasma.
+//
+// Si Realtime falla o se desconecta, el polling sigue siendo el fallback.
 // ══════════════════════════════════════════════════════════════════════════════
 var _realtimeWS = null;
 var _realtimeReconnectTimer = null;
 var _realtimeRef = 0;
 
-function cajaSuscribirRealtime(){
-  if(MODO_TERMINAL !== 'caja') return;
+function posSuscribirRealtime(){
+  if(MODO_TERMINAL !== 'caja' && MODO_TERMINAL !== 'satelite') return;
   if(!navigator.onLine || USAR_DEMO) return;
   if(_realtimeWS && _realtimeWS.readyState === 1) return; // ya conectado
   if(typeof SUPA_URL === 'undefined' || typeof SUPA_ANON === 'undefined') return;
@@ -497,11 +513,14 @@ function cajaSuscribirRealtime(){
       try {
         var data = JSON.parse(e.data);
         if(data.event === 'postgres_changes' && data.payload && data.payload.data){
-          // Nuevo pedido insertado o updateado — trigger sync inmediato
+          // Pedido insertado o updateado — trigger sync inmediato según modo
           var eventType = data.payload.data.type;
-          console.log('[Realtime] Cambio en pos_pedidos:', eventType);
+          console.log('[Realtime] Cambio en pos_pedidos:', eventType, '| modo:', MODO_TERMINAL);
           if(MODO_TERMINAL === 'caja'){
             setTimeout(cajaSyncPedidosSatelite, 100);
+          } else if(MODO_TERMINAL === 'satelite'){
+            // Caja cobró/canceló un pedido → limpiar pendientes locales del satélite
+            setTimeout(sateliteSyncPedidosPendientes, 100);
           }
         }
       } catch(err){ /* ignorar mensajes malformados */ }
@@ -517,12 +536,16 @@ function cajaSuscribirRealtime(){
       _realtimeWS = null;
       // Reintentar conexion tras 5s
       clearTimeout(_realtimeReconnectTimer);
-      _realtimeReconnectTimer = setTimeout(cajaSuscribirRealtime, 5000);
+      _realtimeReconnectTimer = setTimeout(posSuscribirRealtime, 5000);
     };
   } catch(e){
     console.warn('[Realtime] No se pudo conectar:', e.message);
   }
 }
+
+// Aliases para compatibilidad con las llamadas existentes en init.js
+function cajaSuscribirRealtime(){ return posSuscribirRealtime(); }
+function sateliteSuscribirRealtime(){ return posSuscribirRealtime(); }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SATELITE → SINCRONIZAR ESTADO DE PEDIDOS ENVIADOS

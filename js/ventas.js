@@ -400,8 +400,36 @@ function renderPendientes() {
   }).join('');
 }
 
-function cargarTicket(i) {
-  const t = pendientes[i];
+async function cargarTicket(i) {
+  let t = pendientes[i];
+  if(!t){ toast('Ticket no encontrado'); return; }
+
+  // ── GUARDA: si soy satélite y el pendiente está enlazado a un pedido
+  // de Supabase, validar que ese pedido NO esté cobrado/cancelado por la caja.
+  // Si está cobrado, no permitir abrir el ticket — la mesa ya fue cerrada.
+  if(typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'satelite'
+     && t.esSatelite && t.supabasePedidoId
+     && navigator.onLine && typeof USAR_DEMO !== 'undefined' && !USAR_DEMO){
+    try {
+      if(typeof sateliteSyncPedidosPendientes === 'function'){
+        await sateliteSyncPedidosPendientes();
+      }
+    } catch(e){ /* si falla el sync, seguimos — el peor caso es que ya quedó pisado */ }
+    // Tras el sync, el pendiente puede haber desaparecido si estaba cobrado
+    const idxRefrescado = pendientes.findIndex(function(p){
+      return p.supabasePedidoId === t.supabasePedidoId;
+    });
+    if(idxRefrescado < 0){
+      toast('Este pedido ya fue cobrado por caja');
+      if(typeof renderVentasList === 'function') renderVentasList();
+      if(typeof renderMesasScreen === 'function') renderMesasScreen();
+      return;
+    }
+    // El índice pudo cambiar tras el sync — usar el actualizado
+    i = idxRefrescado;
+    t = pendientes[i];
+  }
+
   const totalActual = calcTotal();
   if (totalActual > 0) {
     if (currentTicketNro !== null) {
