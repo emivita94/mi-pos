@@ -686,6 +686,26 @@ function updDivRestante() {
     restante <= 0 ? 'Pagado ✓' : 'Restante ' + gs(restante);
 }
 
+// Al editar el monto de un pago, ajusta los OTROS pagos no cobrados para que
+// la suma de todos los pagos no cobrados cubra el restante (total - ya cobrado).
+// Si hay más de un "otro" no cobrado, reparte equitativo con resto al primero.
+// Si el monto editado supera el restante, los otros quedan en 0.
+function divAjustarRestantes(idxModificado) {
+  const total    = calcTotal();
+  const cobrado  = divPagos.filter(p => p.cobrado).reduce((s, p) => s + p.monto, 0);
+  const editado  = divPagos[idxModificado].monto || 0;
+  const idxs     = [];
+  for (let k = 0; k < divPagos.length; k++) {
+    if (!divPagos[k].cobrado && k !== idxModificado) idxs.push(k);
+  }
+  if (idxs.length === 0) return;
+  let porRepartir = total - cobrado - editado;
+  if (porRepartir < 0) porRepartir = 0;
+  const base  = Math.floor(porRepartir / idxs.length);
+  const resto = porRepartir - base * idxs.length;
+  idxs.forEach((k, j) => { divPagos[k].monto = base + (j === 0 ? resto : 0); });
+}
+
 function divRemove(i) {
   if (divPagos.length <= 1) { toast('Mínimo 1 pago'); return; }
   if (divPagos[i].cobrado) { toast('Ya fue cobrado'); return; }

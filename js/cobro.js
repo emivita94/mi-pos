@@ -224,6 +224,8 @@ function npOK() {
 
   } else if (npCtx === 'div') {
     divPagos[divNpIdx].monto = v;
+    // Recalcular los otros pagos no cobrados para que la suma cierre el total
+    if (typeof divAjustarRestantes === 'function') divAjustarRestantes(divNpIdx);
     document.getElementById('npOverlay').classList.remove('open');
     renderDivList();
     updDivRestante();
