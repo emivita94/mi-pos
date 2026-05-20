@@ -1134,9 +1134,18 @@ function imprimirRecibo(dataOverride){
   } else if(p && p.type === 'bt' && p.device){
     imprimirBluetooth(p.device, html, size);
   } else {
-    // PC/USB — usar el mismo flujo que la primera impresion
-    const widthPx = size === '58' ? '200px' : '280px';
-    abrirDialogoImpresion(html, widthPx);
+    // PC/USB — el HTML renderizado por el browser sale en gris medio que
+    // la termica no marca. La COMANDA sale bien porque usa la misma
+    // tecnica de texto plano monoespaciado <pre>+Courier. Replicamos
+    // SIEMPRE ese flujo para tickets en PC/USB.
+    // Excepción: facturas siguen por HTML para mantener formato SIFEN.
+    if(esFactura){
+      const widthPx = size === '58' ? '200px' : '280px';
+      abrirDialogoImpresion(html, widthPx);
+    } else {
+      const cols = size === '58' ? 32 : 42;
+      abrirDialogoImpresionTexto(html, cols);
+    }
   }
 }
 

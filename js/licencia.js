@@ -1,7 +1,7 @@
 // ── Licencia, sesion, login, activacion ──
 
 // SUPA_URL y SUPA_ANON vienen de js/config.js
-var APP_VERSION = 'v1.11.1 (2026-05-20)';
+var APP_VERSION = 'v1.11.2 (2026-05-20)';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MODO TERMINAL — 'caja' (default) o 'satelite'
