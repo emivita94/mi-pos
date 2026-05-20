@@ -652,6 +652,8 @@ async function _renderComprasGastos(fd){
   var addDayCG=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
 
   // Compras — tabla stock_comprobantes con licencia_id
+  // El monto se guarda en la columna `total_monto` (no `total` ni `monto`).
+  // Para compras viejas con total_monto NULL, calculamos desde stock_comprobante_items.
   try{
     var comp=await sg('stock_comprobantes',
       'licencia_id=eq.'+licId+
@@ -659,7 +661,34 @@ async function _renderComprasGastos(fd){
       '&fecha=gte.'+fd0+'T04:00:00'+
       '&fecha=lte.'+addDayCG(fh0)+'T03:59:59'+
       '&order=fecha.desc&limit=100');
-    var totC=comp.reduce(function(s,x){return s+(x.total||x.monto||0);},0);
+
+    // Identificar comprobantes sin total_monto y calcular desde items
+    var faltantes = comp.filter(function(c){
+      var v = parseFloat(c.total_monto);
+      return !v || isNaN(v);
+    }).map(function(c){ return c.id; });
+
+    if(faltantes.length){
+      try {
+        var items = await sg('stock_comprobante_items',
+          'comprobante_id=in.('+faltantes.join(',')+')'+
+          '&select=comprobante_id,cantidad,costo_unitario&limit=5000');
+        var totales = {};
+        items.forEach(function(i){
+          var subt = (parseFloat(i.cantidad)||0) * (parseFloat(i.costo_unitario)||0);
+          // cantidad puede venir negativa en transferencias_salida; tomamos abs
+          totales[i.comprobante_id] = (totales[i.comprobante_id]||0) + Math.abs(subt);
+        });
+        comp.forEach(function(c){
+          if(!c.total_monto && totales[c.id]) c.total_monto = totales[c.id];
+        });
+      } catch(eItems){ console.warn('[Dash] Items compra fallback error:', eItems.message); }
+    }
+
+    // Normalizar el campo que lee setList/_card
+    comp.forEach(function(c){ c.total = parseFloat(c.total_monto) || 0; });
+
+    var totC = comp.reduce(function(s,x){ return s + (parseFloat(x.total)||0); }, 0);
     setTot('compras', totC, comp.length);
     setList('compras', comp);
     if($$('comprasWrap')) $$('comprasWrap').innerHTML=_card(totC,comp.length,comp,'compras');
