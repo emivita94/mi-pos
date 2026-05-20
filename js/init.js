@@ -57,6 +57,63 @@ setInterval(function(){
 }, 15000);
 
 // ── FUNCIÓN CENTRAL DE INICIO ─────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// AUTO-SAVE del cart en localStorage (anti-perdida ante Ctrl+R / corte de luz)
+// ══════════════════════════════════════════════════════════════════════════════
+// El cart vive en memoria. Si el cajero esta cargando una venta y la app se
+// recarga (refresh, crash, corte), TODO se pierde. Esta funcion persiste el
+// estado vivo del carrito en localStorage cada 1.5s — si cambio respecto a
+// la ultima version guardada.
+//
+// Al iniciar la app, recuperarCartAutosave() lee lo guardado y restaura el
+// carrito. Solo se recupera si tiene items y es reciente (<6 horas).
+//
+// Se limpia automaticamente en clearCart() (despues de cobrar o descartar).
+// ══════════════════════════════════════════════════════════════════════════════
+var _ultimoCartJSON = '';
+function guardarCartAutosave(){
+  if(typeof cart === 'undefined') return;
+  try {
+    if(!cart || cart.length === 0){
+      // No persistir cart vacio (clearCart ya limpio); evita pisar autosave valido
+      return;
+    }
+    var snap = {
+      cart:              cart,
+      currentTicketNro:  (typeof currentTicketNro !== 'undefined') ? currentTicketNro : null,
+      tipoPedido:        (typeof tipoPedido !== 'undefined') ? tipoPedido : 'llevar',
+      mesaActual:        (typeof mesaActual !== 'undefined') ? mesaActual : null,
+      ticketDescuento:   (typeof ticketDescuento !== 'undefined') ? ticketDescuento : 0,
+      ts:                Date.now(),
+    };
+    var json = JSON.stringify(snap);
+    if(json !== _ultimoCartJSON){
+      localStorage.setItem('pos_cart_autosave', json);
+      _ultimoCartJSON = json;
+    }
+  } catch(e){ /* localStorage lleno o cart no serializable — ignorar */ }
+}
+
+function recuperarCartAutosave(){
+  try {
+    var saved = localStorage.getItem('pos_cart_autosave');
+    if(!saved) return false;
+    var s = JSON.parse(saved);
+    if(!s || !Array.isArray(s.cart) || s.cart.length === 0) return false;
+    // No recuperar si tiene mas de 6 horas (probablemente venta abandonada)
+    if(s.ts && (Date.now() - s.ts) > 6*60*60*1000){
+      localStorage.removeItem('pos_cart_autosave');
+      return false;
+    }
+    if(typeof setCart === 'function') setCart(s.cart);
+    if(typeof setCurrentTicketNro === 'function') setCurrentTicketNro(s.currentTicketNro);
+    if(s.tipoPedido && typeof setTipoPedido === 'function') setTipoPedido(s.tipoPedido);
+    if(s.mesaActual && typeof setMesaActual === 'function') setMesaActual(s.mesaActual);
+    if(s.ticketDescuento && typeof setTicketDescuento === 'function') setTicketDescuento(s.ticketDescuento);
+    return true;
+  } catch(e){ return false; }
+}
+
 async function iniciarApp(){
   // Mantener pantalla encendida
   solicitarWakeLock();
@@ -76,6 +133,17 @@ async function iniciarApp(){
   if(_vEl) _vEl.textContent = APP_VERSION + ' · by Nodo Informática';
   const _vCfg = document.getElementById('configVersion');
   if(_vCfg) _vCfg.textContent = APP_VERSION + ' · by Nodo Informática';
+
+  // ── Auto-save del cart cada 1.5s ─────────────────────────
+  // Anti-perdida: si el cajero esta cargando una venta y la app se recarga
+  // (Ctrl+R, crash, corte de luz), el cart se persiste y se recupera al
+  // proximo arranque. Solo guarda si el cart cambio respecto al ultimo save.
+  setInterval(guardarCartAutosave, 1500);
+  // Guardar tambien al perder visibilidad / cerrar la pestana
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden') guardarCartAutosave();
+  });
+  window.addEventListener('beforeunload', guardarCartAutosave);
 
   // ── Sanear hash de URL residual ──────────────────────────
   // Si la URL tiene un hash como #scCobrar (porque la app se cerro
@@ -204,6 +272,25 @@ async function iniciarApp(){
 
   updTabTicketHeader();
   updBtnGuardar();
+
+  // ── Recuperar carrito en curso si la app se recargó con venta sin cobrar ──
+  // Esto evita la perdida de ventas por Ctrl+R, crash o corte de luz.
+  // Se ejecuta DESPUES de cargar productos y config pero ANTES de navegar
+  // a la pantalla principal, asi el cart aparece restaurado al abrir scSale.
+  if(typeof recuperarCartAutosave === 'function'){
+    var recuperado = recuperarCartAutosave();
+    if(recuperado){
+      setTimeout(function(){
+        if(typeof updUI === 'function') updUI();
+        if(typeof updBtnGuardar === 'function') updBtnGuardar();
+        if(typeof updMesaBtn === 'function') updMesaBtn();
+        if(typeof renderTkt === 'function') renderTkt();
+        if(typeof toast === 'function'){
+          toast('Venta en curso recuperada — ' + cart.length + ' item' + (cart.length!==1?'s':''));
+        }
+      }, 500);
+    }
+  }
 
   if(MODO_TERMINAL === 'satelite'){
     // MODO SATELITE: siempre verificar caja abierta en esta sucursal

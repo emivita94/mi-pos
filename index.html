@@ -1897,10 +1897,42 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js')
       .then(function(reg){
         console.log('[SW] Registrado:', reg.scope);
+
+        // Verificar update cada 5 min — clientes con app abierta horas
+        // pueden no enterarse de versiones nuevas sin esto.
+        setInterval(function(){
+          reg.update().catch(function(){});
+        }, 5 * 60 * 1000);
+
+        // Cuando se detecta un SW nuevo descargado, esperar a que termine
+        // de instalarse y avisar al usuario (toast) que recargue.
+        reg.addEventListener('updatefound', function(){
+          var nuevo = reg.installing;
+          if(!nuevo) return;
+          nuevo.addEventListener('statechange', function(){
+            if(nuevo.state === 'installed' && navigator.serviceWorker.controller){
+              // Hay version nueva esperando
+              if(typeof toast === 'function'){
+                toast('Nueva version disponible — refrescá la pestaña');
+              } else {
+                console.log('[SW] Nueva version disponible');
+              }
+            }
+          });
+        });
       })
       .catch(function(err){
         console.warn('[SW] Error:', err);
       });
+
+    // Si la pestana vuelve a estar visible, verificar update tambien
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState === 'visible' && navigator.serviceWorker.controller){
+        navigator.serviceWorker.getRegistration().then(function(reg){
+          if(reg) reg.update().catch(function(){});
+        });
+      }
+    });
   });
 }
 

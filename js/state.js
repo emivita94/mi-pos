@@ -35,7 +35,11 @@ var curCat = 'Todos los artículos';
 // Cada setter permite poner logs, validaciones o eventos a futuro.
 
 function setCart(newCart) { cart = newCart; }
-function clearCart() { cart = []; }
+function clearCart() {
+  cart = [];
+  // Limpiar autosave al confirmar venta o descartar carrito explicitamente
+  try { localStorage.removeItem('pos_cart_autosave'); } catch(e){}
+}
 
 function setTicketDescuento(val) { ticketDescuento = val; }
 function resetTicketDescuento() { ticketDescuento = 0; }
