@@ -113,7 +113,8 @@ function getPaperSize(tipo){ return (printers[tipo] && printers[tipo].size) || l
 function getCSSTermico(size){
   const w  = size==='58' ? '58mm' : '80mm';
   const pw = size==='58' ? '48mm' : '72mm';
-  // Subido un punto para mejor lectura en termico (8.5→9, 10→11)
+  // Monospace tipo POS — más angosto en altura, más grueso en stroke.
+  // Sizes ajustados para que entren ~32 chars en 58mm y ~42 en 80mm.
   const fs = size==='58' ? '9pt'  : '11pt';
   const ss = size==='58' ? '8pt'  : '9pt';
   const ls = size==='58' ? '12pt' : '14pt';
@@ -129,14 +130,18 @@ function getCSSTermico(size){
         -webkit-font-smoothing: none !important;
         -moz-osx-font-smoothing: grayscale !important;
         text-rendering: geometricPrecision !important;
+        color: #000 !important;
       }
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     html { width:${w}; }
     body {
-      font-family: Arial, "Helvetica Neue", sans-serif;
+      /* Monospace gruesa tipo POS térmico — strokes cuadrados que marcan bien.
+         Lucida Console y Consolas vienen con Windows; Courier New como fallback. */
+      font-family: "Lucida Console", "Consolas", "Courier New", monospace;
       font-size: ${fs};
-      font-weight: 700; /* todo el ticket en bold por default — sin esto, la termica imprime gris claro */
+      font-weight: 700;
+      letter-spacing: 0;
       width: ${pw};
       max-width: ${pw};
       margin: 0 auto;
@@ -147,7 +152,7 @@ function getCSSTermico(size){
       -moz-osx-font-smoothing: grayscale;
       text-rendering: geometricPrecision;
     }
-    p  { margin:0; padding:0; line-height:1.3; }
+    p  { margin:0; padding:0; line-height:1.25; }
     .c { text-align:center; }
     .r { text-align:right; }
     .b { font-weight:bold; }
