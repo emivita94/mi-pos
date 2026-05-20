@@ -442,12 +442,51 @@ async function loadDashChartsData(f){
       }
     }
 
-    // Formas de pago
+    // Formas de pago — descompone pagos divididos (ej "EFECTIVO + POS + POS")
+    // a su método individual. Si la venta tiene div_pagos con los montos exactos,
+    // usa esos. Si no (solo metodo_pago concatenado), aproxima dividiendo
+    // equitativo entre los métodos involucrados.
     var pagosMap={};
     v.forEach(function(x){
-      var m3=(x.metodo_pago||'EFECTIVO').toUpperCase();
-      if(!pagosMap[m3]) pagosMap[m3]={tot:0,cnt:0};
-      pagosMap[m3].tot+=(x.total||0); pagosMap[m3].cnt++;
+      var metodoRaw=(x.metodo_pago||'EFECTIVO').toUpperCase();
+      var total=x.total||0;
+      var esDividido=metodoRaw.indexOf(' + ')>=0;
+
+      if(esDividido){
+        // Intentar usar div_pagos si vino del registro (montos exactos)
+        var divs=null;
+        if(x.div_pagos){
+          try{ divs=typeof x.div_pagos==='string'?JSON.parse(x.div_pagos):x.div_pagos; }catch(e){}
+        }
+
+        if(Array.isArray(divs) && divs.length){
+          var metodosVistos={};
+          divs.forEach(function(d){
+            var m=(d.metodo||'').toUpperCase();
+            if(!m) return;
+            if(!pagosMap[m]) pagosMap[m]={tot:0,cnt:0};
+            pagosMap[m].tot+=(d.monto||0);
+            metodosVistos[m]=true;
+          });
+          // 1 operación por cada método único de la venta
+          Object.keys(metodosVistos).forEach(function(m){ pagosMap[m].cnt++; });
+        } else {
+          // Sin detalle: aproximar dividiendo total entre los métodos detectados
+          var partes=metodoRaw.split(' + ').map(function(s){return s.trim();});
+          var porParte=partes.length>0?total/partes.length:0;
+          var metodosUnicos={};
+          partes.forEach(function(m){
+            if(!pagosMap[m]) pagosMap[m]={tot:0,cnt:0};
+            pagosMap[m].tot+=porParte;
+            metodosUnicos[m]=true;
+          });
+          Object.keys(metodosUnicos).forEach(function(m){ pagosMap[m].cnt++; });
+        }
+      } else {
+        if(!pagosMap[metodoRaw]) pagosMap[metodoRaw]={tot:0,cnt:0};
+        pagosMap[metodoRaw].tot+=total;
+        pagosMap[metodoRaw].cnt++;
+      }
     });
     var pEntries=Object.entries(pagosMap).sort(function(a,b){return b[1].tot-a[1].tot;});
     var pColores={'EFECTIVO':'var(--green)','POS':'var(--blue)','TRANSFERENCIA':'var(--orange)'};
