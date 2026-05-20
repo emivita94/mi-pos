@@ -113,17 +113,15 @@ function getPaperSize(tipo){ return (printers[tipo] && printers[tipo].size) || l
 function getCSSTermico(size){
   const w  = size==='58' ? '58mm' : '80mm';
   const pw = size==='58' ? '48mm' : '72mm';
-  // Monospace tipo POS — más angosto en altura, más grueso en stroke.
-  // Sizes ajustados para que entren ~32 chars en 58mm y ~42 en 80mm.
-  const fs = size==='58' ? '9pt'  : '11pt';
-  const ss = size==='58' ? '8pt'  : '9pt';
-  const ls = size==='58' ? '12pt' : '14pt';
+  // Sizes en PX (no pt) — más predecibles. Iguales a los que usa la comanda
+  // (que se ve bien): body 13-15px, small 12-13px, large 17-19px.
+  const fs = size==='58' ? '13px' : '15px';
+  const ss = size==='58' ? '12px' : '13px';
+  const ls = size==='58' ? '17px' : '19px';
   return `
     @page { size: ${w} auto !important; margin: 0 !important; }
     @media print {
       html, body { width: ${w} !important; margin: 0 !important; padding: 0 !important; }
-      /* Forzar render nítido en impresoras térmicas — desactiva anti-aliasing
-         del browser que sale en gris medio y la cabeza térmica no marca */
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -136,12 +134,15 @@ function getCSSTermico(size){
     * { margin:0; padding:0; box-sizing:border-box; }
     html { width:${w}; }
     body {
-      /* Monospace gruesa tipo POS térmico — strokes cuadrados que marcan bien.
-         Lucida Console y Consolas vienen con Windows; Courier New como fallback. */
-      font-family: "Lucida Console", "Consolas", "Courier New", monospace;
+      font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
       font-size: ${fs};
-      font-weight: 700;
-      letter-spacing: 0;
+      /* font-weight 900 (Black) por default. La comanda usa 900 inline en
+         cada <p> y se imprime bien — replicamos eso a nivel CSS. */
+      font-weight: 900;
+      /* Truco viejo pero efectivo: text-shadow 0,0,0 simula stroke extra
+         de 1px sin cambiar la fuente. Engordamos cada letra ~1px. */
+      text-shadow: 0 0 0 #000;
+      letter-spacing: 0.2px;
       width: ${pw};
       max-width: ${pw};
       margin: 0 auto;
@@ -152,28 +153,29 @@ function getCSSTermico(size){
       -moz-osx-font-smoothing: grayscale;
       text-rendering: geometricPrecision;
     }
-    p  { margin:0; padding:0; line-height:1.25; }
+    p  { margin:0; padding:0; line-height:1.3; font-weight:900; }
+    span { font-weight:900; }
     .c { text-align:center; }
     .r { text-align:right; }
-    .b { font-weight:bold; }
-    .s { font-size:${ss}; }
-    .l { font-size:${ls}; font-weight:bold; }
-    .hr{ border:none; border-top:1px dashed #000; margin:1mm 0; display:block; }
+    .b { font-weight:900; }
+    .s { font-size:${ss}; font-weight:900; }
+    .l { font-size:${ls}; font-weight:900; }
+    .hr{ border:none; border-top:2px solid #000; margin:1mm 0; display:block; }
     /* fila dos columnas: izq flexible, der fijo */
-    .row { display:flex; justify-content:space-between; align-items:baseline; }
-    .row .l1 { flex:1; padding-right:4px; word-break:break-word; }
-    .row .l2 { text-align:right; white-space:nowrap; min-width:0; }
+    .row { display:flex; justify-content:space-between; align-items:baseline; font-weight:900; }
+    .row .l1 { flex:1; padding-right:4px; word-break:break-word; font-weight:900; }
+    .row .l2 { text-align:right; white-space:nowrap; min-width:0; font-weight:900; }
     /* fila de item: nombre arriba, nums abajo */
-    .it-nom { font-size:${ss}; font-weight:bold; word-break:break-word; }
-    .it-det { display:flex; justify-content:space-between; font-size:${ss}; padding-left:2px; }
-    .it-det .qty { white-space:nowrap; }
-    .it-det .pu  { flex:1; text-align:center; white-space:nowrap; }
-    .it-det .sub { white-space:nowrap; font-weight:bold; }
-    .obs { font-size:${ss}; padding-left:8px; color:#333; }
+    .it-nom { font-size:${ss}; font-weight:900; word-break:break-word; }
+    .it-det { display:flex; justify-content:space-between; font-size:${ss}; padding-left:2px; font-weight:900; }
+    .it-det .qty { white-space:nowrap; font-weight:900; }
+    .it-det .pu  { flex:1; text-align:center; white-space:nowrap; font-weight:900; }
+    .it-det .sub { white-space:nowrap; font-weight:900; }
+    .obs { font-size:${ss}; padding-left:8px; color:#000; font-weight:900; }
     /* item factura: nombre + datos en dos líneas */
-    .if-nom { font-size:${ss}; font-weight:bold; word-break:break-word; }
-    .if-det { display:flex; justify-content:space-between; font-size:${ss}; padding-left:2px; }
-    .if-det span { white-space:nowrap; }
+    .if-nom { font-size:${ss}; font-weight:900; word-break:break-word; }
+    .if-det { display:flex; justify-content:space-between; font-size:${ss}; padding-left:2px; font-weight:900; }
+    .if-det span { white-space:nowrap; font-weight:900; }
   `;
 }
 
