@@ -1144,7 +1144,7 @@ function imprimirRecibo(dataOverride){
       abrirDialogoImpresion(html, widthPx);
     } else {
       const cols = size === '58' ? 32 : 42;
-      abrirDialogoImpresionTexto(html, cols);
+      abrirDialogoImpresionTexto(html, cols, size);
     }
   }
 }
@@ -1844,20 +1844,42 @@ function htmlATextoPlano(htmlContent, cols){
 // Genera el ticket como texto monoespaciado dentro de <pre> para que el driver
 // lo mande RAW al puerto USB sin interpretar HTML/CSS — resultado idéntico al
 // formato del BT Print Server (salvo bold/doble ancho que Text Only no soporta).
-function abrirDialogoImpresionTexto(htmlContent, cols){
+function abrirDialogoImpresionTexto(htmlContent, cols, size){
   var texto = htmlATextoPlano(htmlContent, cols);
   var escapado = texto
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;');
 
+  // Derivar size de cols si no se pasa (32 chars -> 58mm, 42 chars -> 80mm)
+  if(!size) size = (cols <= 36) ? '58' : '80';
+  var pageW = size === '58' ? '58mm' : '80mm';
+  var bodyW = size === '58' ? '54mm' : '76mm';
+  // Sizes ajustados para que 32 chars entren en 54mm util
+  var fontSize = size === '58' ? '11pt' : '12pt';
+
   var fullHtml = '<!DOCTYPE html><html><head>'+
     '<meta charset="UTF-8">'+
     '<title>Ticket</title>'+
     '<style>'+
-    '@page{size:auto;margin:0;}'+
-    'html,body{margin:0;padding:0;}'+
-    'pre{font-family:"Courier New",Courier,monospace;font-size:10pt;line-height:1.15;margin:0;padding:0;white-space:pre;}'+
+    /* @page con TAMANO EXPLICITO del papel termico — sin esto el browser
+       asume A4/Letter y encoge todo para que entre, perdiendo legibilidad */
+    '@page{size:'+pageW+' auto;margin:0;}'+
+    '@media print{html,body,pre{width:'+pageW+'!important;}}'+
+    'html,body{margin:0;padding:0;width:'+pageW+';}'+
+    'pre{'+
+      'font-family:"Courier New",Courier,monospace;'+
+      'font-size:'+fontSize+';'+
+      'font-weight:900;'+ /* Bold extra para mejor marca en termica */
+      'line-height:1.2;'+
+      'margin:0;'+
+      'padding:1mm 2mm;'+
+      'white-space:pre;'+
+      'width:'+bodyW+';'+
+      'color:#000;'+
+      '-webkit-font-smoothing:none;'+
+      'text-rendering:geometricPrecision;'+
+    '}'+
     '</style>'+
     '</head><body><pre>'+escapado+'</pre>'+
     '<script>window.onload=function(){setTimeout(function(){window.print();},400);};</script>'+
