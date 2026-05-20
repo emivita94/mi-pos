@@ -113,25 +113,39 @@ function getPaperSize(tipo){ return (printers[tipo] && printers[tipo].size) || l
 function getCSSTermico(size){
   const w  = size==='58' ? '58mm' : '80mm';
   const pw = size==='58' ? '48mm' : '72mm';
-  const fs = size==='58' ? '8.5pt': '10pt';
-  const ss = size==='58' ? '7pt'  : '8pt';
-  const ls = size==='58' ? '11pt' : '13pt';
+  // Subido un punto para mejor lectura en termico (8.5→9, 10→11)
+  const fs = size==='58' ? '9pt'  : '11pt';
+  const ss = size==='58' ? '8pt'  : '9pt';
+  const ls = size==='58' ? '12pt' : '14pt';
   return `
     @page { size: ${w} auto !important; margin: 0 !important; }
     @media print {
       html, body { width: ${w} !important; margin: 0 !important; padding: 0 !important; }
+      /* Forzar render nítido en impresoras térmicas — desactiva anti-aliasing
+         del browser que sale en gris medio y la cabeza térmica no marca */
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        -webkit-font-smoothing: none !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        text-rendering: geometricPrecision !important;
+      }
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     html { width:${w}; }
     body {
       font-family: Arial, "Helvetica Neue", sans-serif;
       font-size: ${fs};
+      font-weight: 700; /* todo el ticket en bold por default — sin esto, la termica imprime gris claro */
       width: ${pw};
       max-width: ${pw};
       margin: 0 auto;
       padding: 2mm 0;
       background: #fff;
       color: #000;
+      -webkit-font-smoothing: none;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
     }
     p  { margin:0; padding:0; line-height:1.3; }
     .c { text-align:center; }
