@@ -148,6 +148,16 @@ function supaInsertVenta(data){
                       cat:    i.cat||i.categoria||'',
                       obs:    i.obs||''
                     }))),
+    // div_pagos: detalle de pagos cuando la venta fue dividida en varios métodos.
+    // Permite al dashboard sumar montos exactos por método en vez de aproximar.
+    // Requiere la columna pos_ventas.div_pagos (ver supabase-migrations/add_div_pagos.sql).
+    div_pagos:      (Array.isArray(data.divPagos) && data.divPagos.length)
+                     ? data.divPagos.map(p => ({
+                         metodo:      (p.metodo || '').toUpperCase(),
+                         monto:       p.monto || 0,
+                         comprobante: p.comprobante || ''
+                       }))
+                     : null,
     tiene_factura:  !!(data.factura && data.factura.ruc),
     factura_ruc:    data.factura ? (data.factura.ruc||'')   : '',
     factura_nombre: data.factura ? (data.factura.nombre||'') : '',
