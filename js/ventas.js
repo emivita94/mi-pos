@@ -690,8 +690,18 @@ function confirmarClienteNombre(valor){
   if(typeof setClienteNombre === 'function') setClienteNombre(valor || '');
   var ov = document.getElementById('clienteNombreOv');
   if(ov) ov.remove();
+  // Si la cajera esta editando un pendiente con mesa, persistir el nombre
+  // en el pendiente para que se vea tambien en el panel de mesas.
+  if(currentTicketNro !== null && typeof pendientes !== 'undefined'){
+    var idx = pendientes.findIndex(function(p){ return p.nro === currentTicketNro; });
+    if(idx >= 0){
+      pendientes[idx].clienteNombre = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
+      if(typeof guardarPendientesLocal === 'function') guardarPendientesLocal();
+    }
+  }
   if(typeof renderClienteNombreBar === 'function') renderClienteNombreBar();
   if(typeof updTabTicketHeader === 'function') updTabTicketHeader();
+  if(typeof renderMesasScreen === 'function') renderMesasScreen();
 }
 
 // Compat no-op: la barra azul fue removida; ahora el cliente solo aparece
@@ -1300,15 +1310,10 @@ function renderTabletTicket(){
   var tl = document.getElementById('tabTlist');
   var empty = document.getElementById('tabEmpty');
   if(!tl) return;
-  if(!cart.length){
-    if(empty) empty.style.display='flex';
-    Array.from(tl.children).forEach(function(c){ if(c.id!=='tabEmpty') c.remove(); });
-    return;
-  }
-  if(empty) empty.style.display='none';
+  // Limpiar children excepto el placeholder vacio
   Array.from(tl.children).forEach(function(c){ if(c.id!=='tabEmpty') c.remove(); });
 
-  // Banner de modo LECTURA (venta cobrada)
+  // Banner de modo LECTURA (venta cobrada) — siempre que aplique, hay items o no
   var _enLecturaTab = (typeof _modoLectura !== 'undefined' && _modoLectura && _viewingCobradaVenta);
   if(_enLecturaTab){
     var _esAnulTab = !!_viewingCobradaVenta.anulada;
@@ -1320,17 +1325,23 @@ function renderTabletTicket(){
     tl.appendChild(ban);
   }
 
-  // Cabecera del cart con el nombre del cliente (si hay) — pequeno y al tono
+  // Cabecera del cart con el nombre del cliente (si hay) — siempre, aun con cart vacio
   var _nomCliTab = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
   if(_nomCliTab){
-    var hdrCli = document.createElement('div');
-    hdrCli.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px;border-bottom:1px dashed var(--border);font-size:13px;color:var(--text);font-weight:700;';
-    hdrCli.innerHTML =
+    var hdrCliVacio = document.createElement('div');
+    hdrCliVacio.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px;border-bottom:1px dashed var(--border);font-size:13px;color:var(--text);font-weight:700;';
+    hdrCliVacio.innerHTML =
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
       '<span style="opacity:.6;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Cliente:</span>'+
       '<span>'+_nomCliTab+'</span>';
-    tl.appendChild(hdrCli);
+    tl.appendChild(hdrCliVacio);
   }
+
+  if(!cart.length){
+    if(empty) empty.style.display='flex';
+    return;
+  }
+  if(empty) empty.style.display='none';
 
   cart.forEach(function(i){
     var div = document.createElement('div');
