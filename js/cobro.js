@@ -824,6 +824,8 @@ async function confirmarPago() {
   // Capturar descuento ANTES de resetTicketDescuento() y clearCart()
   const descTicketCopy    = ticketDescuento;
   const descMontoCopy     = calcDescuentoMonto();
+  // Nombre del cliente (opcional, se ingresa con el icono persona en scSale)
+  const clienteNombreCopy = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
 
   // Detectar si es pago dividido (divPagos definido en ventas.js)
   // Requiere que haya al menos 2 pagos cobrados con monto > 0
@@ -910,6 +912,7 @@ async function confirmarPago() {
     fecha:          _fechaVenta, // hora del servidor
     nroTicket,
     divPagos:       divPagosCopia,
+    clienteNombre:  clienteNombreCopy,
     _supabasePedidoId, // UUID del pedido satélite (null si fue venta directa)
   });
 
@@ -936,6 +939,7 @@ async function confirmarPago() {
     fecha:       _fechaVenta, // hora del servidor
     factura:     facturaData,
     divPagos:    divPagosCopia,
+    clienteNombre: clienteNombreCopy,
   });
   } finally {
     confirmarPago._running = false;

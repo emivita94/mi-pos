@@ -319,8 +319,13 @@ function generarHTMLTicket(data, size){
 
   // Datos ticket
   lineas += '<p class="s">TICKET NRO: '+String(data.nroTicket||0).padStart(6,'0')+'</p>';
+  // Cliente: prioridad al nombre rapido (data.clienteNombre) — debajo del nro;
+  // si no hay, cae al nombre de factura; si no hay, "SIN NOMBRE"
+  var _cli = (data.clienteNombre && String(data.clienteNombre).trim())
+          || (data.factura && data.factura.nombre)
+          || 'SIN NOMBRE';
+  lineas += '<p class="s b">CLIENTE: '+_cli+'</p>';
   lineas += '<p class="s">FECHA: '+fecha+' - HORA: '+hora+'</p>';
-  lineas += '<p class="s">CLIENTE: '+((data.factura && data.factura.nombre)||'SIN NOMBRE')+'</p>';
   if(data.tipoPedido && data.tipoPedido!=='llevar' && data.tipoPedido!=='local'){
     lineas += '<p class="s b">TIPO: '+data.tipoPedido.toUpperCase()+'</p>';
   }

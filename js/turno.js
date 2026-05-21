@@ -107,14 +107,15 @@ function turnoBorrar(){
 
 function registrarVentaEnTurno(data){
   turnoData.ventas.push({
-    items:       data.items,
-    total:       data.total,
-    metodo:      data.metodo,
-    comprobante: data.comprobante,
-    factura:     data.factura,
-    fecha:       data.fecha,
-    nroTicket:   data.nroTicket,
-    divPagos:    data.divPagos || null,
+    items:          data.items,
+    total:          data.total,
+    metodo:         data.metodo,
+    comprobante:    data.comprobante,
+    factura:        data.factura,
+    fecha:          data.fecha,
+    nroTicket:      data.nroTicket,
+    divPagos:       data.divPagos || null,
+    clienteNombre:  data.clienteNombre || '',
   });
   // Persistir en localStorage (sobrevive al cerrar la app)
   turnoGuardar();
@@ -158,6 +159,9 @@ function supaInsertVenta(data){
                          comprobante: p.comprobante || ''
                        }))
                      : null,
+    // cliente_nombre: nombre rapido del cliente (no es factura).
+    // Requiere la columna pos_ventas.cliente_nombre (ver add_cliente_nombre.sql).
+    cliente_nombre: data.clienteNombre || null,
     tiene_factura:  !!(data.factura && data.factura.ruc),
     factura_ruc:    data.factura ? (data.factura.ruc||'')   : '',
     factura_nombre: data.factura ? (data.factura.nombre||'') : '',

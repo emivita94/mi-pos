@@ -1498,10 +1498,18 @@
         <!-- Badge numérico — oculto cuando todo OK -->
         <span class="sync-count hidden" id="syncCount"></span>
       </button>
-      <button class="hbtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></button>
+      <button class="hbtn" id="btnClienteNombre" onclick="abrirInputClienteNombre()" title="Nombre del cliente"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></button>
       <button class="hbtn theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
     </div>
   </header>
+  <!-- Nombre del cliente (rapido, sin RUC ni facturacion) -->
+  <div class="cliente-nombre-bar" id="clienteNombreBar" style="display:none;align-items:center;gap:8px;padding:6px 12px;background:rgba(33,150,243,.08);border-bottom:1px solid rgba(33,150,243,.25);flex-shrink:0;font-size:12px;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <span style="font-weight:700;color:#2196f3;text-transform:uppercase;letter-spacing:.5px;">Cliente:</span>
+    <span id="clienteNombreLabel" style="flex:1;font-weight:700;"></span>
+    <button onclick="abrirInputClienteNombre()" style="background:transparent;border:none;color:#2196f3;cursor:pointer;font-size:11px;font-weight:700;text-decoration:underline;padding:0;">Editar</button>
+    <button onclick="setClienteNombre('');renderClienteNombreBar();" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 4px;" title="Quitar nombre">✕</button>
+  </div>
   <div class="action-bar">
     <button class="btn-left" id="btnGuardar" onclick="onBtnGuardar()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="btnGuardarIcon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>

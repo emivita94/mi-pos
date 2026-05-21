@@ -24,6 +24,12 @@ var PAY_METHODS = ['Efectivo','POS','Transferencia'];
 // ── MESA ──
 var mesaActual = null;
 
+// ── CLIENTE de la venta actual (nombre rapido sin RUC ni facturacion) ──
+// Sirve para identificar pedidos por nombre cuando no hay mesa (delivery,
+// llevar, mostrador). Se imprime debajo del nro de ticket y se guarda en
+// pos_ventas.cliente_nombre.
+var clienteNombre = '';
+
 // ── PRODUCTOS ──
 var PRODS = [
   {id:99,name:'ÍTEM LIBRE',price:0,color:'#546e7a',cat:'Otros',
@@ -39,6 +45,8 @@ function clearCart() {
   cart = [];
   // Limpiar autosave al confirmar venta o descartar carrito explicitamente
   try { localStorage.removeItem('pos_cart_autosave'); } catch(e){}
+  // El nombre del cliente acompana a la venta, se borra junto con el cart
+  if(typeof clienteNombre !== 'undefined') clienteNombre = '';
 }
 
 function setTicketDescuento(val) { ticketDescuento = val; }
@@ -74,6 +82,9 @@ function setDivMethodIdx(val) { divMethodIdx = val; }
 
 function setMesaActual(val) { mesaActual = val; }
 function clearMesaActual() { mesaActual = null; }
+
+function setClienteNombre(val) { clienteNombre = (val || '').trim(); }
+function clearClienteNombre() { clienteNombre = ''; }
 
 // ── CONFIGURACIÓN NEGOCIO ──
 var configData = {

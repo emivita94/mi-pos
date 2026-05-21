@@ -84,6 +84,7 @@ function guardarCartAutosave(){
       tipoPedido:        (typeof tipoPedido !== 'undefined') ? tipoPedido : 'llevar',
       mesaActual:        (typeof mesaActual !== 'undefined') ? mesaActual : null,
       ticketDescuento:   (typeof ticketDescuento !== 'undefined') ? ticketDescuento : 0,
+      clienteNombre:     (typeof clienteNombre !== 'undefined') ? clienteNombre : '',
       ts:                Date.now(),
     };
     var json = JSON.stringify(snap);
@@ -110,6 +111,7 @@ function recuperarCartAutosave(){
     if(s.tipoPedido && typeof setTipoPedido === 'function') setTipoPedido(s.tipoPedido);
     if(s.mesaActual && typeof setMesaActual === 'function') setMesaActual(s.mesaActual);
     if(s.ticketDescuento && typeof setTicketDescuento === 'function') setTicketDescuento(s.ticketDescuento);
+    if(s.clienteNombre && typeof setClienteNombre === 'function') setClienteNombre(s.clienteNombre);
     return true;
   } catch(e){ return false; }
 }

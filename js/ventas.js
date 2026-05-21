@@ -230,10 +230,45 @@ function updTabTicketHeader() {
   const nro = currentTicketNro !== null
     ? String(currentTicketNro).padStart(4, '0')
     : String(ticketCounter).padStart(4, '0');
+  const nomCliente = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
+  const sufMesa    = (typeof mesaActual!=='undefined' && mesaActual) ? '  ' + mesaActual.nombre : '';
+  const sufCli     = nomCliente ? '  ·  ' + nomCliente : '';
   const nroEl = document.getElementById('tabTicketNro');
-  if (nroEl) nroEl.textContent = '#' + nro + (typeof mesaActual!=='undefined' && mesaActual ? '  ' + mesaActual.nombre : '');
+  if (nroEl) nroEl.textContent = '#' + nro + sufMesa + sufCli;
   const mobNroEl = document.getElementById('mobTicketNro');
-  if (mobNroEl) mobNroEl.textContent = '#' + nro;
+  if (mobNroEl) mobNroEl.textContent = '#' + nro + (nomCliente ? '  ·  ' + nomCliente : '');
+  if (typeof renderClienteNombreBar === 'function') renderClienteNombreBar();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CLIENTE NOMBRE — input rapido para identificar la venta sin mesa
+// ══════════════════════════════════════════════════════════════════════════════
+// Se accede desde el icono de persona en el header de scSale. Permite escribir
+// un nombre que aparece debajo del nro de ticket y se imprime en el ticket.
+// No reemplaza la facturacion (esa sigue siendo aparte con RUC + timbrado).
+function abrirInputClienteNombre(){
+  var actual = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
+  var nuevo = prompt('Nombre del cliente (opcional):', actual);
+  if(nuevo === null) return; // Cancelado
+  if(typeof setClienteNombre === 'function') setClienteNombre(nuevo);
+  renderClienteNombreBar();
+  updTabTicketHeader();
+}
+
+// Render de la barra azul "Cliente: Nombre" debajo del header en scSale.
+// Se muestra solo si hay nombre cargado.
+function renderClienteNombreBar(){
+  var bar = document.getElementById('clienteNombreBar');
+  var lbl = document.getElementById('clienteNombreLabel');
+  if(!bar || !lbl) return;
+  var nom = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
+  if(nom){
+    bar.style.display = 'flex';
+    lbl.textContent = nom;
+  } else {
+    bar.style.display = 'none';
+    lbl.textContent = '';
+  }
 }
 
 function onBtnGuardar() {
