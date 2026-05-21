@@ -239,8 +239,9 @@ function updTabTicketHeader() {
   const nro = currentTicketNro !== null
     ? String(currentTicketNro).padStart(4, '0')
     : String(ticketCounter).padStart(4, '0');
+  // Solo el numero — la mesa ya se ve en el boton verde abajo, no repetir
   const nroEl = document.getElementById('tabTicketNro');
-  if (nroEl) nroEl.textContent = '#' + nro + (typeof mesaActual!=='undefined' && mesaActual ? '  ' + mesaActual.nombre : '');
+  if (nroEl) nroEl.textContent = '#' + nro;
   const mobNroEl = document.getElementById('mobTicketNro');
   if (mobNroEl) mobNroEl.textContent = '#' + nro;
   // El nombre del cliente se muestra dentro del cart (renderTkt/renderTabletTicket),
