@@ -1037,19 +1037,20 @@ async function reimprimirVentaTurno(idVenta){
     var v = turnoData.ventas.find(function(x){ return x.dbId === idVenta; });
     if(v){
       data = {
-        items:       v.items,
-        total:       v.total,
-        metodo:      v.metodo,
-        comprobante: v.comprobante || '',
-        fecha:       v.fecha,
-        nroTicket:   v.nroTicket,
-        nroOrden:    v.nroTicket,
-        factura:     v.factura || null,
-        divPagos:    v.divPagos || null,
-        efectivo:    '',
-        vuelto:      '',
-        tipoPedido:  'llevar',
-        mesa:        null,
+        items:         v.items,
+        total:         v.total,
+        metodo:        v.metodo,
+        comprobante:   v.comprobante || '',
+        fecha:         v.fecha,
+        nroTicket:     v.nroTicket,
+        nroOrden:      v.nroTicket,
+        factura:       v.factura || null,
+        divPagos:      v.divPagos || null,
+        clienteNombre: v.clienteNombre || '',
+        efectivo:      '',
+        vuelto:        '',
+        tipoPedido:    'llevar',
+        mesa:          null,
       };
     }
   }
@@ -1086,19 +1087,20 @@ async function reimprimirVentaTurno(idVenta){
         try { divP = typeof dbv.div_pagos === 'string' ? JSON.parse(dbv.div_pagos) : dbv.div_pagos; } catch(e){}
       }
       data = {
-        items:       items,
-        total:       dbv.total,
-        metodo:      dbv.metodo_pago || 'EFECTIVO',
-        comprobante: dbv.comprobante || '',
-        fecha:       dbv.fecha,
-        nroTicket:   dbv.id,
-        nroOrden:    dbv.id,
-        factura:     fact,
-        divPagos:    divP,
-        efectivo:    '',
-        vuelto:      '',
-        tipoPedido:  'llevar',
-        mesa:        null,
+        items:         items,
+        total:         dbv.total,
+        metodo:        dbv.metodo_pago || 'EFECTIVO',
+        comprobante:   dbv.comprobante || '',
+        fecha:         dbv.fecha,
+        nroTicket:     dbv.id,
+        nroOrden:      dbv.id,
+        factura:       fact,
+        divPagos:      divP,
+        clienteNombre: dbv.cliente_nombre || '',
+        efectivo:      '',
+        vuelto:        '',
+        tipoPedido:    'llevar',
+        mesa:          null,
       };
     } catch(e){
       console.warn('[Reimprimir] Error leyendo venta:', e.message);

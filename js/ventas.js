@@ -232,27 +232,82 @@ function updTabTicketHeader() {
     : String(ticketCounter).padStart(4, '0');
   const nomCliente = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
   const sufMesa    = (typeof mesaActual!=='undefined' && mesaActual) ? '  ' + mesaActual.nombre : '';
-  const sufCli     = nomCliente ? '  ·  ' + nomCliente : '';
+  // El nro va destacado, el cliente aparte mas chico (innerHTML para poder estilarlo)
   const nroEl = document.getElementById('tabTicketNro');
-  if (nroEl) nroEl.textContent = '#' + nro + sufMesa + sufCli;
+  if (nroEl) {
+    nroEl.innerHTML = '#' + nro + sufMesa
+      + (nomCliente ? ' <span style="font-size:10px;font-weight:700;color:#2196f3;letter-spacing:.3px;opacity:.95;">· ' + nomCliente + '</span>' : '');
+  }
   const mobNroEl = document.getElementById('mobTicketNro');
-  if (mobNroEl) mobNroEl.textContent = '#' + nro + (nomCliente ? '  ·  ' + nomCliente : '');
+  if (mobNroEl) {
+    mobNroEl.innerHTML = '#' + nro
+      + (nomCliente ? ' <span style="font-size:9px;font-weight:700;color:#2196f3;letter-spacing:.2px;">· ' + nomCliente + '</span>' : '');
+  }
   if (typeof renderClienteNombreBar === 'function') renderClienteNombreBar();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CLIENTE NOMBRE — input rapido para identificar la venta sin mesa
 // ══════════════════════════════════════════════════════════════════════════════
-// Se accede desde el icono de persona en el header de scSale. Permite escribir
-// un nombre que aparece debajo del nro de ticket y se imprime en el ticket.
-// No reemplaza la facturacion (esa sigue siendo aparte con RUC + timbrado).
+// Se accede desde el icono de persona en el header de scSale. Abre un modal
+// con input de texto y botones Aceptar / Quitar / Cancelar. Coherente con el
+// resto de la UI (no usa prompt() nativo).
 function abrirInputClienteNombre(){
+  // No duplicar overlay si ya esta abierto
+  var prev = document.getElementById('clienteNombreOv');
+  if(prev) prev.remove();
+
   var actual = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
-  var nuevo = prompt('Nombre del cliente (opcional):', actual);
-  if(nuevo === null) return; // Cancelado
-  if(typeof setClienteNombre === 'function') setClienteNombre(nuevo);
-  renderClienteNombreBar();
-  updTabTicketHeader();
+
+  var ov = document.createElement('div');
+  ov.id = 'clienteNombreOv';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .15s ease;';
+  ov.innerHTML =
+    '<div style="background:var(--bg-card);width:100%;max-width:380px;border-radius:14px;padding:22px 20px;animation:fadeIn .2s ease;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.5);">'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'+
+        '<div style="width:42px;height:42px;border-radius:50%;background:rgba(33,150,243,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
+        '</div>'+
+        '<div>'+
+          '<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.2;">Nombre del cliente</div>'+
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px;">Para identificar el pedido (opcional)</div>'+
+        '</div>'+
+      '</div>'+
+      '<input id="clienteNombreInput" type="text" placeholder="Ej: Juan, Mesa Carlos..." autocomplete="off" maxlength="40" '+
+        'style="width:100%;padding:13px 14px;background:var(--bg-dark);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:Barlow,sans-serif;font-size:15px;font-weight:700;outline:none;margin-bottom:14px;box-sizing:border-box;" />'+
+      '<div style="display:flex;gap:8px;">'+
+        (actual ? '<button onclick="confirmarClienteNombre(\'\')" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid rgba(239,83,80,.4);color:#ef5350;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">QUITAR</button>' : '')+
+        '<button onclick="document.getElementById(\'clienteNombreOv\').remove()" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">CANCELAR</button>'+
+        '<button onclick="confirmarClienteNombre(document.getElementById(\'clienteNombreInput\').value)" style="flex:1.4;padding:11px;border-radius:8px;background:#2196f3;border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">ACEPTAR</button>'+
+      '</div>'+
+    '</div>';
+
+  // Click en fondo cierra
+  ov.addEventListener('click', function(e){
+    if(e.target === ov) ov.remove();
+  });
+
+  document.body.appendChild(ov);
+
+  var inp = document.getElementById('clienteNombreInput');
+  if(inp){
+    inp.value = actual;
+    setTimeout(function(){ inp.focus(); inp.select(); }, 50);
+    // Enter confirma, Escape cancela
+    inp.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); confirmarClienteNombre(inp.value); }
+      else if(e.key === 'Escape'){ e.preventDefault(); ov.remove(); }
+    });
+  }
+}
+
+// Aplica el nombre (o lo limpia si viene vacio) y cierra el modal
+function confirmarClienteNombre(valor){
+  if(typeof setClienteNombre === 'function') setClienteNombre(valor || '');
+  var ov = document.getElementById('clienteNombreOv');
+  if(ov) ov.remove();
+  if(typeof renderClienteNombreBar === 'function') renderClienteNombreBar();
+  if(typeof updTabTicketHeader === 'function') updTabTicketHeader();
 }
 
 // Render de la barra azul "Cliente: Nombre" debajo del header en scSale.

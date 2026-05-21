@@ -209,6 +209,10 @@ async function dbSaveVenta(data){
     tiene_factura: !!data.factura,
     factura_ruc:  data.factura ? data.factura.ruc : '',
     factura_nombre: data.factura ? data.factura.nombre : '',
+    // Nombre rapido del cliente (sin RUC) — independiente de factura_nombre.
+    // Se guarda local para que reimpresion offline y listado de ventas del
+    // turno tambien lo muestren. Sincroniza a pos_ventas.cliente_nombre.
+    cliente_nombre: data.clienteNombre || null,
     sincronizado: 0,
   };
   const id = await db.ventas.add(venta);
