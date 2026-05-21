@@ -452,13 +452,21 @@ function salirDeModoLectura(){
   if(_cartEnCursoSnap){
     // Restaurar exactamente el estado pre-lectura
     var s = _cartEnCursoSnap;
+    // IMPORTANTE: setCart() pisa el cart pero NO toca clienteNombre.
+    // Tenemos que restaurar clienteNombre EXPLICITAMENTE despues de setCart
+    // para que el render del cart muestre el cliente correcto.
     if(typeof setCart === 'function') setCart(s.cart || []);
     if(typeof setCurrentTicketNro === 'function') setCurrentTicketNro(s.currentTicketNro);
-    if(typeof setClienteNombre === 'function') setClienteNombre(s.clienteNombre || '');
     if(s.mesaActual && typeof setMesaActual === 'function') setMesaActual(s.mesaActual);
     else if(typeof clearMesaActual === 'function') clearMesaActual();
     if(s.tipoPedido && typeof setTipoPedido === 'function') setTipoPedido(s.tipoPedido);
     if(typeof setTicketDescuento === 'function') setTicketDescuento(s.ticketDescuento || 0);
+    // Restaurar clienteNombre AL FINAL para que no lo pisen otras llamadas.
+    // Asignamos directo a la variable global tambien por si setClienteNombre no
+    // alcanza (al setear cart=[] el render se llama y lee la variable global).
+    var _nomRestaurar = s.clienteNombre || '';
+    if(typeof setClienteNombre === 'function') setClienteNombre(_nomRestaurar);
+    if(typeof clienteNombre !== 'undefined') clienteNombre = _nomRestaurar;
     _cartEnCursoSnap = null;
   } else {
     // Sin snapshot — limpiar para empezar
@@ -467,6 +475,9 @@ function salirDeModoLectura(){
   }
 
   if(typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
+  // Forzar re-render explicito para asegurar que el cliente vuelve a verse
+  if(typeof renderTkt === 'function') renderTkt();
+  if(typeof renderTabletTicket === 'function') renderTabletTicket();
 }
 
 // Cambia el boton COBRAR a REIMPRIMIR cuando hay venta cobrada en pantalla.
