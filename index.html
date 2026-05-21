@@ -1481,9 +1481,19 @@
 <div id="scSale" class="screen">
   <header class="header">
     <button class="hbtn" onclick="openDrawer()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-    <div class="htitle" onclick="goDetalle()" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;">
-      <span>Ticket</span><div class="tbadge" id="sBadge">0</div>
-      <span class="mob-ticket-nro" id="mobTicketNro">#0001</span>
+    <div class="htitle" style="user-select:none;display:flex;align-items:center;gap:6px;">
+      <span onclick="goDetalle()" style="cursor:pointer;">Ticket</span>
+      <div class="tbadge" id="sBadge" onclick="goDetalle()" style="cursor:pointer;">0</div>
+      <button id="mobNavAnt" onclick="event.stopPropagation();navegarTicket(-1)" title="Ticket anterior"
+        style="background:transparent;border:none;color:var(--text);cursor:pointer;padding:2px 4px;font-size:18px;line-height:1;opacity:.7;display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="mob-ticket-nro" id="mobTicketNro" onclick="goDetalle()" style="cursor:pointer;">#0001</span>
+      <span id="mobTicketEstado" style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.4px;display:none;"></span>
+      <button id="mobNavSig" onclick="event.stopPropagation();navegarTicket(1)" title="Ticket siguiente"
+        style="background:transparent;border:none;color:var(--text);cursor:pointer;padding:2px 4px;font-size:18px;line-height:1;opacity:.7;display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
     </div>
     <div class="hright" style="display:flex;align-items:center;gap:4px;">
       <button id="btnInstalarApp" onclick="instalarApp()" title="Instalar app" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;background:transparent;border:none;cursor:pointer;border-radius:50;padding:0;">
@@ -1551,7 +1561,19 @@
     <div class="tablet-right" id="tabletRight">
       <!-- Header: Nro ticket + tipo pedido -->
       <div class="tab-ticket-header">
-        <div class="tab-ticket-nro">Nro. Ticket: <span id="tabTicketNro">#—</span></div>
+        <div class="tab-ticket-nro" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span>Nro. Ticket:</span>
+          <button id="tabNavAnt" onclick="navegarTicket(-1)" title="Ticket anterior"
+            style="background:transparent;border:none;color:var(--text);cursor:pointer;padding:2px 5px;border-radius:4px;display:none;opacity:.7;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span id="tabTicketNro">#—</span>
+          <button id="tabNavSig" onclick="navegarTicket(1)" title="Ticket siguiente"
+            style="background:transparent;border:none;color:var(--text);cursor:pointer;padding:2px 5px;border-radius:4px;display:none;opacity:.7;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <span id="tabTicketEstado" style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;letter-spacing:.4px;display:none;margin-left:4px;"></span>
+        </div>
         <div class="tab-tipo-btns">
           <button class="tab-tipo-btn" id="tipoBtnLocal" onclick="onBtnLocal()">Local</button>
           <button class="tab-tipo-btn sel" id="tipoBtnLlevar" onclick="setTipoPedido('llevar')">Llevar</button>

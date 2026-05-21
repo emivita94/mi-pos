@@ -238,6 +238,208 @@ function updTabTicketHeader() {
   // no en el header — para no invadir la pantalla con el dato repetido.
   if (typeof renderTkt === 'function') renderTkt();
   if (typeof renderTabletTicket === 'function') renderTabletTicket();
+  // Refrescar badge de estado + flechas de navegacion
+  if (typeof actualizarBadgeEstado === 'function') actualizarBadgeEstado();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NAVEGACION ENTRE TICKETS (flechas en el header)
+// ══════════════════════════════════════════════════════════════════════════════
+// Lista combinada del turno actual:
+//   1. Cart en curso (si tiene items y no se esta editando un pendiente)
+//   2. Pendientes (no cobrados)
+//   3. Ventas cobradas del turno
+// Ordenadas por fecha descendente (mas reciente primero).
+// Las flechas dejan navegar por todo. Pendiente y En Curso son editables;
+// Cobrada/Anulada muestran un modal de solo-lectura con opcion de reimprimir.
+// ══════════════════════════════════════════════════════════════════════════════
+var _ticketViewMode = 'edit'; // 'edit' (cart normal) | 'readonly' (modal venta cobrada)
+
+function _ticketsNavegables(){
+  var lista = [];
+  // 1. Cart en curso (sin pendiente activo) — solo si tiene items
+  if(typeof cart !== 'undefined' && cart && cart.length > 0 && currentTicketNro === null){
+    lista.push({ tipo:'enCurso', nro:ticketCounter, fecha:Date.now() });
+  }
+  // 2. Pendientes locales (incluye satelites)
+  if(typeof pendientes !== 'undefined'){
+    pendientes.forEach(function(p, i){
+      lista.push({
+        tipo: p.esPresupuesto ? 'presupuesto' : (p.esSatelite ? 'satelite' : 'pendiente'),
+        nro:  p.nro,
+        idx:  i,
+        fecha: p.fecha ? new Date(p.fecha).getTime() : 0,
+        nomCli: p.clienteNombre || '',
+      });
+    });
+  }
+  // 3. Ventas cobradas del turno
+  if(typeof turnoData !== 'undefined' && turnoData.ventas){
+    turnoData.ventas.forEach(function(v){
+      lista.push({
+        tipo:     v.anulada ? 'anulada' : 'cobrada',
+        nro:      v.nroTicket,
+        ventaId:  v.dbId,
+        fecha:    v.fecha ? new Date(v.fecha).getTime() : 0,
+        nomCli:   v.clienteNombre || '',
+      });
+    });
+  }
+  // Mas reciente primero
+  lista.sort(function(a, b){ return b.fecha - a.fecha; });
+  return lista;
+}
+
+function _posicionActualNav(lista){
+  // Editando un pendiente
+  if(currentTicketNro !== null){
+    var idx = lista.findIndex(function(t){
+      return (t.tipo==='pendiente' || t.tipo==='satelite' || t.tipo==='presupuesto')
+        && t.nro === currentTicketNro;
+    });
+    if(idx >= 0) return idx;
+  }
+  // Cart en curso
+  var idxEnCurso = lista.findIndex(function(t){ return t.tipo === 'enCurso'; });
+  if(idxEnCurso >= 0) return idxEnCurso;
+  // No estamos sobre ninguno — empezar antes del primero
+  return -1;
+}
+
+function navegarTicket(dir){
+  var lista = _ticketsNavegables();
+  if(!lista.length){ toast('No hay tickets para navegar'); return; }
+  var pos = _posicionActualNav(lista);
+  // Si no estamos en la lista, dir=-1 nos lleva al primero, dir=+1 tambien
+  if(pos < 0){ pos = (dir < 0) ? 0 : -1; }
+  var nueva = pos + dir;
+  if(nueva < 0){ toast('Ya estas en el ticket mas reciente'); return; }
+  if(nueva >= lista.length){ toast('No hay tickets mas antiguos'); return; }
+  var t = lista[nueva];
+  if(t.tipo === 'cobrada' || t.tipo === 'anulada'){
+    verVentaCobradaModal(t);
+  } else if(t.tipo === 'enCurso'){
+    // Si estamos en un pendiente, descargarlo (cargarTicket auto-guarda) y volver al cart
+    // El cart en curso vive en memoria, asi que solo limpiamos currentTicketNro
+    setCurrentTicketNro(null);
+    updUI(); updBtnGuardar(); updTabTicketHeader();
+    toast('Ticket en curso');
+  } else {
+    // pendiente / satelite / presupuesto
+    if(t.tipo === 'satelite' && typeof cajaAbrirPedidoSatelite === 'function'){
+      cajaAbrirPedidoSatelite(t.idx);
+    } else {
+      cargarTicket(t.idx);
+    }
+  }
+}
+
+// ── BADGE DE ESTADO ──────────────────────────────────────────────────────
+function actualizarBadgeEstado(){
+  var estados = {
+    enCurso:     { txt:'EN CURSO',    bg:'rgba(76,175,80,.18)',  color:'#4caf50' },
+    pendiente:   { txt:'PENDIENTE',   bg:'rgba(255,152,0,.18)',  color:'#ff9800' },
+    satelite:    { txt:'SATELITE',    bg:'rgba(83,74,183,.18)',  color:'#7c6dff' },
+    presupuesto: { txt:'PRESUPUESTO', bg:'rgba(156,39,176,.18)', color:'#ba68c8' },
+    cobrada:     { txt:'COBRADO',     bg:'rgba(33,150,243,.18)', color:'#42a5f5' },
+    anulada:     { txt:'ANULADA',     bg:'rgba(239,83,80,.18)',  color:'#ef5350' },
+  };
+
+  // Estado actual: si hay currentTicketNro y existe en pendientes → ese estado.
+  // Si no, si cart tiene items → enCurso. Si no, vacio (ocultar).
+  var estadoActual = null;
+  if(currentTicketNro !== null && typeof pendientes !== 'undefined'){
+    var p = pendientes.find(function(x){ return x.nro === currentTicketNro; });
+    if(p){
+      estadoActual = p.esPresupuesto ? 'presupuesto' : (p.esSatelite ? 'satelite' : 'pendiente');
+    }
+  } else if(typeof cart !== 'undefined' && cart && cart.length > 0){
+    estadoActual = 'enCurso';
+  }
+
+  // Mostrar/ocultar badges
+  ['mob','tab'].forEach(function(prefix){
+    var el = document.getElementById(prefix + 'TicketEstado');
+    if(!el) return;
+    if(estadoActual && estados[estadoActual]){
+      var e = estados[estadoActual];
+      el.textContent = e.txt;
+      el.style.background = e.bg;
+      el.style.color = e.color;
+      el.style.display = 'inline-block';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+
+  // Mostrar/ocultar flechas segun haya tickets para navegar
+  var lista = _ticketsNavegables();
+  var hayNav = lista.length > 1 || (lista.length === 1 && estadoActual !== lista[0].tipo);
+  ['mobNavAnt','mobNavSig','tabNavAnt','tabNavSig'].forEach(function(id){
+    var btn = document.getElementById(id);
+    if(btn) btn.style.display = hayNav ? 'inline-flex' : 'none';
+  });
+}
+
+// ── MODAL VENTA COBRADA (solo lectura) ───────────────────────────────────
+function verVentaCobradaModal(item){
+  var prev = document.getElementById('ventaCobradaOv');
+  if(prev) prev.remove();
+
+  // Recuperar la venta completa de turnoData.ventas
+  var v = null;
+  if(typeof turnoData !== 'undefined' && turnoData.ventas){
+    v = turnoData.ventas.find(function(x){ return x.dbId === item.ventaId; });
+  }
+  if(!v){ toast('Venta no encontrada'); return; }
+
+  var anulada = !!v.anulada;
+  var fecha = v.fecha ? new Date(v.fecha) : new Date();
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var fechaStr = pad(fecha.getDate())+'/'+pad(fecha.getMonth()+1)+'/'+fecha.getFullYear()
+              +' · '+pad(fecha.getHours())+':'+pad(fecha.getMinutes());
+
+  var nomCli = v.clienteNombre || (v.factura && v.factura.nombre) || '';
+  var nroFact = (v.factura && v.factura.nro_factura) || '';
+
+  var itemsHTML = (v.items||[]).map(function(it){
+    var sub = (it.price||it.precio||0) * (it.qty||1);
+    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">'+
+      '<span>'+(it.qty||1)+'× '+(it.name||it.nombre||'')+'</span>'+
+      '<span style="font-weight:700;">'+gs(sub)+'</span>'+
+    '</div>';
+  }).join('');
+
+  var ov = document.createElement('div');
+  ov.id = 'ventaCobradaOv';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:14px;animation:fadeIn .15s ease;';
+  ov.innerHTML =
+    '<div style="background:var(--bg-card);width:100%;max-width:420px;max-height:90vh;overflow-y:auto;border-radius:14px;padding:0;animation:fadeIn .2s ease;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.5);">'+
+      '<div style="padding:18px 20px;border-bottom:1px solid var(--border);background:'+(anulada?'rgba(239,83,80,.08)':'rgba(33,150,243,.06)')+';border-radius:14px 14px 0 0;">'+
+        '<div style="display:flex;align-items:center;gap:10px;">'+
+          '<span style="font-size:10px;font-weight:800;padding:3px 9px;border-radius:5px;letter-spacing:.5px;background:'+(anulada?'rgba(239,83,80,.18)':'rgba(33,150,243,.2)')+';color:'+(anulada?'#ef5350':'#42a5f5')+';">'+(anulada?'ANULADA':'COBRADO')+'</span>'+
+          '<span style="font-size:18px;font-weight:800;color:var(--text);">#'+String(v.nroTicket).padStart(4,'0')+'</span>'+
+          (nroFact ? '<span style="font-size:11px;color:var(--muted);font-weight:700;">🧾 '+nroFact+'</span>' : '')+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:4px;">'+fechaStr+'</div>'+
+        (nomCli ? '<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text);font-weight:700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+nomCli+'</div>' : '')+
+      '</div>'+
+      '<div style="padding:16px 20px;">'+
+        '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:8px;">Artículos</div>'+
+        '<div style="max-height:200px;overflow-y:auto;margin-bottom:14px;">'+(itemsHTML||'<div style="font-size:12px;color:var(--muted);font-style:italic;">Sin detalle</div>')+'</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-top:2px solid var(--border);">'+
+          '<span style="font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Total</span>'+
+          '<span style="font-size:22px;font-weight:800;color:var(--text);">'+gs(v.total||0)+'</span>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:2px;text-align:right;">'+ (v.metodo||'EFECTIVO').toUpperCase() +'</div>'+
+      '</div>'+
+      '<div style="padding:12px 20px 18px;display:flex;gap:8px;">'+
+        '<button onclick="document.getElementById(\'ventaCobradaOv\').remove()" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">CERRAR</button>'+
+        (anulada ? '' : '<button onclick="document.getElementById(\'ventaCobradaOv\').remove();reimprimirVentaTurno('+v.dbId+');" style="flex:1.4;padding:11px;border-radius:8px;background:var(--green);border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">🖨 REIMPRIMIR</button>')+
+      '</div>'+
+    '</div>';
+  ov.addEventListener('click', function(e){ if(e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
