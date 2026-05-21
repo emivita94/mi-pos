@@ -254,6 +254,11 @@ function updTabTicketHeader() {
 // Cobrada/Anulada muestran un modal de solo-lectura con opcion de reimprimir.
 // ══════════════════════════════════════════════════════════════════════════════
 var _ticketViewMode = 'edit'; // 'edit' (cart normal) | 'readonly' (modal venta cobrada)
+// Cuando estamos viendo una venta cobrada en el modal, recordamos su indice
+// en la lista navegable. Asi un nuevo ◀/▶ avanza desde esa posicion, en vez
+// de volver a calcular desde currentTicketNro (que sigue apuntando al cart).
+// Se resetea al cerrar el modal o al volver a un ticket editable.
+var _ticketNavViewingIdx = -1;
 
 function _ticketsNavegables(){
   var lista = [];
@@ -293,6 +298,10 @@ function _ticketsNavegables(){
 }
 
 function _posicionActualNav(lista){
+  // Si estamos viendo una venta cobrada en el modal, esa es nuestra posicion
+  if(_ticketNavViewingIdx >= 0 && _ticketNavViewingIdx < lista.length){
+    return _ticketNavViewingIdx;
+  }
   // Editando un pendiente
   if(currentTicketNro !== null){
     var idx = lista.findIndex(function(t){
@@ -324,14 +333,23 @@ function navegarTicket(dir){
   if(nueva >= lista.length){ toast('Ya estas en el ticket mas reciente'); return; }
   var t = lista[nueva];
   if(t.tipo === 'cobrada' || t.tipo === 'anulada'){
+    _ticketNavViewingIdx = nueva; // recordar para que el proximo ◀/▶ avance desde aca
     verVentaCobradaModal(t);
+    actualizarBadgeEstado();
   } else if(t.tipo === 'enCurso'){
+    _ticketNavViewingIdx = -1;
     // Si estamos en un pendiente, descargarlo (cargarTicket auto-guarda) y volver al cart
     // El cart en curso vive en memoria, asi que solo limpiamos currentTicketNro
     setCurrentTicketNro(null);
+    // Cerrar modal si quedo abierto
+    var mod = document.getElementById('ventaCobradaOv');
+    if(mod) mod.remove();
     updUI(); updBtnGuardar(); updTabTicketHeader();
     toast('Ticket en curso');
   } else {
+    _ticketNavViewingIdx = -1;
+    var mod2 = document.getElementById('ventaCobradaOv');
+    if(mod2) mod2.remove();
     // pendiente / satelite / presupuesto
     if(t.tipo === 'satelite' && typeof cajaAbrirPedidoSatelite === 'function'){
       cajaAbrirPedidoSatelite(t.idx);
@@ -449,13 +467,28 @@ function verVentaCobradaModal(item){
         '</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-top:2px;text-align:right;">'+ (v.metodo||'EFECTIVO').toUpperCase() +'</div>'+
       '</div>'+
-      '<div style="padding:12px 20px 18px;display:flex;gap:8px;">'+
-        '<button onclick="document.getElementById(\'ventaCobradaOv\').remove()" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">CERRAR</button>'+
-        (anulada ? '' : '<button onclick="document.getElementById(\'ventaCobradaOv\').remove();reimprimirVentaTurno('+v.dbId+');" style="flex:1.4;padding:11px;border-radius:8px;background:var(--green);border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">🖨 REIMPRIMIR</button>')+
+      '<div style="padding:8px 20px 14px;display:flex;gap:6px;align-items:center;">'+
+        '<button onclick="navegarTicket(-1)" title="Ticket anterior" style="padding:11px 10px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);cursor:pointer;flex-shrink:0;display:flex;align-items:center;">'+
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"/></svg>'+
+        '</button>'+
+        '<button onclick="cerrarVentaCobradaModal()" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">CERRAR</button>'+
+        (anulada ? '' : '<button onclick="cerrarVentaCobradaModal();reimprimirVentaTurno('+v.dbId+');" style="flex:1.4;padding:11px;border-radius:8px;background:var(--green);border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">🖨 REIMPRIMIR</button>')+
+        '<button onclick="navegarTicket(1)" title="Ticket siguiente" style="padding:11px 10px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);cursor:pointer;flex-shrink:0;display:flex;align-items:center;">'+
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>'+
+        '</button>'+
       '</div>'+
     '</div>';
-  ov.addEventListener('click', function(e){ if(e.target === ov) ov.remove(); });
+  ov.addEventListener('click', function(e){ if(e.target === ov) cerrarVentaCobradaModal(); });
   document.body.appendChild(ov);
+}
+
+// Cerrar modal y resetear el viewing index para que la proxima navegacion
+// vuelva a calcular desde el ticket actual del cart.
+function cerrarVentaCobradaModal(){
+  var ov = document.getElementById('ventaCobradaOv');
+  if(ov) ov.remove();
+  _ticketNavViewingIdx = -1;
+  if(typeof actualizarBadgeEstado === 'function') actualizarBadgeEstado();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
