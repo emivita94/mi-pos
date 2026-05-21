@@ -251,7 +251,8 @@ function imprimirComandaPreCobro(){
     nroTicket: typeof currentTicketNro !== 'undefined' && currentTicketNro !== null ? currentTicketNro : ticketCounter,
     tipoPedido: tipoPedido||'llevar',
     mesa: mesaActual ? mesaActual.nombre : null,
-    factura: null
+    factura: null,
+    clienteNombre: (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : ''
   });
   // Marcar como enviados en memoria
   cart.forEach(i => { i.enviado = true; });

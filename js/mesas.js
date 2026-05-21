@@ -101,9 +101,17 @@ function renderMesasScreen(){
     const info    = ocupada
       ? ('₲'+Math.round(pend.total||0).toLocaleString('es-PY'))
       : (m.capacidad ? m.capacidad+' pers.' : '');
+    // Si la mesa esta ocupada y el pendiente tiene nombre de cliente, mostrarlo
+    const cliBloque = (ocupada && pend.clienteNombre)
+      ? '<div class="mesa-tile-cliente" style="font-size:10px;font-weight:700;color:var(--text);opacity:.85;margin-top:2px;display:flex;align-items:center;gap:3px;justify-content:center;line-height:1.1;">'+
+          '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">'+pend.clienteNombre+'</span>'+
+        '</div>'
+      : '';
     return '<div class="mesa-tile '+estado+'" onclick="onMesaTap('+m.id+')">' +
       '<div class="mesa-tile-nombre">'+m.nombre+'</div>'+
       (info ? '<div class="mesa-tile-info">'+info+'</div>' : '')+
+      cliBloque+
       '</div>';
   }).join('');
 }

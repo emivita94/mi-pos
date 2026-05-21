@@ -1502,14 +1502,6 @@
       <button class="hbtn theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
     </div>
   </header>
-  <!-- Nombre del cliente (rapido, sin RUC ni facturacion) -->
-  <div class="cliente-nombre-bar" id="clienteNombreBar" style="display:none;align-items:center;gap:6px;padding:4px 12px;background:rgba(33,150,243,.08);border-bottom:1px solid rgba(33,150,243,.25);flex-shrink:0;font-size:11px;">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-    <span style="font-weight:700;color:#2196f3;text-transform:uppercase;letter-spacing:.3px;font-size:9px;">Cliente</span>
-    <span id="clienteNombreLabel" style="flex:1;font-weight:700;color:var(--text);font-size:12px;"></span>
-    <button onclick="abrirInputClienteNombre()" style="background:transparent;border:none;color:#2196f3;cursor:pointer;font-size:10px;font-weight:700;text-decoration:underline;padding:0;">Editar</button>
-    <button onclick="setClienteNombre('');renderClienteNombreBar();updTabTicketHeader();" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 4px;" title="Quitar nombre">✕</button>
-  </div>
   <div class="action-bar">
     <button class="btn-left" id="btnGuardar" onclick="onBtnGuardar()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="btnGuardarIcon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -1766,10 +1758,10 @@
       </div>
     </div>
     <span class="guard-obs-label" style="display:flex;align-items:center;gap:6px;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       Nombre del cliente (opcional)
     </span>
-    <input class="guard-obs-input" id="guardCliente" type="text" placeholder="Ej: Juan, María..." maxlength="40" style="border-left:3px solid #2196f3;">
+    <input class="guard-obs-input" id="guardCliente" type="text" placeholder="Ej: Juan, María..." maxlength="40" style="border-left:3px solid var(--green);">
     <span class="guard-obs-label" style="margin-top:14px;">Observación (opcional)</span>
     <input class="guard-obs-input" id="guardObs" type="text" placeholder="Ej: Sin sal, Para llevar a las 14hs..." maxlength="80">
     <div class="guard-items-preview">

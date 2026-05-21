@@ -438,7 +438,16 @@ function toggleTicket(){
 function renderTkt(){
   const tl=document.getElementById('tlist');
   if(!cart.length){tl.innerHTML='<div class="tempty"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg><p>Ticket vacío</p></div>';return;}
-  tl.innerHTML=cart.map(i=>i.esDescuento
+  // Cabecera del cart con el nombre del cliente (si hay) — pequeno y al tono
+  const _nomCli = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
+  const headerCliente = _nomCli
+    ? `<div style="display:flex;align-items:center;gap:6px;padding:6px 4px 8px;margin-bottom:4px;border-bottom:1px dashed var(--border);font-size:12px;color:var(--text);font-weight:700;">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+         <span style="opacity:.6;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Cliente:</span>
+         <span>${_nomCli}</span>
+       </div>`
+    : '';
+  tl.innerHTML = headerCliente + cart.map(i=>i.esDescuento
     ? `<div class="titem" style="border-left:2px solid #ef5350;"><div class="tiname" style="color:#ef9a9a;">${i.name}</div><div class="tictrl"><button class="qbtn" onclick="chgQty(${i.lineId},-1)">✕</button></div><div class="tiprice" style="color:#ef5350;">-${gs(i.montoDesc)}</div></div>`
     : `<div class="titem" style="${i.enviado?'opacity:.6;':''}">`+
         `<div class="tiname">`+

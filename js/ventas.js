@@ -230,20 +230,14 @@ function updTabTicketHeader() {
   const nro = currentTicketNro !== null
     ? String(currentTicketNro).padStart(4, '0')
     : String(ticketCounter).padStart(4, '0');
-  const nomCliente = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
-  const sufMesa    = (typeof mesaActual!=='undefined' && mesaActual) ? '  ' + mesaActual.nombre : '';
-  // El nro va destacado, el cliente aparte mas chico (innerHTML para poder estilarlo)
   const nroEl = document.getElementById('tabTicketNro');
-  if (nroEl) {
-    nroEl.innerHTML = '#' + nro + sufMesa
-      + (nomCliente ? ' <span style="font-size:10px;font-weight:700;color:#2196f3;letter-spacing:.3px;opacity:.95;">· ' + nomCliente + '</span>' : '');
-  }
+  if (nroEl) nroEl.textContent = '#' + nro + (typeof mesaActual!=='undefined' && mesaActual ? '  ' + mesaActual.nombre : '');
   const mobNroEl = document.getElementById('mobTicketNro');
-  if (mobNroEl) {
-    mobNroEl.innerHTML = '#' + nro
-      + (nomCliente ? ' <span style="font-size:9px;font-weight:700;color:#2196f3;letter-spacing:.2px;">· ' + nomCliente + '</span>' : '');
-  }
-  if (typeof renderClienteNombreBar === 'function') renderClienteNombreBar();
+  if (mobNroEl) mobNroEl.textContent = '#' + nro;
+  // El nombre del cliente se muestra dentro del cart (renderTkt/renderTabletTicket),
+  // no en el header — para no invadir la pantalla con el dato repetido.
+  if (typeof renderTkt === 'function') renderTkt();
+  if (typeof renderTabletTicket === 'function') renderTabletTicket();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -265,20 +259,20 @@ function abrirInputClienteNombre(){
   ov.innerHTML =
     '<div style="background:var(--bg-card);width:100%;max-width:380px;border-radius:14px;padding:22px 20px;animation:fadeIn .2s ease;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.5);">'+
       '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">'+
-        '<div style="width:42px;height:42px;border-radius:50%;background:rgba(33,150,243,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+
-          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
+        '<div style="width:42px;height:42px;border-radius:50%;background:rgba(76,175,80,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
         '</div>'+
         '<div>'+
           '<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.2;">Nombre del cliente</div>'+
           '<div style="font-size:11px;color:var(--muted);margin-top:2px;">Para identificar el pedido (opcional)</div>'+
         '</div>'+
       '</div>'+
-      '<input id="clienteNombreInput" type="text" placeholder="Ej: Juan, Mesa Carlos..." autocomplete="off" maxlength="40" '+
+      '<input id="clienteNombreInput" type="text" placeholder="Ej: Juan, Maria, Don Carlos..." autocomplete="off" maxlength="40" '+
         'style="width:100%;padding:13px 14px;background:var(--bg-dark);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:Barlow,sans-serif;font-size:15px;font-weight:700;outline:none;margin-bottom:14px;box-sizing:border-box;" />'+
       '<div style="display:flex;gap:8px;">'+
         (actual ? '<button onclick="confirmarClienteNombre(\'\')" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid rgba(239,83,80,.4);color:#ef5350;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">QUITAR</button>' : '')+
         '<button onclick="document.getElementById(\'clienteNombreOv\').remove()" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">CANCELAR</button>'+
-        '<button onclick="confirmarClienteNombre(document.getElementById(\'clienteNombreInput\').value)" style="flex:1.4;padding:11px;border-radius:8px;background:#2196f3;border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">ACEPTAR</button>'+
+        '<button onclick="confirmarClienteNombre(document.getElementById(\'clienteNombreInput\').value)" style="flex:1.4;padding:11px;border-radius:8px;background:var(--green);border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">ACEPTAR</button>'+
       '</div>'+
     '</div>';
 
@@ -310,21 +304,9 @@ function confirmarClienteNombre(valor){
   if(typeof updTabTicketHeader === 'function') updTabTicketHeader();
 }
 
-// Render de la barra azul "Cliente: Nombre" debajo del header en scSale.
-// Se muestra solo si hay nombre cargado.
-function renderClienteNombreBar(){
-  var bar = document.getElementById('clienteNombreBar');
-  var lbl = document.getElementById('clienteNombreLabel');
-  if(!bar || !lbl) return;
-  var nom = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
-  if(nom){
-    bar.style.display = 'flex';
-    lbl.textContent = nom;
-  } else {
-    bar.style.display = 'none';
-    lbl.textContent = '';
-  }
-}
+// Compat no-op: la barra azul fue removida; ahora el cliente solo aparece
+// dentro del cart (renderTkt/renderTabletTicket) y en el panel de mesas.
+function renderClienteNombreBar(){ /* removed */ }
 
 function onBtnGuardar() {
   if (typeof mesaActual!=='undefined' && mesaActual) { guardarConMesa(); return; }
@@ -923,6 +905,19 @@ function renderTabletTicket(){
   }
   if(empty) empty.style.display='none';
   Array.from(tl.children).forEach(function(c){ if(c.id!=='tabEmpty') c.remove(); });
+
+  // Cabecera del cart con el nombre del cliente (si hay) — pequeno y al tono
+  var _nomCliTab = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
+  if(_nomCliTab){
+    var hdrCli = document.createElement('div');
+    hdrCli.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px;border-bottom:1px dashed var(--border);font-size:13px;color:var(--text);font-weight:700;';
+    hdrCli.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
+      '<span style="opacity:.6;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Cliente:</span>'+
+      '<span>'+_nomCliTab+'</span>';
+    tl.appendChild(hdrCli);
+  }
+
   cart.forEach(function(i){
     var div = document.createElement('div');
     div.className='tab-titem';

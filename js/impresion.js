@@ -586,8 +586,11 @@ function generarHTMLComanda(data, size){
   lineas += '<p class="c" style="font-size:13px;font-weight:900;border-top:2px solid #000;border-bottom:2px solid #000;padding:3px 0;margin:2px 0;">'
           + tipoLabel + '</p>';
 
-  // Cliente si tiene
-  const cliente = (data.factura && data.factura.nombre) || data.cliente || '';
+  // Cliente — prioridad: nombre rapido > factura.nombre > data.cliente
+  const cliente = (data.clienteNombre && String(data.clienteNombre).trim())
+                || (data.factura && data.factura.nombre)
+                || data.cliente
+                || '';
   if(cliente) lineas += '<p class="c b s" style="margin-top:2px;word-break:break-word;">Cliente: '+cliente+'</p>';
   if(data.obs) lineas += '<p class="c b s;word-break:break-word;">OBS: '+data.obs+'</p>';
 
