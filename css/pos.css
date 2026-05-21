@@ -2166,8 +2166,9 @@
   }
   .mob-tipo-btn.sel { color: var(--green); border-bottom-color: var(--green); background: rgba(76,175,80,.07); }
   .mob-ticket-nro {
-    font-size: 11px; font-weight: 700; color: var(--green);
-    background: rgba(76,175,80,.12); border-radius: 4px; padding: 2px 7px;
+    font-size: 13px; font-weight: 800; color: #fff;
+    background: rgba(255,255,255,.18); border-radius: 4px; padding: 3px 8px;
+    letter-spacing: .3px; line-height: 1.2;
   }
 
   /* tablet-split div — invisible en móvil */
