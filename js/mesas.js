@@ -172,6 +172,8 @@ function guardarConMesa(){
       pendientes[idx].mesa_id = mesaActual.id;
       pendientes[idx].fecha   = new Date().toISOString();
       pendientes[idx].descuentoTicket = ticketDescuento || 0;
+      // Persistir nombre del cliente si estaba cargado en la venta
+      pendientes[idx].clienteNombre = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
       const mesaNombreUpd = mesaActual.nombre;
       guardarPendientesLocal();
       // Limpiar y volver a mesas
@@ -198,6 +200,7 @@ function guardarConMesa(){
   addPendiente({
     nro,
     obs:           obs,
+    clienteNombre: (typeof clienteNombre !== 'undefined') ? clienteNombre : '',
     cart:          JSON.parse(JSON.stringify(cart)),
     total:         calcTotal(),
     fecha:         new Date().toISOString(),

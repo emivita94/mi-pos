@@ -466,12 +466,20 @@ function renderPendientes() {
     var artCount = (t.cart || []).reduce(function(s, it) { return s + it.qty; }, 0);
     var infoObs  = (t.obs || 'Sin observación') + ' · ' + artCount + ' art.';
     if (esSat && t.terminalOrigen) infoObs += ' · ' + t.terminalOrigen;
+    // Bloque del cliente — destacado abajo del titulo si hay nombre
+    var cliBadge = t.clienteNombre
+      ? '<div style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--text);font-weight:700;margin-top:2px;">'+
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
+          '<span>'+t.clienteNombre+'</span>'+
+        '</div>'
+      : '';
     return '<div class="pend-item" style="display:flex;align-items:center;gap:0;' +
            (esSat ? 'border-left:3px solid #534AB7;' : '') + '">' +
       '<div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 0 14px 14px;cursor:pointer;" onclick="' + onclickAccion + '">' +
         '<div class="pend-item-num"' + bgNum + '>#' + String(t.nro).padStart(4, '0') + '</div>' +
         '<div class="pend-item-info">' +
           '<div class="pend-item-title">Ticket #' + String(t.nro).padStart(4, '0') + badge + horaHtml + '</div>' +
+          cliBadge +
           '<div class="pend-item-obs">' + infoObs + '</div>' +
         '</div>' +
         '<div class="pend-item-total">' + gs(t.total) + '</div>' +
