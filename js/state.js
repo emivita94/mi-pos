@@ -37,6 +37,10 @@ var clienteNombre = '';
 // hay que apretar 'NUEVA VENTA' o navegar a otro ticket editable.
 var _modoLectura = false;
 var _viewingCobradaVenta = null; // referencia a la venta cobrada en visualizacion
+// Snapshot del cart vivo ANTES de entrar a modo lectura. Permite que al
+// navegar de vuelta con ▶ se restaure exactamente lo que la cajera tenia
+// cargado (cart en curso o pendiente activo).
+var _cartEnCursoSnap = null; // { cart, currentTicketNro, mesaActual, tipoPedido, clienteNombre, ticketDescuento }
 
 // ── PRODUCTOS ──
 var PRODS = [

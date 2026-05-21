@@ -296,9 +296,29 @@ function _ticketsNavegables(){
       });
     });
   }
-  // 3. Cart en curso (sin pendiente activo) — solo si tiene items. Va al FINAL
-  if(typeof cart !== 'undefined' && cart && cart.length > 0 && currentTicketNro === null){
-    lista.push({ tipo:'enCurso', nro:ticketCounter, fecha:Date.now() });
+  // 3. Cart en curso al FINAL — siempre presente para que la cajera pueda
+  // volver a su cart en curso desde una venta cobrada/anulada (modo lectura).
+  // Si esta en modo lectura, el cart vivo es la cobrada → usamos snapshot
+  // pre-lectura como referencia. Si no, el cart vivo (incluso vacio o con
+  // pendiente cargado) es lo que vamos a tener al volver.
+  if(typeof _modoLectura !== 'undefined' && _modoLectura){
+    // Modo lectura activo — agregamos 'enCurso' si habia algo antes
+    if(typeof _cartEnCursoSnap !== 'undefined' && _cartEnCursoSnap){
+      lista.push({
+        tipo:    'enCurso',
+        nro:     ticketCounter,
+        fecha:   Date.now(),
+        snapshot: true,
+      });
+    }
+  } else {
+    // No modo lectura — agregamos enCurso si hay cart sin pendiente activo
+    if(typeof cart !== 'undefined' && cart && cart.length > 0 && currentTicketNro === null){
+      lista.push({ tipo:'enCurso', nro:ticketCounter, fecha:Date.now() });
+    } else if(currentTicketNro === null){
+      // Cart vacio sin pendiente — igual permite "volver al inicio"
+      lista.push({ tipo:'enCurso', nro:ticketCounter, fecha:Date.now(), vacio:true });
+    }
   }
   // Mas VIEJO primero — para que las flechas se sientan naturales:
   //   < (izq, anterior) = mas viejo
@@ -347,15 +367,21 @@ function navegarTicket(dir){
     cargarVentaCobradaAlCart(t);
   } else if(t.tipo === 'enCurso'){
     _ticketNavViewingIdx = -1;
-    salirDeModoLectura();
-    // Si estamos en un pendiente, descargarlo (cargarTicket auto-guarda) y volver al cart
-    setCurrentTicketNro(null);
+    // Restaurar el estado pre-lectura (cart vivo + variables) si lo teniamos
+    if(_modoLectura){
+      salirDeModoLectura(); // restaura desde snapshot si existe
+    }
     updUI(); updBtnGuardar(); updTabTicketHeader();
-    toast('Ticket en curso');
+    toast(cart && cart.length ? 'Ticket en curso' : 'Listo para nueva venta');
   } else {
     _ticketNavViewingIdx = -1;
-    salirDeModoLectura();
-    // pendiente / satelite / presupuesto
+    // Vamos a cargar otro pendiente/satelite — descartar snapshot (ya no es valido)
+    if(_modoLectura){
+      _modoLectura = false;
+      _viewingCobradaVenta = null;
+      _cartEnCursoSnap = null;
+      if(typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
+    }
     if(t.tipo === 'satelite' && typeof cajaAbrirPedidoSatelite === 'function'){
       cajaAbrirPedidoSatelite(t.idx);
     } else {
@@ -366,8 +392,9 @@ function navegarTicket(dir){
 
 // Carga una venta cobrada/anulada al cart en MODO LECTURA.
 // El usuario ve los items pero no puede modificarlos. El boton COBRAR
-// se transforma en REIMPRIMIR. Las acciones de modificacion (addCart,
-// chgQty, GUARDAR) muestran un toast y no se ejecutan.
+// se transforma en REIMPRIMIR. Antes de pisar el cart, GUARDA un snapshot
+// del estado actual para poder restaurarlo cuando la cajera apriete ▶ y
+// vuelva al ticket en curso.
 function cargarVentaCobradaAlCart(item){
   // Buscar la venta completa por dbId
   if(typeof turnoData === 'undefined' || !turnoData.ventas){
@@ -375,6 +402,20 @@ function cargarVentaCobradaAlCart(item){
   }
   var v = turnoData.ventas.find(function(x){ return x.dbId === item.ventaId; });
   if(!v){ toast('Venta no encontrada'); return; }
+
+  // Guardar snapshot del estado ACTUAL — solo si no estabamos ya en modo lectura
+  // (al navegar entre cobradas el snapshot ya fue guardado la primera vez).
+  if(!_modoLectura){
+    _cartEnCursoSnap = {
+      cart:            JSON.parse(JSON.stringify(cart || [])),
+      currentTicketNro: currentTicketNro,
+      mesaActual:      (typeof mesaActual !== 'undefined' && mesaActual)
+                         ? JSON.parse(JSON.stringify(mesaActual)) : null,
+      tipoPedido:      (typeof tipoPedido !== 'undefined') ? tipoPedido : 'llevar',
+      clienteNombre:   (typeof clienteNombre !== 'undefined') ? clienteNombre : '',
+      ticketDescuento: (typeof ticketDescuento !== 'undefined') ? ticketDescuento : 0,
+    };
+  }
 
   // Activar modo lectura
   _modoLectura = true;
@@ -398,14 +439,32 @@ function cargarVentaCobradaAlCart(item){
   }
 }
 
-// Salir del modo lectura — vuelve botones a su estado normal y limpia el cart.
+// Salir del modo lectura.
+// Si hay snapshot del cart en curso pre-lectura, lo RESTAURA (vuelve el cart
+// vivo o el pendiente que estaba cargado). Si no hay snapshot, simplemente
+// limpia y deja el cart vacio para empezar.
 function salirDeModoLectura(){
   if(!_modoLectura) return;
   _modoLectura = false;
   _viewingCobradaVenta = null;
-  // Limpiar cart (que tenia los items de la venta cobrada)
-  if(typeof clearCart === 'function') clearCart();
-  if(typeof clearClienteNombre === 'function') clearClienteNombre();
+
+  if(_cartEnCursoSnap){
+    // Restaurar exactamente el estado pre-lectura
+    var s = _cartEnCursoSnap;
+    if(typeof setCart === 'function') setCart(s.cart || []);
+    if(typeof setCurrentTicketNro === 'function') setCurrentTicketNro(s.currentTicketNro);
+    if(typeof setClienteNombre === 'function') setClienteNombre(s.clienteNombre || '');
+    if(s.mesaActual && typeof setMesaActual === 'function') setMesaActual(s.mesaActual);
+    else if(typeof clearMesaActual === 'function') clearMesaActual();
+    if(s.tipoPedido && typeof setTipoPedido === 'function') setTipoPedido(s.tipoPedido);
+    if(typeof setTicketDescuento === 'function') setTicketDescuento(s.ticketDescuento || 0);
+    _cartEnCursoSnap = null;
+  } else {
+    // Sin snapshot — limpiar para empezar
+    if(typeof clearCart === 'function') clearCart();
+    if(typeof clearClienteNombre === 'function') clearClienteNombre();
+  }
+
   if(typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
 }
 
