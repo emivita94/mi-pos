@@ -257,9 +257,17 @@ var _ticketViewMode = 'edit'; // 'edit' (cart normal) | 'readonly' (modal venta 
 
 function _ticketsNavegables(){
   var lista = [];
-  // 1. Cart en curso (sin pendiente activo) — solo si tiene items
-  if(typeof cart !== 'undefined' && cart && cart.length > 0 && currentTicketNro === null){
-    lista.push({ tipo:'enCurso', nro:ticketCounter, fecha:Date.now() });
+  // 1. Ventas cobradas del turno (las mas viejas tipicamente)
+  if(typeof turnoData !== 'undefined' && turnoData.ventas){
+    turnoData.ventas.forEach(function(v){
+      lista.push({
+        tipo:     v.anulada ? 'anulada' : 'cobrada',
+        nro:      v.nroTicket,
+        ventaId:  v.dbId,
+        fecha:    v.fecha ? new Date(v.fecha).getTime() : 0,
+        nomCli:   v.clienteNombre || '',
+      });
+    });
   }
   // 2. Pendientes locales (incluye satelites)
   if(typeof pendientes !== 'undefined'){
@@ -273,20 +281,14 @@ function _ticketsNavegables(){
       });
     });
   }
-  // 3. Ventas cobradas del turno
-  if(typeof turnoData !== 'undefined' && turnoData.ventas){
-    turnoData.ventas.forEach(function(v){
-      lista.push({
-        tipo:     v.anulada ? 'anulada' : 'cobrada',
-        nro:      v.nroTicket,
-        ventaId:  v.dbId,
-        fecha:    v.fecha ? new Date(v.fecha).getTime() : 0,
-        nomCli:   v.clienteNombre || '',
-      });
-    });
+  // 3. Cart en curso (sin pendiente activo) — solo si tiene items. Va al FINAL
+  if(typeof cart !== 'undefined' && cart && cart.length > 0 && currentTicketNro === null){
+    lista.push({ tipo:'enCurso', nro:ticketCounter, fecha:Date.now() });
   }
-  // Mas reciente primero
-  lista.sort(function(a, b){ return b.fecha - a.fecha; });
+  // Mas VIEJO primero — para que las flechas se sientan naturales:
+  //   < (izq, anterior) = mas viejo
+  //   > (der, siguiente) = mas nuevo
+  lista.sort(function(a, b){ return a.fecha - b.fecha; });
   return lista;
 }
 
@@ -302,19 +304,24 @@ function _posicionActualNav(lista){
   // Cart en curso
   var idxEnCurso = lista.findIndex(function(t){ return t.tipo === 'enCurso'; });
   if(idxEnCurso >= 0) return idxEnCurso;
-  // No estamos sobre ninguno — empezar antes del primero
   return -1;
 }
 
 function navegarTicket(dir){
   var lista = _ticketsNavegables();
   if(!lista.length){ toast('No hay tickets para navegar'); return; }
+  // Lista ordenada ASC: idx 0 = mas viejo, idx N = mas nuevo (ticket actual)
+  // dir=-1 (flecha izq) → ir a mas viejo
+  // dir=+1 (flecha der) → ir a mas nuevo
   var pos = _posicionActualNav(lista);
-  // Si no estamos en la lista, dir=-1 nos lleva al primero, dir=+1 tambien
-  if(pos < 0){ pos = (dir < 0) ? 0 : -1; }
+  if(pos < 0){
+    // No estamos sobre ningun ticket — flecha izq abre el mas reciente,
+    // flecha der no tiene sentido (vamos al mas viejo para que algo pase)
+    pos = lista.length; // dir=-1 → lista.length-1 = mas nuevo
+  }
   var nueva = pos + dir;
-  if(nueva < 0){ toast('Ya estas en el ticket mas reciente'); return; }
-  if(nueva >= lista.length){ toast('No hay tickets mas antiguos'); return; }
+  if(nueva < 0){ toast('No hay tickets mas antiguos'); return; }
+  if(nueva >= lista.length){ toast('Ya estas en el ticket mas reciente'); return; }
   var t = lista[nueva];
   if(t.tipo === 'cobrada' || t.tipo === 'anulada'){
     verVentaCobradaModal(t);
@@ -336,13 +343,14 @@ function navegarTicket(dir){
 
 // ── BADGE DE ESTADO ──────────────────────────────────────────────────────
 function actualizarBadgeEstado(){
+  // Etiquetas: mob mas corta (ahorra ancho), tab texto completo
   var estados = {
-    enCurso:     { txt:'EN CURSO',    bg:'rgba(76,175,80,.18)',  color:'#4caf50' },
-    pendiente:   { txt:'PENDIENTE',   bg:'rgba(255,152,0,.18)',  color:'#ff9800' },
-    satelite:    { txt:'SATELITE',    bg:'rgba(83,74,183,.18)',  color:'#7c6dff' },
-    presupuesto: { txt:'PRESUPUESTO', bg:'rgba(156,39,176,.18)', color:'#ba68c8' },
-    cobrada:     { txt:'COBRADO',     bg:'rgba(33,150,243,.18)', color:'#42a5f5' },
-    anulada:     { txt:'ANULADA',     bg:'rgba(239,83,80,.18)',  color:'#ef5350' },
+    enCurso:     { mob:'CURSO', tab:'EN CURSO',    bg:'rgba(76,175,80,.22)',  color:'#4caf50' },
+    pendiente:   { mob:'PEND',  tab:'PENDIENTE',   bg:'rgba(255,152,0,.22)',  color:'#ff9800' },
+    satelite:    { mob:'SAT',   tab:'SATELITE',    bg:'rgba(124,109,255,.22)',color:'#7c6dff' },
+    presupuesto: { mob:'PRES',  tab:'PRESUPUESTO', bg:'rgba(186,104,200,.22)',color:'#ba68c8' },
+    cobrada:     { mob:'COB',   tab:'COBRADO',     bg:'rgba(66,165,245,.22)', color:'#42a5f5' },
+    anulada:     { mob:'ANUL',  tab:'ANULADA',     bg:'rgba(239,83,80,.22)',  color:'#ef5350' },
   };
 
   // Estado actual: si hay currentTicketNro y existe en pendientes → ese estado.
@@ -357,13 +365,14 @@ function actualizarBadgeEstado(){
     estadoActual = 'enCurso';
   }
 
-  // Mostrar/ocultar badges
-  ['mob','tab'].forEach(function(prefix){
+  // Mostrar/ocultar badges con texto segun el prefix (mob/tab)
+  [['mob','mob'],['tab','tab']].forEach(function(pair){
+    var prefix = pair[0], txtKey = pair[1];
     var el = document.getElementById(prefix + 'TicketEstado');
     if(!el) return;
     if(estadoActual && estados[estadoActual]){
       var e = estados[estadoActual];
-      el.textContent = e.txt;
+      el.textContent = e[txtKey];
       el.style.background = e.bg;
       el.style.color = e.color;
       el.style.display = 'inline-block';
@@ -372,13 +381,20 @@ function actualizarBadgeEstado(){
     }
   });
 
-  // Mostrar/ocultar flechas segun haya tickets para navegar
+  // Flechas: solo mostrar si hay al menos UN ticket adicional para navegar
+  // (la lista tiene mas de 1 elemento, o tiene 1 que no es el actual)
   var lista = _ticketsNavegables();
-  var hayNav = lista.length > 1 || (lista.length === 1 && estadoActual !== lista[0].tipo);
-  ['mobNavAnt','mobNavSig','tabNavAnt','tabNavSig'].forEach(function(id){
-    var btn = document.getElementById(id);
-    if(btn) btn.style.display = hayNav ? 'inline-flex' : 'none';
-  });
+  var pos = _posicionActualNav(lista);
+  var hayAnterior = pos > 0 || (pos < 0 && lista.length > 0);
+  var haySiguiente = pos >= 0 && pos < lista.length - 1;
+  function setVis(id, vis){
+    var el = document.getElementById(id);
+    if(el) el.style.display = vis ? 'inline-flex' : 'none';
+  }
+  setVis('mobNavAnt', hayAnterior);
+  setVis('tabNavAnt', hayAnterior);
+  setVis('mobNavSig', haySiguiente);
+  setVis('tabNavSig', haySiguiente);
 }
 
 // ── MODAL VENTA COBRADA (solo lectura) ───────────────────────────────────
