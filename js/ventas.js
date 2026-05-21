@@ -348,7 +348,13 @@ function goGuardar() {
   const existente = currentTicketNro !== null
     ? pendientes.find(t => t.nro === currentTicketNro)
     : null;
-  document.getElementById('guardObs').value = existente ? existente.obs : '';
+  // Precargar Observacion del pendiente si existe
+  document.getElementById('guardObs').value = existente ? (existente.obs || '') : '';
+  // Precargar Cliente — prioridad: variable global, despues lo guardado en el pendiente
+  var nomClienteActual = (typeof clienteNombre !== 'undefined' && clienteNombre)
+    ? clienteNombre
+    : (existente && existente.clienteNombre ? existente.clienteNombre : '');
+  document.getElementById('guardCliente').value = nomClienteActual;
   document.getElementById('guardItemsList').innerHTML = cart.map(i =>
     `<div class="guard-item-row">
       <span class="gin">${i.qty}× ${i.name}${i.obs ? ' <span style="color:#777;font-weight:400;font-size:11px;">('+i.obs+')</span>' : ''}</span>
@@ -356,17 +362,22 @@ function goGuardar() {
     </div>`
   ).join('');
   goTo('scGuardar');
-  setTimeout(() => document.getElementById('guardObs').focus(), 300);
+  setTimeout(() => document.getElementById('guardCliente').focus(), 300);
 }
 
 function doGuardar() {
   const obs = document.getElementById('guardObs').value.trim();
+  const nomCli = document.getElementById('guardCliente').value.trim();
+  // Sincronizar variable global de clienteNombre con lo que ingreso en el modal
+  if(typeof setClienteNombre === 'function') setClienteNombre(nomCli);
+
   if (currentTicketNro !== null) {
     const idx = pendientes.findIndex(t => t.nro === currentTicketNro);
     if (idx >= 0) {
       pendientes[idx].cart = JSON.parse(JSON.stringify(cart));
       pendientes[idx].total = calcTotal();
-      pendientes[idx].obs = obs || pendientes[idx].obs;
+      pendientes[idx].obs = obs;
+      pendientes[idx].clienteNombre = nomCli;
       pendientes[idx].fecha = new Date().toISOString();
       pendientes[idx].tipoPedido = tipoPedido || 'local';
       pendientes[idx].descuentoTicket = ticketDescuento || 0;
@@ -384,6 +395,7 @@ function doGuardar() {
     pendientes.push({
       nro,
       obs: obs || '',
+      clienteNombre: nomCli || '',
       cart: JSON.parse(JSON.stringify(cart)),
       total: calcTotal(),
       fecha: new Date().toISOString(),
@@ -549,6 +561,8 @@ async function cargarTicket(i) {
   }
   setCart(JSON.parse(JSON.stringify(t.cart)));
   setCurrentTicketNro(t.nro);
+  // Restaurar nombre del cliente si el pendiente lo tenia
+  if(typeof setClienteNombre === 'function') setClienteNombre(t.clienteNombre || '');
 
   // ── REGLA: la caja se vuelve dueña al cargar un pedido satélite ──────────
   // Mismo motivo que en cajaAbrirPedidoSatelite: evitar que el sync de
@@ -607,6 +621,8 @@ function cajaAbrirPedidoSatelite(i) {
   }
   setCart(JSON.parse(JSON.stringify(t.cart || [])));
   setCurrentTicketNro(t.nro);
+  // Restaurar nombre del cliente si el pedido satelite lo tenia
+  if(typeof setClienteNombre === 'function') setClienteNombre(t.clienteNombre || '');
 
   // ── REGLA: la caja se vuelve dueña del pedido al tocarlo ──────────────────
   // Marcar el pendiente como local (no satélite) para que el polling/realtime

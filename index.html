@@ -1765,8 +1765,13 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
       </div>
     </div>
-    <span class="guard-obs-label">Observación (opcional)</span>
-    <input class="guard-obs-input" id="guardObs" type="text" placeholder="Ej: Mesa 3, Cliente Juan..." maxlength="80">
+    <span class="guard-obs-label" style="display:flex;align-items:center;gap:6px;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Nombre del cliente (opcional)
+    </span>
+    <input class="guard-obs-input" id="guardCliente" type="text" placeholder="Ej: Juan, María..." maxlength="40" style="border-left:3px solid #2196f3;">
+    <span class="guard-obs-label" style="margin-top:14px;">Observación (opcional)</span>
+    <input class="guard-obs-input" id="guardObs" type="text" placeholder="Ej: Sin sal, Para llevar a las 14hs..." maxlength="80">
     <div class="guard-items-preview">
       <p class="guard-items-title">Artículos en este ticket</p>
       <div id="guardItemsList"></div>
