@@ -946,6 +946,8 @@ async function cargarTicket(i) {
         pendientes[idx].total = totalActual;
         pendientes[idx].fecha = new Date();
         pendientes[idx].descuentoTicket = ticketDescuento || 0;
+        // Persistir cliente al auto-guardar el pendiente activo
+        pendientes[idx].clienteNombre = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
       }
     } else {
       pendientes.push({
@@ -956,6 +958,8 @@ async function cargarTicket(i) {
         fecha: new Date(),
         esPresupuesto: false,
         descuentoTicket: ticketDescuento || 0,
+        // Persistir cliente al auto-guardar el cart vivo como pendiente nuevo
+        clienteNombre: (typeof clienteNombre !== 'undefined') ? clienteNombre : '',
       });
       incrementTicketCounter();
     }
@@ -1011,6 +1015,8 @@ function cajaAbrirPedidoSatelite(i) {
         pendientes[idx].cart = JSON.parse(JSON.stringify(cart));
         pendientes[idx].total = totalActual;
         pendientes[idx].fecha = new Date();
+        // Persistir cliente al auto-guardar
+        pendientes[idx].clienteNombre = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
       }
       // Refrescar índice de t porque pendientes pudo haberse reordenado (no ocurre aquí, pero por consistencia)
       t = pendientes[i];
@@ -1087,14 +1093,15 @@ function cajaAbrirPedidoSatelite(i) {
 function nuevaVenta() {
   guardarPendientesLocal();
   const totalActual = calcTotal();
+  const _nomCliAct = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
   if (totalActual > 0) {
     if (currentTicketNro !== null) {
       // Editando ticket existente — actualizar en lugar de crear duplicado
       const idx = pendientes.findIndex(p => p.nro === currentTicketNro);
       if (idx !== -1) {
-        pendientes[idx] = { ...pendientes[idx], cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), descuentoTicket: ticketDescuento || 0 };
+        pendientes[idx] = { ...pendientes[idx], cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), descuentoTicket: ticketDescuento || 0, clienteNombre: _nomCliAct };
       } else {
-        pendientes.push({ nro: currentTicketNro, obs: 'Auto-guardado', cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), esPresupuesto: false, descuentoTicket: ticketDescuento || 0 });
+        pendientes.push({ nro: currentTicketNro, obs: 'Auto-guardado', cart: JSON.parse(JSON.stringify(cart)), total: totalActual, fecha: new Date(), esPresupuesto: false, descuentoTicket: ticketDescuento || 0, clienteNombre: _nomCliAct });
       }
     } else {
       pendientes.push({
@@ -1105,6 +1112,7 @@ function nuevaVenta() {
         fecha: new Date(),
         esPresupuesto: false,
         descuentoTicket: ticketDescuento || 0,
+        clienteNombre: _nomCliAct,
       });
       incrementTicketCounter();
     }
