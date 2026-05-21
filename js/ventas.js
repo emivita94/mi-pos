@@ -105,6 +105,11 @@ if(document.readyState === 'loading'){
 }
 
 function addCart(id, tileEl){
+  // Bloqueo modo lectura — no se puede agregar a una venta ya cobrada
+  if(typeof _modoLectura !== 'undefined' && _modoLectura){
+    if(typeof toast === 'function') toast('Venta cobrada — apretá NUEVA VENTA para empezar otra');
+    return;
+  }
   const p=PRODS.find(x=>x.id===id); if(!p)return;
   if(p.esInsumo){
     if(typeof toast === 'function') toast('No se puede vender un insumo');
@@ -143,6 +148,10 @@ function addCart(id, tileEl){
   if(tileEl) animAddToCart(tileEl, getProductColor(p));
 }
 function chgQty(lineId,d){
+  if(typeof _modoLectura !== 'undefined' && _modoLectura){
+    if(typeof toast === 'function') toast('Venta cobrada — solo lectura');
+    return;
+  }
   const idx=cart.findIndex(l=>l.lineId===lineId);
   if(idx<0)return;
   if(cart[idx].esDelivery) return;
@@ -238,8 +247,9 @@ function updTabTicketHeader() {
   // no en el header — para no invadir la pantalla con el dato repetido.
   if (typeof renderTkt === 'function') renderTkt();
   if (typeof renderTabletTicket === 'function') renderTabletTicket();
-  // Refrescar badge de estado + flechas de navegacion
+  // Refrescar badge de estado + flechas de navegacion + boton COBRAR/REIMPRIMIR
   if (typeof actualizarBadgeEstado === 'function') actualizarBadgeEstado();
+  if (typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -334,22 +344,17 @@ function navegarTicket(dir){
   var t = lista[nueva];
   if(t.tipo === 'cobrada' || t.tipo === 'anulada'){
     _ticketNavViewingIdx = nueva; // recordar para que el proximo ◀/▶ avance desde aca
-    verVentaCobradaModal(t);
-    actualizarBadgeEstado();
+    cargarVentaCobradaAlCart(t);
   } else if(t.tipo === 'enCurso'){
     _ticketNavViewingIdx = -1;
+    salirDeModoLectura();
     // Si estamos en un pendiente, descargarlo (cargarTicket auto-guarda) y volver al cart
-    // El cart en curso vive en memoria, asi que solo limpiamos currentTicketNro
     setCurrentTicketNro(null);
-    // Cerrar modal si quedo abierto
-    var mod = document.getElementById('ventaCobradaOv');
-    if(mod) mod.remove();
     updUI(); updBtnGuardar(); updTabTicketHeader();
     toast('Ticket en curso');
   } else {
     _ticketNavViewingIdx = -1;
-    var mod2 = document.getElementById('ventaCobradaOv');
-    if(mod2) mod2.remove();
+    salirDeModoLectura();
     // pendiente / satelite / presupuesto
     if(t.tipo === 'satelite' && typeof cajaAbrirPedidoSatelite === 'function'){
       cajaAbrirPedidoSatelite(t.idx);
@@ -357,6 +362,80 @@ function navegarTicket(dir){
       cargarTicket(t.idx);
     }
   }
+}
+
+// Carga una venta cobrada/anulada al cart en MODO LECTURA.
+// El usuario ve los items pero no puede modificarlos. El boton COBRAR
+// se transforma en REIMPRIMIR. Las acciones de modificacion (addCart,
+// chgQty, GUARDAR) muestran un toast y no se ejecutan.
+function cargarVentaCobradaAlCart(item){
+  // Buscar la venta completa por dbId
+  if(typeof turnoData === 'undefined' || !turnoData.ventas){
+    toast('No se pudo cargar la venta'); return;
+  }
+  var v = turnoData.ventas.find(function(x){ return x.dbId === item.ventaId; });
+  if(!v){ toast('Venta no encontrada'); return; }
+
+  // Activar modo lectura
+  _modoLectura = true;
+  _viewingCobradaVenta = v;
+
+  // Cargar items al cart (clone para no afectar la venta original)
+  setCart(JSON.parse(JSON.stringify(v.items || [])));
+  setCurrentTicketNro(null); // no es un pendiente
+  if(typeof setClienteNombre === 'function') setClienteNombre(v.clienteNombre || '');
+  if(typeof setTipoPedido === 'function') setTipoPedido('llevar');
+  if(typeof clearMesaActual === 'function') clearMesaActual();
+
+  // Refrescar UI
+  if(typeof updUI === 'function') updUI();
+  if(typeof updBtnGuardar === 'function') updBtnGuardar();
+  if(typeof updMesaBtn === 'function') updMesaBtn();
+  if(typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
+  if(typeof goTo === 'function') goTo('scSale');
+  if(typeof toast === 'function'){
+    toast('Venta #' + String(v.nroTicket||'').padStart(4,'0') + ' — solo lectura');
+  }
+}
+
+// Salir del modo lectura — vuelve botones a su estado normal y limpia el cart.
+function salirDeModoLectura(){
+  if(!_modoLectura) return;
+  _modoLectura = false;
+  _viewingCobradaVenta = null;
+  // Limpiar cart (que tenia los items de la venta cobrada)
+  if(typeof clearCart === 'function') clearCart();
+  if(typeof clearClienteNombre === 'function') clearClienteNombre();
+  if(typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
+}
+
+// Cambia el boton COBRAR a REIMPRIMIR cuando hay venta cobrada en pantalla.
+function actualizarBotonCobrarLectura(){
+  var modoON = _modoLectura;
+
+  // Movil — btn-cobrar tiene un <span> con el texto y otro con el monto
+  var btnMob = document.querySelector('#scSale .btn-cobrar');
+  if(btnMob){
+    var sp = btnMob.querySelector('span:first-child');
+    if(sp) sp.textContent = modoON ? 'REIMPRIMIR' : 'COBRAR';
+    btnMob.style.background = modoON ? '#42a5f5' : '';
+  }
+  // Tablet — tab-btn-cobrar
+  var btnTab = document.querySelector('.tab-btn-cobrar');
+  if(btnTab){
+    var spT = btnTab.querySelector('span:first-child');
+    if(spT) spT.textContent = modoON ? 'REIMPRIMIR' : 'COBRAR';
+    btnTab.style.background = modoON ? '#42a5f5' : '';
+  }
+  // Detalle ticket
+  var btnsDet = document.querySelectorAll('.det-cobrar-btn');
+  btnsDet.forEach(function(btn){
+    if(btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf('goCobrar') >= 0){
+      btn.textContent = modoON ? 'REIMPRIMIR' : 'COBRAR';
+      btn.style.background = modoON ? '#42a5f5' : '';
+      if(modoON) btn.style.color = '#fff';
+    }
+  });
 }
 
 // ── BADGE DE ESTADO ──────────────────────────────────────────────────────
@@ -560,6 +639,10 @@ function confirmarClienteNombre(valor){
 function renderClienteNombreBar(){ /* removed */ }
 
 function onBtnGuardar() {
+  if(typeof _modoLectura !== 'undefined' && _modoLectura){
+    if(typeof toast === 'function') toast('Venta cobrada — apretá NUEVA VENTA');
+    return;
+  }
   if (typeof mesaActual!=='undefined' && mesaActual) { guardarConMesa(); return; }
   const tieneProductos = calcTotal() > 0;
   if (tieneProductos) {
@@ -1164,6 +1247,18 @@ function renderTabletTicket(){
   }
   if(empty) empty.style.display='none';
   Array.from(tl.children).forEach(function(c){ if(c.id!=='tabEmpty') c.remove(); });
+
+  // Banner de modo LECTURA (venta cobrada)
+  var _enLecturaTab = (typeof _modoLectura !== 'undefined' && _modoLectura && _viewingCobradaVenta);
+  if(_enLecturaTab){
+    var _esAnulTab = !!_viewingCobradaVenta.anulada;
+    var ban = document.createElement('div');
+    ban.style.cssText = 'background:'+(_esAnulTab?'rgba(239,83,80,.12)':'rgba(66,165,245,.12)')+';border:1.5px solid '+(_esAnulTab?'rgba(239,83,80,.35)':'rgba(66,165,245,.35)')+';border-radius:6px;padding:9px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;';
+    ban.innerHTML =
+      '<span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:5px;letter-spacing:.4px;background:'+(_esAnulTab?'rgba(239,83,80,.25)':'rgba(66,165,245,.28)')+';color:'+(_esAnulTab?'#ef5350':'#42a5f5')+';">'+(_esAnulTab?'ANULADA':'COBRADO')+'</span>'+
+      '<span style="font-size:12px;color:var(--muted);">Solo lectura · NUEVA VENTA para empezar otra</span>';
+    tl.appendChild(ban);
+  }
 
   // Cabecera del cart con el nombre del cliente (si hay) — pequeno y al tono
   var _nomCliTab = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';

@@ -30,6 +30,14 @@ var mesaActual = null;
 // pos_ventas.cliente_nombre.
 var clienteNombre = '';
 
+// ── MODO LECTURA ──
+// Cuando se navega a una venta YA COBRADA con las flechas del header, se carga
+// al cart en modo solo-lectura: items visibles pero NO se puede agregar, quitar
+// o modificar. Boton COBRAR se transforma en REIMPRIMIR. Para volver a operar
+// hay que apretar 'NUEVA VENTA' o navegar a otro ticket editable.
+var _modoLectura = false;
+var _viewingCobradaVenta = null; // referencia a la venta cobrada en visualizacion
+
 // ── PRODUCTOS ──
 var PRODS = [
   {id:99,name:'ÍTEM LIBRE',price:0,color:'#546e7a',cat:'Otros',
@@ -47,6 +55,9 @@ function clearCart() {
   try { localStorage.removeItem('pos_cart_autosave'); } catch(e){}
   // El nombre del cliente acompana a la venta, se borra junto con el cart
   if(typeof clienteNombre !== 'undefined') clienteNombre = '';
+  // Limpiar modo lectura si estaba activo (salir de la venta cobrada visualizada)
+  if(typeof _modoLectura !== 'undefined') _modoLectura = false;
+  if(typeof _viewingCobradaVenta !== 'undefined') _viewingCobradaVenta = null;
 }
 
 function setTicketDescuento(val) { ticketDescuento = val; }

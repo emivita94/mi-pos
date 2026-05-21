@@ -438,6 +438,15 @@ function toggleTicket(){
 function renderTkt(){
   const tl=document.getElementById('tlist');
   if(!cart.length){tl.innerHTML='<div class="tempty"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg><p>Ticket vacío</p></div>';return;}
+  // Banner cuando estamos en modo LECTURA (venta cobrada) — al tope del cart
+  const _enLectura = (typeof _modoLectura !== 'undefined' && _modoLectura && _viewingCobradaVenta);
+  const _esAnul = _enLectura && _viewingCobradaVenta.anulada;
+  const bannerLectura = _enLectura
+    ? `<div style="background:${_esAnul?'rgba(239,83,80,.12)':'rgba(66,165,245,.12)'};border:1.5px solid ${_esAnul?'rgba(239,83,80,.35)':'rgba(66,165,245,.35)'};border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+         <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;letter-spacing:.4px;background:${_esAnul?'rgba(239,83,80,.25)':'rgba(66,165,245,.28)'};color:${_esAnul?'#ef5350':'#42a5f5'};">${_esAnul?'ANULADA':'COBRADO'}</span>
+         <span style="font-size:11px;color:var(--muted);">Solo lectura · apretá NUEVA VENTA para otra</span>
+       </div>`
+    : '';
   // Cabecera del cart con el nombre del cliente (si hay) — pequeno y al tono
   const _nomCli = (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '';
   const headerCliente = _nomCli
@@ -447,7 +456,7 @@ function renderTkt(){
          <span>${_nomCli}</span>
        </div>`
     : '';
-  tl.innerHTML = headerCliente + cart.map(i=>i.esDescuento
+  tl.innerHTML = bannerLectura + headerCliente + cart.map(i=>i.esDescuento
     ? `<div class="titem" style="border-left:2px solid #ef5350;"><div class="tiname" style="color:#ef9a9a;">${i.name}</div><div class="tictrl"><button class="qbtn" onclick="chgQty(${i.lineId},-1)">✕</button></div><div class="tiprice" style="color:#ef5350;">-${gs(i.montoDesc)}</div></div>`
     : `<div class="titem" style="${i.enviado?'opacity:.6;':''}">`+
         `<div class="tiname">`+

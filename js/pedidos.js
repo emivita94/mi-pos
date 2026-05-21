@@ -28,6 +28,15 @@
 //   Llama a sateliteEnviarPedido() — inserta en pos_pedidos, imprime comanda.
 // ══════════════════════════════════════════════════════════════════════════════
 function goCobrar(){
+  // Modo lectura: el boton COBRAR esta transformado en REIMPRIMIR
+  if(typeof _modoLectura !== 'undefined' && _modoLectura && _viewingCobradaVenta){
+    if(typeof reimprimirVentaTurno === 'function'){
+      reimprimirVentaTurno(_viewingCobradaVenta.dbId);
+    } else if(typeof toast === 'function'){
+      toast('No se pudo reimprimir');
+    }
+    return;
+  }
   if(MODO_TERMINAL === 'satelite'){
     sateliteEnviarPedido();
   } else {
