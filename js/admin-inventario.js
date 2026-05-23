@@ -84,10 +84,46 @@ async function renderInventarios(){
   }
 }
 
+// Iconos SVG inline (estilo Lucide stroke). Heredan color via currentColor.
+function _invIco(n,size){
+  var s=size||14;
+  var p={
+    search:    '<path d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="7"/>',
+    transfer:  '<path d="M7 7h13M16 3l4 4-4 4"/><path d="M17 17H4M8 13l-4 4 4 4"/>',
+    refresh:   '<path d="M3 12a9 9 0 0 1 15.5-6.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.5L3 16"/><path d="M3 21v-5h5"/>',
+    more:      '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
+    box:       '<path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    alert:     '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    xcircle:   '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+    cash:      '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>',
+    chart:     '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
+    edit:      '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+    close:     '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    download:  '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    plus:      '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    history:   '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    trending:  '<polyline points="22 7 13.5 15.5 8.5 10.5 1 18"/><polyline points="16 7 22 7 22 13"/>'
+  };
+  return '<span class="inv-i"><svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(p[n]||'')+'</svg></span>';
+}
+
+// Estado del filtro de estado actual (chip seleccionado)
+var _invEstadoChip = '';
+
+function _invFormatGs(n){
+  if(typeof gs==='function') return gs(n);
+  return new Intl.NumberFormat('es-PY').format(Math.round(n||0));
+}
+function _invFormatMonto(n){
+  // Compacta 1.5M, 250k para KPIs
+  var v=Math.round(n||0);
+  if(Math.abs(v)>=1000000) return 'Gs '+(v/1000000).toFixed(2).replace(/\.?0+$/,'')+'M';
+  if(Math.abs(v)>=1000)    return 'Gs '+Math.round(v/1000)+'k';
+  return 'Gs '+v;
+}
+
 function renderInvShell(){
   var deps=_inv.deps, sucs=_inv.suc;
-  // Selector de sucursales — dedup defensivo por nombre normalizado
-  // (legacy: la base puede tener duplicados con mayúsculas distintas)
   var selOpts='<option value="">Todas las sucursales</option>';
   var sucsVistas={};
   sucs.forEach(function(s){
@@ -101,106 +137,193 @@ function renderInvShell(){
   var c=document.getElementById('content');
   c.innerHTML=
     '<div class="ph">'
-      +'<div><div class="pt">Inventarios</div>'
+      +'<div>'
+        +'<div class="pt">Inventarios</div>'
         +'<div class="ps" id="invDepLabel">Sucursal: <strong>'+(_inv.sel.sucNom||'Todas')+'</strong></div>'
       +'</div>'
       +'<div class="dbar">'
-        +(selOpts?'<select class="d-inp" id="invDepSel" onchange="cambiarDeposito(this)">'
-          +(deps.length?selOpts:'<option>Sin depósitos</option>')
-          +'</select>':'')
-        +'<input class="d-inp" id="invSearch" placeholder="Buscar producto..." oninput="filtrInv(this.value)" style="min-width:160px">'
-        +'<select class="d-inp" id="invFiltroEst" onchange="filtrInv(document.getElementById(\'invSearch\').value)">'
-          +'<option value="">Todos</option>'
-          +'<option value="ok">Stock OK</option>'
-          +'<option value="bajo">Stock bajo</option>'
-          +'<option value="cero">Sin stock</option>'
-        +'</select>'
+        +'<button onclick="abrirTransferencia()" class="atab" style="display:inline-flex;align-items:center;gap:6px">'+_invIco('transfer')+'Transferir</button>'
+        +'<button onclick="abrirReconciliacion()" class="atab" style="display:inline-flex;align-items:center;gap:6px">'+_invIco('refresh')+'Reconciliar</button>'
       +'</div>'
-    +'</div>'
-    +'<div class="kg k3">'
-      +'<div class="kc" style="--c:var(--blue)"><div class="kc-l">Productos</div><div class="kc-v" id="invKTotal">—</div></div>'
-      +'<div class="kc" style="--c:var(--orange)"><div class="kc-l">Stock bajo</div><div class="kc-v" id="invKBajo">—</div></div>'
-      +'<div class="kc" style="--c:var(--red)"><div class="kc-l">Sin stock</div><div class="kc-v" id="invKCero">—</div></div>'
-    +'</div>'
-    +'<div class="card">'
-      +'<div class="card-h"><span class="card-t" id="invCount">Cargando...</span>'
-        +'<div style="display:flex;gap:8px">'
-          +'<button onclick="abrirTransferencia()" style="background:var(--o2);border:1px solid var(--orange);border-radius:6px;color:var(--orange);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:7px 13px;cursor:pointer">⇄ Transferir</button>'
-          +'<button onclick="abrirReconciliacion()" style="background:var(--b2);border:1px solid var(--blue);border-radius:6px;color:var(--blue);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:7px 13px;cursor:pointer">🔄 Reconciliar</button>'
-        +'</div>'
-      +'</div>'
-      +'<div style="overflow-x:auto"><table><thead><tr>'
-        +'<th>Producto</th><th>Categoría</th>'
-        +'<th style="text-align:center">Stock</th>'
-        +'<th style="text-align:center">Mínimo</th>'
-        +'<th style="text-align:center">Costo unit.</th>'
-        +'<th style="text-align:center">Estado</th>'
-        +'<th style="text-align:center"></th>'
-      +'</tr></thead>'
-      +'<tbody id="invBody"><tr><td colspan="7" class="loading"><span class="sp"></span></td></tr></tbody>'
-      +'</table></div>'
     +'</div>'
 
-    // ── MODAL HISTORIAL ──────────────────────────────────────
+    // KPIs (4 con barra-top de color via --c)
+    +'<div class="kg" style="grid-template-columns:repeat(4,1fr)">'
+      +'<div class="kc" style="--c:var(--blue)">'
+        +'<div class="kc-l">Productos</div>'
+        +'<div class="kc-v" id="invKTotal" style="color:var(--blue)">—</div>'
+        +'<div class="kc-s">activos en catálogo</div>'
+      +'</div>'
+      +'<div class="kc" style="--c:var(--orange)">'
+        +'<div class="kc-l">Stock bajo</div>'
+        +'<div class="kc-v" id="invKBajo" style="color:var(--orange)">—</div>'
+        +'<div class="kc-s">por debajo del mínimo</div>'
+      +'</div>'
+      +'<div class="kc" style="--c:var(--red)">'
+        +'<div class="kc-l">Sin stock</div>'
+        +'<div class="kc-v" id="invKCero" style="color:var(--red)">—</div>'
+        +'<div class="kc-s">requieren reposición</div>'
+      +'</div>'
+      +'<div class="kc" style="--c:var(--green)">'
+        +'<div class="kc-l">Valor en inventario</div>'
+        +'<div class="kc-v" id="invKValor" style="color:var(--green)">—</div>'
+        +'<div class="kc-s">cantidad × costo unitario</div>'
+      +'</div>'
+    +'</div>'
+
+    // Toolbar: search + sucursal + chips
+    +'<div class="inv-toolbar">'
+      +'<div class="inv-search">'
+        +'<span class="inv-search-ico">'+_invIco('search',16)+'</span>'
+        +'<input id="invSearch" placeholder="Buscar producto por nombre o código..." oninput="filtrInv(this.value)">'
+      +'</div>'
+      +'<select class="d-inp" id="invDepSel" onchange="cambiarDeposito(this)" style="min-width:160px">'
+        +(deps.length?selOpts:'<option>Sin depósitos</option>')
+      +'</select>'
+      +'<div class="inv-chips" id="invChips" style="margin-left:auto">'
+        +'<div class="inv-chip on"          data-est=""     onclick="_invSetEstado(\'\')">Todos <span class="inv-chip-n" id="invChipNAll">—</span></div>'
+        +'<div class="inv-chip"             data-est="ok"   onclick="_invSetEstado(\'ok\')">OK <span class="inv-chip-n" id="invChipNOk">—</span></div>'
+        +'<div class="inv-chip"             data-est="bajo" onclick="_invSetEstado(\'bajo\')">Bajo <span class="inv-chip-n" id="invChipNBajo">—</span></div>'
+        +'<div class="inv-chip"             data-est="cero" onclick="_invSetEstado(\'cero\')">Sin stock <span class="inv-chip-n" id="invChipNCero">—</span></div>'
+      +'</div>'
+    +'</div>'
+
+    // Tabla productos
+    +'<div class="card">'
+      +'<div class="card-h">'
+        +'<span class="card-t" id="invCount">Cargando...</span>'
+        +'<span style="font-size:11px;color:var(--muted)" id="invSubcount"></span>'
+      +'</div>'
+      +'<div style="overflow-x:auto">'
+        +'<table class="inv-tbl"><thead><tr>'
+          +'<th>Producto</th>'
+          +'<th style="text-align:center">Stock / Mínimo</th>'
+          +'<th style="text-align:right">Costo unit.</th>'
+          +'<th style="text-align:right">Valor</th>'
+          +'<th>Estado</th>'
+          +'<th style="text-align:right;width:170px"></th>'
+        +'</tr></thead>'
+        +'<tbody id="invBody"><tr><td colspan="6" class="loading"><span class="sp"></span></td></tr></tbody>'
+        +'</table>'
+      +'</div>'
+    +'</div>'
+
+    // ── MODAL HISTORIAL — rediseno ────────────────────────────
     +'<div id="invModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1000;overflow-y:auto;padding:16px 10px">'
-      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:720px;margin:0 auto;overflow:hidden">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">'
-          +'<div><div style="font-size:17px;font-weight:800" id="invMTit">Historial</div>'
-            +'<div style="font-size:12px;color:var(--muted);margin-top:2px" id="invMSub"></div></div>'
-          +'<button onclick="cerrarInvModal()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:8px 14px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700">✕ Cerrar</button>'
-        +'</div>'
-        // Filtros fecha
-        +'<div style="display:flex;gap:8px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap">'
-          +'<label style="font-size:12px;color:var(--muted)">Desde</label>'
-          +'<input type="date" id="invFD" class="d-inp">'
-          +'<label style="font-size:12px;color:var(--muted)">Hasta</label>'
-          +'<input type="date" id="invFH" class="d-inp">'
-          +'<button onclick="cargarHistorial()" class="btn-sv" style="padding:8px 14px">Filtrar</button>'
-          +'<button onclick="abrirAjuste()" style="background:var(--b2);border:1px solid var(--blue);border-radius:6px;color:var(--blue);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;margin-left:auto">+ Ajuste manual</button>'
-        +'</div>'
-        // KPIs
-        +'<div style="display:flex;gap:24px;padding:14px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap">'
-          +'<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px">Stock actual</div>'
-            +'<div style="font-size:24px;font-weight:800;color:var(--green)" id="invMStock">—</div></div>'
-          +'<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px">Entradas (período)</div>'
-            +'<div style="font-size:24px;font-weight:800;color:var(--blue)" id="invMEnt">—</div></div>'
-          +'<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px">Salidas (período)</div>'
-            +'<div style="font-size:24px;font-weight:800;color:var(--red)" id="invMSal">—</div></div>'
-          +'<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px">Depósito</div>'
-            +'<div style="font-size:13px;font-weight:700;color:var(--text);padding-top:6px" id="invMDep">—</div></div>'
-        +'</div>'
-        // Formulario ajuste
-        +'<div id="invAjusteForm" style="display:none;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2)">'
-          +'<div style="font-size:13px;font-weight:800;margin-bottom:12px">Nuevo ajuste de stock</div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
-            +'<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Tipo</label>'
-              +'<select id="ajTipo" class="cfg-inp" style="width:100%">'
-                +'<option value="entrada">Entrada — aumenta stock</option>'
-                +'<option value="salida">Salida — disminuye stock</option>'
-                +'<option value="ajuste">Ajuste — fija el stock en</option>'
-              +'</select></div>'
-            +'<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Cantidad</label>'
-              +'<input type="number" id="ajCant" class="cfg-inp" style="width:100%" min="0" placeholder="0"></div>'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:900px;margin:0 auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)">'
+        // Header con producto + stock actual + cerrar
+        +'<div class="mh-head">'
+          +'<div class="mh-ptl">'
+            +'<span class="mh-dot" id="invMDot" style="background:#546e7a"></span>'
+            +'<div class="mh-info">'
+              +'<div class="mh-name" id="invMTit">Historial</div>'
+              +'<div class="mh-meta" id="invMSub"></div>'
+            +'</div>'
           +'</div>'
-          +'<div style="margin-bottom:12px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Motivo (obligatorio)</label>'
-            +'<input type="text" id="ajMotivo" class="cfg-inp" style="width:100%" placeholder="Ej: Compra proveedor, merma, corrección..."></div>'
-          +'<div style="display:flex;gap:8px">'
-            +'<button onclick="guardarAjuste()" class="btn-sv">Guardar</button>'
-            +'<button onclick="document.getElementById(\'invAjusteForm\').style.display=\'none\'" class="btn-dn">Cancelar</button>'
+          +'<div class="mh-head-right">'
+            +'<div class="mh-stk-now">'
+              +'<div class="mh-stk-l">Stock actual</div>'
+              +'<div class="mh-stk-v" id="invMStock" style="color:var(--green)">—</div>'
+            +'</div>'
+            +'<button class="mh-x" onclick="cerrarInvModal()" title="Cerrar">'+_invIco('close',16)+'</button>'
           +'</div>'
         +'</div>'
-        // Tabla comprobantes
-        +'<div style="overflow-x:auto">'
-          +'<table><thead><tr>'
-            +'<th>Fecha y hora</th><th>Tipo</th><th>Referencia</th>'
-            +'<th style="text-align:center">Productos</th>'
-            +'<th style="text-align:center">Cant. total</th>'
-            +'<th>Depósito</th><th>Observación / Terminal</th>'
-          +'</tr></thead>'
-          +'<tbody id="invHistBody"><tr><td colspan="7" class="loading"><span class="sp"></span></td></tr></tbody>'
-          +'</table>'
+        // Tabs
+        +'<div class="mh-tabs">'
+          +'<div class="mh-tab on" data-tab="mov"    onclick="_invModalTab(\'mov\')">'+_invIco('history')+' Movimientos</div>'
+          +'<div class="mh-tab"    data-tab="graf"   onclick="_invModalTab(\'graf\')">'+_invIco('trending')+' Gráfico</div>'
+          +'<div class="mh-tab"    data-tab="ajuste" onclick="_invModalTab(\'ajuste\')">'+_invIco('edit')+' Ajustar stock</div>'
         +'</div>'
-        +'<div style="padding:12px 20px;font-size:11px;color:var(--muted)">Cada fila es un comprobante. Hacé clic en ▶ para ver el detalle de productos.</div>'
+        // Filtros: chips de período + fechas
+        +'<div class="mh-filt">'
+          +'<div class="mh-period">'
+            +'<div class="mh-pchip" data-period="hoy"    onclick="_invSetPeriodo(\'hoy\')">Hoy</div>'
+            +'<div class="mh-pchip" data-period="semana" onclick="_invSetPeriodo(\'semana\')">Semana</div>'
+            +'<div class="mh-pchip on" data-period="mes" onclick="_invSetPeriodo(\'mes\')">Mes</div>'
+            +'<div class="mh-pchip" data-period="anio"   onclick="_invSetPeriodo(\'anio\')">Año</div>'
+          +'</div>'
+          +'<div class="mh-filt-dates">'
+            +'<span>Desde</span><input type="date" id="invFD">'
+            +'<span>Hasta</span><input type="date" id="invFH">'
+            +'<button onclick="cargarHistorial()" class="btn-sv" style="padding:7px 14px">Filtrar</button>'
+          +'</div>'
+        +'</div>'
+
+        // ── TAB: MOVIMIENTOS ──────────────────────────────────
+        +'<div class="mh-tab-content on" data-tabc="mov">'
+          // KPIs secuencia: Inicial → +Entradas → −Salidas → Final
+          +'<div class="mh-kpi">'
+            +'<div class="mh-kpi-item ini">'
+              +'<div class="mh-kpi-l">Saldo inicial</div>'
+              +'<div class="mh-kpi-v" id="invMSini">—</div>'
+              +'<span class="mh-kpi-arrow">→</span>'
+            +'</div>'
+            +'<div class="mh-kpi-item ent">'
+              +'<div class="mh-kpi-l">Entradas</div>'
+              +'<div class="mh-kpi-v" id="invMEnt">—</div>'
+              +'<span class="mh-kpi-arrow">−</span>'
+            +'</div>'
+            +'<div class="mh-kpi-item sal">'
+              +'<div class="mh-kpi-l">Salidas</div>'
+              +'<div class="mh-kpi-v" id="invMSal">—</div>'
+              +'<span class="mh-kpi-arrow">=</span>'
+            +'</div>'
+            +'<div class="mh-kpi-item fin" id="invMFinBox">'
+              +'<div class="mh-kpi-l">Saldo final</div>'
+              +'<div class="mh-kpi-v" id="invMSfin">—</div>'
+            +'</div>'
+          +'</div>'
+          // Tabla compacta con saldo acumulado
+          +'<div style="overflow-x:auto">'
+            +'<table><thead><tr>'
+              +'<th>Fecha</th>'
+              +'<th>Tipo</th>'
+              +'<th>Referencia</th>'
+              +'<th style="text-align:right">Movimiento</th>'
+              +'<th style="text-align:right">Saldo</th>'
+            +'</tr></thead>'
+            +'<tbody id="invHistBody"><tr><td colspan="5" class="loading"><span class="sp"></span></td></tr></tbody>'
+            +'</table>'
+          +'</div>'
+        +'</div>'
+
+        // ── TAB: GRÁFICO ──────────────────────────────────────
+        +'<div class="mh-tab-content" data-tabc="graf">'
+          +'<div class="mh-chart" id="invChartWrap">'
+            +'<div class="mh-chart-empty">Cargá movimientos primero — el gráfico se construye con la evolución del saldo.</div>'
+          +'</div>'
+        +'</div>'
+
+        // ── TAB: AJUSTE MANUAL ────────────────────────────────
+        +'<div class="mh-tab-content" data-tabc="ajuste">'
+          +'<div id="invAjusteForm" style="padding:20px 22px">'
+            +'<div style="font-size:13px;font-weight:800;margin-bottom:14px;color:var(--text)">Nuevo ajuste de stock</div>'
+            +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+              +'<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Tipo</label>'
+                +'<select id="ajTipo" class="cfg-inp" style="width:100%">'
+                  +'<option value="entrada">Entrada — aumenta stock</option>'
+                  +'<option value="salida">Salida — disminuye stock</option>'
+                  +'<option value="ajuste">Ajuste — fija el stock en</option>'
+                +'</select></div>'
+              +'<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Cantidad</label>'
+                +'<input type="number" id="ajCant" class="cfg-inp" style="width:100%" min="0" placeholder="0"></div>'
+            +'</div>'
+            +'<div style="margin-bottom:14px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Motivo (obligatorio)</label>'
+              +'<input type="text" id="ajMotivo" class="cfg-inp" style="width:100%" placeholder="Ej: Compra proveedor, merma, corrección..."></div>'
+            +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+              +'<button onclick="_invModalTab(\'mov\')" class="btn-dn">Cancelar</button>'
+              +'<button onclick="guardarAjuste()" class="btn-sv">Guardar ajuste</button>'
+            +'</div>'
+          +'</div>'
+        +'</div>'
+
+        // Footer del modal
+        +'<div class="mh-foot">'
+          +'<span id="invMFootInfo">— movimientos</span>'
+          +'<div class="mh-foot-acts">'
+            +'<button class="atab" onclick="_invModalTab(\'ajuste\')" style="display:inline-flex;align-items:center;gap:6px">'+_invIco('plus')+'Nuevo ajuste</button>'
+          +'</div>'
+        +'</div>'
       +'</div>'
     +'</div>'
 
@@ -294,78 +417,160 @@ async function cargarStockDeposito(){
   }
 }
 
+function _invEstadoDe(r){
+  var q=r.cantidad||0, m=r.cantidad_minima||0;
+  if(q<=0) return 'cero';
+  if(m>0 && q<=m) return 'bajo';
+  return 'ok';
+}
+
 function renderInvTabla(lista){
   if(!document.getElementById('invBody')) return;
-  var filtroEst=document.getElementById('invFiltroEst')?document.getElementById('invFiltroEst').value:'';
+  var est=_invEstadoChip;
+  var search=(document.getElementById('invSearch')||{}).value||'';
+  var s=search.toLowerCase();
   var mostrar=lista;
-  if(filtroEst==='ok')   mostrar=lista.filter(function(r){return (r.cantidad||0)>(r.cantidad_minima||0);});
-  if(filtroEst==='bajo') mostrar=lista.filter(function(r){var m=r.cantidad_minima||0;return m>0&&(r.cantidad||0)>0&&(r.cantidad||0)<=m;});
-  if(filtroEst==='cero') mostrar=lista.filter(function(r){return (r.cantidad||0)<=0;});
+  if(s) mostrar=mostrar.filter(function(r){
+    return (r.nombre_producto||'').toLowerCase().indexOf(s)>=0
+        || (r.codigo||'').toString().toLowerCase().indexOf(s)>=0
+        || (r.categoria||'').toLowerCase().indexOf(s)>=0;
+  });
+  if(est) mostrar=mostrar.filter(function(r){return _invEstadoDe(r)===est;});
 
-  var bajo=lista.filter(function(r){var m=r.cantidad_minima||0;return m>0&&(r.cantidad||0)>0&&(r.cantidad||0)<=m;}).length;
-  var cero=lista.filter(function(r){return (r.cantidad||0)<=0;}).length;
-  if(document.getElementById('invKTotal')) document.getElementById('invKTotal').textContent=lista.length;
-  if(document.getElementById('invKBajo'))  document.getElementById('invKBajo').textContent=bajo;
-  if(document.getElementById('invKCero'))  document.getElementById('invKCero').textContent=cero;
-  if(document.getElementById('invCount'))  document.getElementById('invCount').textContent=mostrar.length+' productos';
+  // Ordenar: críticos primero (cero → bajo → ok), después por nombre
+  var orden={cero:0,bajo:1,ok:2};
+  mostrar=mostrar.slice().sort(function(a,b){
+    var ea=orden[_invEstadoDe(a)], eb=orden[_invEstadoDe(b)];
+    if(ea!==eb) return ea-eb;
+    return (a.nombre_producto||'').localeCompare(b.nombre_producto||'');
+  });
+
+  // KPIs sobre la lista TOTAL (no la filtrada)
+  var bajoN=lista.filter(function(r){return _invEstadoDe(r)==='bajo';}).length;
+  var ceroN=lista.filter(function(r){return _invEstadoDe(r)==='cero';}).length;
+  var okN  =lista.filter(function(r){return _invEstadoDe(r)==='ok';}).length;
+  var valor=lista.reduce(function(acc,r){return acc+(Math.max(0,r.cantidad||0)*(r.costo_unitario||0));},0);
+
+  var $=function(id){return document.getElementById(id);};
+  if($('invKTotal'))   $('invKTotal').textContent=lista.length;
+  if($('invKBajo'))    $('invKBajo').textContent=bajoN;
+  if($('invKCero'))    $('invKCero').textContent=ceroN;
+  if($('invKValor'))   $('invKValor').textContent=_invFormatMonto(valor);
+  if($('invChipNAll')) $('invChipNAll').textContent=lista.length;
+  if($('invChipNOk'))  $('invChipNOk').textContent=okN;
+  if($('invChipNBajo'))$('invChipNBajo').textContent=bajoN;
+  if($('invChipNCero'))$('invChipNCero').textContent=ceroN;
+  if($('invCount'))    $('invCount').textContent=mostrar.length+' producto'+(mostrar.length===1?'':'s');
+  if($('invSubcount')) $('invSubcount').textContent=(ceroN+bajoN>0)?(ceroN+bajoN)+' requieren atención':'';
 
   if(!mostrar.length){
-    document.getElementById('invBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">'
+    $('invBody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--muted)">'
       +(lista.length===0
-        ?'No hay productos cargados en este depósito. Usá "Ajuste manual" para cargar stock inicial.'
-        :'Sin productos con este filtro')
+        ?'No hay productos cargados en este depósito. Usá "Ajustar" en cada producto o "Compras" para cargar stock inicial.'
+        :'Sin productos con los filtros actuales')
       +'</td></tr>';
     return;
   }
-  document.getElementById('invBody').innerHTML=mostrar.map(function(r){
+
+  $('invBody').innerHTML=mostrar.map(function(r){
     var q=r.cantidad||0, m=r.cantidad_minima||0;
-    var stag,scol;
-    if(q<=0){stag='SIN STOCK';scol='tag-r';}
-    else if(m>0&&q<=m){stag='BAJO';scol='tag-o';}
-    else{stag='OK';scol='tag-g';}
-    return '<tr>'
-      +'<td><div style="font-weight:600">'+(r.nombre_producto||'Producto '+r.producto_id)+'</div></td>'
-      +'<td style="color:var(--muted);font-size:12px">'+(r.categoria||'—')+'</td>'
-      +'<td style="text-align:center;font-size:17px;font-weight:800;color:'+(q<=0?'var(--red)':m>0&&q<=m?'var(--orange)':'var(--text)')+'">'+q+'</td>'
-      +'<td style="text-align:center;color:var(--muted)">'+(m>0?m:'—')+'</td>'
-      +'<td style="text-align:center;color:var(--muted)">'+(r.costo_unitario?gs(r.costo_unitario):'—')+'</td>'
-      +'<td style="text-align:center"><span class="tag '+scol+'">'+stag+'</span></td>'
-      +'<td style="text-align:center">'
-        +'<button onclick="abrirHistorial('+r.producto_id+',\''+String(r.nombre_producto||'').replace(/\'/g,"\\'")+'\')" '
-          +'style="background:var(--b2);border:1px solid var(--blue);border-radius:6px;color:var(--blue);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:6px 11px;cursor:pointer;white-space:nowrap">'
-          +'📋 Historial</button>'
+    var estCss=_invEstadoDe(r);
+    var stag=(estCss==='cero')?'Sin stock':(estCss==='bajo')?'Stock bajo':'Stock OK';
+    var tagCls=(estCss==='cero')?'tag-r':(estCss==='bajo')?'tag-o':'tag-g';
+    // Barra de progreso: si hay mínimo, % vs mínimo*2 (para que llegado al mín este al 50%); si no hay min, llena al 100% si q>0
+    var pct=100;
+    if(m>0) pct=Math.max(0,Math.min(100, q/(m*2)*100));
+    else if(q<=0) pct=0;
+    var barCls=estCss==='cero'?'red':estCss==='bajo'?'orange':'';
+    var valorFila = Math.max(0,q) * (r.costo_unitario||0);
+    var nombreSafe=String(r.nombre_producto||'Producto '+r.producto_id).replace(/'/g,"\\'");
+    return '<tr class="inv-row '+estCss+'">'
+      +'<td>'
+        +'<div class="inv-prd">'
+          +'<span class="inv-dot" style="background:'+(r.color||'#546e7a')+'"></span>'
+          +'<div>'
+            +'<div class="inv-prd-name">'+(r.nombre_producto||'Producto '+r.producto_id)+'</div>'
+            +'<div class="inv-prd-meta">'
+              +(r.codigo?'#'+r.codigo+' ':'')
+              +(r.categoria?'<span class="inv-cat">'+r.categoria+'</span>':'')
+            +'</div>'
+          +'</div>'
+        +'</div>'
+      +'</td>'
+      +'<td class="inv-stk">'
+        +'<div class="inv-stk-v '+barCls+'">'+q+'</div>'
+        +'<div class="inv-stk-bar"><span class="'+barCls+'" style="width:'+pct+'%"></span></div>'
+        +'<div class="inv-stk-min">mín. '+(m>0?m:'—')+'</div>'
+      +'</td>'
+      +'<td style="text-align:right;font-family:Consolas,monospace;color:'+(r.costo_unitario?'var(--text)':'var(--muted)')+'">'
+        +(r.costo_unitario?_invFormatGs(r.costo_unitario):'—')
+      +'</td>'
+      +'<td style="text-align:right;font-family:Consolas,monospace;font-weight:'+(valorFila>0?'700':'400')+';color:'+(valorFila>0?'var(--text)':'var(--muted)')+'">'
+        +(valorFila>0?_invFormatGs(valorFila):'—')
+      +'</td>'
+      +'<td><span class="tag '+tagCls+'">'+stag+'</span></td>'
+      +'<td>'
+        +'<div class="inv-ract">'
+          +'<button class="inv-ab primary" title="Ver historial" '
+            +'onclick="abrirHistorial(' +r.producto_id+ ', \'' +nombreSafe+ '\')">'
+            +_invIco('chart')+'Historial</button>'
+          +'<button class="inv-ab" title="Ajustar stock" '
+            +'onclick="abrirHistorial(' +r.producto_id+ ', \'' +nombreSafe+ '\');setTimeout(function(){_invModalTab(&quot;ajuste&quot;)},150)">'
+            +_invIco('edit')+'Ajustar</button>'
+        +'</div>'
       +'</td>'
     +'</tr>';
   }).join('');
 }
 
-function filtrInv(q){
-  if(!_inv.prds) return;
-  var f=(q||'').toLowerCase();
-  var est=document.getElementById('invFiltroEst')?document.getElementById('invFiltroEst').value:'';
-  var fil=!f?_inv.prds:_inv.prds.filter(function(r){return (r.nombre_producto||'').toLowerCase().includes(f);});
-  // Re-aplicar filtro estado
-  if(est==='ok')   fil=fil.filter(function(r){return (r.cantidad||0)>(r.cantidad_minima||0);});
-  if(est==='bajo') fil=fil.filter(function(r){var m=r.cantidad_minima||0;return m>0&&(r.cantidad||0)>0&&(r.cantidad||0)<=m;});
-  if(est==='cero') fil=fil.filter(function(r){return (r.cantidad||0)<=0;});
-  renderInvTabla(fil.length||f||est?fil:_inv.prds);
+function _invSetEstado(est){
+  _invEstadoChip = est;
+  // Marcar chip activo
+  var chips=document.querySelectorAll('#invChips .inv-chip');
+  chips.forEach(function(ch){
+    ch.classList.remove('on','orange','red');
+    if(ch.getAttribute('data-est')===est){
+      ch.classList.add('on');
+      if(est==='bajo') ch.classList.add('orange');
+      if(est==='cero') ch.classList.add('red');
+    }
+  });
+  renderInvTabla(_inv.prds||[]);
+}
+
+function filtrInv(){
+  // Solo re-render (el input se lee dentro de renderInvTabla)
+  renderInvTabla(_inv.prds||[]);
 }
 
 // ── HISTORIAL ─────────────────────────────────────────────
 async function abrirHistorial(prodId, prodNom){
   _inv.prodActivo={id:prodId, nombre:prodNom};
-  document.getElementById('invMTit').textContent=prodNom;
-  var depNom=(_inv.sel.sucNom?_inv.sel.sucNom+' › ':'')+_inv.sel.depNom;
-  document.getElementById('invMSub').textContent='Depósito: '+depNom;
-  document.getElementById('invMDep').textContent=depNom;
-  document.getElementById('invAjusteForm').style.display='none';
-  // Stock actual desde la tabla stock
   var sr=_inv.prds.find(function(r){return r.producto_id===prodId||String(r.producto_id)===String(prodId);});
-  document.getElementById('invMStock').textContent=sr?sr.cantidad||0:'?';
-  // Fechas default: últimos 30 días
-  var hoy=new Date(), d30=new Date(hoy); d30.setDate(d30.getDate()-30);
-  document.getElementById('invFD').value=d30.getFullYear()+'-'+pad(d30.getMonth()+1)+'-'+pad(d30.getDate());
-  document.getElementById('invFH').value=hoy.getFullYear()+'-'+pad(hoy.getMonth()+1)+'-'+pad(hoy.getDate());
+  var color=(sr&&sr.color)||'#546e7a';
+  var cat=(sr&&sr.categoria)||'';
+  var codigo=(sr&&sr.codigo)||'';
+  var depNom=(_inv.sel.sucNom?_inv.sel.sucNom+' › ':'')+(_inv.sel.depNom||'Todos los depósitos');
+
+  document.getElementById('invMTit').textContent=prodNom;
+  document.getElementById('invMSub').innerHTML=
+    (codigo?'#'+codigo+' · ':'')+(cat?cat+' · ':'')+depNom;
+  var dot=document.getElementById('invMDot');
+  if(dot) dot.style.background=color;
+  // Stock actual con color por estado
+  var stock = sr?(sr.cantidad||0):0;
+  var stockEl=document.getElementById('invMStock');
+  stockEl.textContent=stock;
+  stockEl.style.color = stock<=0 ? 'var(--red)' : (sr&&sr.cantidad_minima>0&&stock<=sr.cantidad_minima ? 'var(--orange)' : 'var(--green)');
+
+  // Reset tabs y form al estado inicial
+  _invModalTab('mov');
+  document.getElementById('ajCant').value='';
+  document.getElementById('ajMotivo').value='';
+
+  // Período default: Mes (últimos 30 días)
+  _invSetPeriodo('mes',true);
+
   document.getElementById('invModal').style.display='block';
   document.body.style.overflow='hidden';
   await cargarHistorial();
@@ -377,13 +582,47 @@ function cerrarInvModal(){
   _inv.prodActivo=null;
 }
 
+function _invModalTab(name){
+  var tabs=document.querySelectorAll('#invModal .mh-tab');
+  var contents=document.querySelectorAll('#invModal .mh-tab-content');
+  tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tab')===name); });
+  contents.forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-tabc')===name); });
+  if(name==='ajuste'){
+    setTimeout(function(){ var c=document.getElementById('ajCant'); if(c) c.focus(); }, 50);
+  }
+  if(name==='graf'){
+    // Re-renderizar gráfico por si cambió el tamaño del contenedor
+    if(_inv._lastRows) _invRenderGrafico(_inv._lastRows, _inv._lastSaldoInicial);
+  }
+}
+
+function _invSetPeriodo(p, soloFechas){
+  var hoy=new Date();
+  var d=new Date(hoy), h=new Date(hoy);
+  if(p==='hoy'){ /* d=h=hoy */ }
+  else if(p==='semana'){ d=new Date(hoy); d.setDate(d.getDate()-d.getDay()); }
+  else if(p==='mes'){ d=new Date(hoy.getFullYear(),hoy.getMonth(),1); }
+  else if(p==='anio'){ d=new Date(hoy.getFullYear(),0,1); }
+  var fmt=function(x){return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate());};
+  var fdEl=document.getElementById('invFD'), fhEl=document.getElementById('invFH');
+  if(fdEl) fdEl.value=fmt(d);
+  if(fhEl) fhEl.value=fmt(h);
+  // Marcar chip activo
+  document.querySelectorAll('#invModal .mh-pchip').forEach(function(ch){
+    ch.classList.toggle('on', ch.getAttribute('data-period')===p);
+  });
+  if(!soloFechas) cargarHistorial();
+}
+
 async function cargarHistorial(){
   if(!_inv.prodActivo) return;
   var fd=document.getElementById('invFD').value;
   var fh=document.getElementById('invFH').value;
-  document.getElementById('invHistBody').innerHTML='<tr><td colspan="7" class="loading"><span class="sp"></span>Cargando...</td></tr>';
-  document.getElementById('invMEnt').textContent='\u2014';
-  document.getElementById('invMSal').textContent='\u2014';
+  var $=function(id){return document.getElementById(id);};
+  $('invHistBody').innerHTML='<tr><td colspan="5" class="loading"><span class="sp"></span>Cargando...</td></tr>';
+  $('invMSini').textContent='\u2014'; $('invMEnt').textContent='\u2014';
+  $('invMSal').textContent='\u2014';  $('invMSfin').textContent='\u2014';
+  $('invMFootInfo').textContent='\u2014 movimientos';
   var licId=await invGetLicId();
   var addDayInv=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
   try{
@@ -393,91 +632,170 @@ async function cargarHistorial(){
       ?_inv.sel.depIds
       :_inv.deps.map(function(d){return d.id;});
 
-    var qItems='producto_id=eq.'+_inv.prodActivo.id
+    // Items del producto (sin filtro de fecha — la fecha vive en el header)
+    var items=await sg('stock_comprobante_items',
+      'producto_id=eq.'+_inv.prodActivo.id
       +'&select=comprobante_id,cantidad,cantidad_antes,cantidad_despues'
-      +(fd||fh?'':''  ); // items no tiene fecha, filtramos por el encabezado
-    var items=await sg('stock_comprobante_items',qItems+'&limit=2000');
+      +'&limit=5000');
 
     if(!items.length){
-      document.getElementById('invHistBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">Sin movimientos registrados para este producto</td></tr>';
-      document.getElementById('invMEnt').textContent='0';
-      document.getElementById('invMSal').textContent='0';
+      $('invHistBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:36px;color:var(--muted)">Sin movimientos registrados para este producto</td></tr>';
+      $('invMSini').textContent='0'; $('invMEnt').textContent='+0';
+      $('invMSal').textContent='-0'; $('invMSfin').textContent='0';
+      _inv._lastRows=null;
+      _invRenderGrafico([], 0);
       return;
     }
 
-    // Mapa de items por comprobante_id
     var itemsMap={};
     items.forEach(function(i){ itemsMap[i.comprobante_id]=i; });
     var compIds=Object.keys(itemsMap);
 
-    // Cargar los comprobantes correspondientes con filtro de fechas y depósito
+    // Comprobantes del período (ASC para saldo acumulado)
     var qComp='id=in.('+compIds.join(',')+')'
       +'&licencia_id=eq.'+licId
       +(depIds.length?'&deposito_id=in.('+depIds.join(',')+')'  :'')
       +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
       +(fh?'&fecha=lte.'+addDayInv(fh)+'T03:59:59':'')
-      +'&order=fecha.desc&limit=500';
+      +'&order=fecha.asc&limit=500';
     var comps=await sg('stock_comprobantes',qComp);
 
-    // Totales del período
-    var totEnt=0,totSal=0;
-    comps.forEach(function(c){
-      var it=itemsMap[c.id];
-      if(!it) return;
+    // Saldo anterior al período
+    var saldoInicial=0;
+    if(fd && compIds.length){
+      var qPrev='id=in.('+compIds.join(',')+')'
+        +'&licencia_id=eq.'+licId
+        +(depIds.length?'&deposito_id=in.('+depIds.join(',')+')'  :'')
+        +'&fecha=lt.'+fd+'T04:00:00&select=id&limit=5000';
+      var prev=await sg('stock_comprobantes',qPrev);
+      var prevSet={};
+      prev.forEach(function(c){ prevSet[c.id]=true; });
+      items.forEach(function(it){
+        if(prevSet[it.comprobante_id]) saldoInicial += (it.cantidad||0);
+      });
+    }
+
+    // Calcular saldo acumulado ASC + totales
+    var totEnt=0, totSal=0, saldo=saldoInicial;
+    var rows=comps.map(function(c){
+      var it=itemsMap[c.id]||{};
       var cant=it.cantidad||0;
       if(cant>0) totEnt+=cant; else totSal+=Math.abs(cant);
+      saldo += cant;
+      return {
+        id:c.id, fecha:c.fecha, tipo:c.tipo, referencia:c.referencia||'',
+        deposito_id:c.deposito_id, observacion:c.observacion||'',
+        terminal:c.terminal||'', cantidad:cant,
+        antes:it.cantidad_antes, despues:it.cantidad_despues, saldo:saldo
+      };
     });
-    document.getElementById('invMEnt').textContent='+'+totEnt;
-    document.getElementById('invMSal').textContent='-'+totSal;
+    var saldoFinal = saldo;
 
-    if(!comps.length){
-      document.getElementById('invHistBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">Sin movimientos en el per\u00edodo</td></tr>';
+    $('invMSini').textContent=saldoInicial;
+    $('invMEnt').textContent='+'+totEnt;
+    $('invMSal').textContent='-'+totSal;
+    $('invMSfin').textContent=saldoFinal;
+    var finBox=$('invMFinBox');
+    if(finBox) finBox.classList.toggle('neg', saldoFinal<0);
+    $('invMFootInfo').textContent = rows.length+' movimiento'+(rows.length===1?'':'s')+(fd&&fh?' · '+fd+' al '+fh:'');
+
+    _inv._lastRows = rows;
+    _inv._lastSaldoInicial = saldoInicial;
+
+    if(!rows.length){
+      $('invHistBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:36px;color:var(--muted)">Sin movimientos en el periodo seleccionado</td></tr>';
+      _invRenderGrafico([], saldoInicial);
       return;
     }
 
     var tipos={
-      'venta':                {lbl:'Venta',           col:'var(--red)',    ico:'\U0001F6D2'},
-      'anulacion':            {lbl:'Anulaci\u00f3n',  col:'var(--blue)',   ico:'\u21A9\uFE0F'},
-      'compra':               {lbl:'Compra',          col:'var(--green)',  ico:'\U0001F4E6'},
-      'entrada':              {lbl:'Entrada',         col:'var(--green)',  ico:'\u2B06\uFE0F'},
-      'salida':               {lbl:'Salida',          col:'var(--orange)', ico:'\u2B07\uFE0F'},
-      'ajuste':               {lbl:'Ajuste',          col:'var(--blue)',   ico:'\U0001F527'},
-      'transferencia_salida': {lbl:'Transfer. salida',col:'var(--orange)', ico:'\u21C4'},
-      'transferencia_entrada':{lbl:'Transfer. entrada',col:'var(--green)', ico:'\u21C4'},
+      'venta':'Venta', 'anulacion':'Anulacion', 'compra':'Compra',
+      'entrada':'Entrada', 'salida':'Salida', 'ajuste':'Ajuste', 'conteo':'Conteo',
+      'transferencia_salida':'Transf. salida', 'transferencia_entrada':'Transf. entrada'
     };
 
-    document.getElementById('invHistBody').innerHTML=comps.map(function(c){
-      var it=itemsMap[c.id]||{};
-      var cant=it.cantidad||0;
-      var tc=tipos[c.tipo]||{lbl:c.tipo||'\u2014',col:'var(--muted)',ico:'\u2022'};
-      var depNom=(_inv.deps.find(function(d){return d.id===c.deposito_id;})||{}).nombre||('#'+c.deposito_id);
-      var rowId='hrow'+c.id;
-      return '<tr id="'+rowId+'" style="cursor:pointer" onclick="togHistRow(\''+c.id+'\')">'
-        +'<td style="white-space:nowrap;font-size:12px;color:var(--muted)">'+fmtDT(c.fecha)+'</td>'
-        +'<td><span style="display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:12px;color:'+tc.col+'">'+tc.ico+' '+tc.lbl+'</span></td>'
-        +'<td style="font-size:12px;font-weight:600">'+(c.referencia||'\u2014')+'</td>'
-        // cant de este producto en el comprobante
-        +'<td style="text-align:center">'
-          +'<span style="font-size:10px;color:var(--muted)">'+it.cantidad_antes+' \u2192 '+it.cantidad_despues+'</span>'
-        +'</td>'
-        +'<td style="text-align:center;font-weight:800;font-size:15px;color:'+(cant>0?'var(--green)':'var(--red)')+'">'+(cant>0?'+':'')+cant+'</td>'
-        +'<td style="font-size:12px;color:var(--muted)">'+depNom+'</td>'
-        +'<td style="font-size:12px;color:var(--muted)">'
-          +(c.observacion?'<div>'+c.observacion+'</div>':'')
-          +(c.terminal?'<div style="color:#444">'+c.terminal+'</div>':'')
-        +'</td>'
+    var rowsDesc = rows.slice().reverse();
+    var html = rowsDesc.map(function(r){
+      var lbl=tipos[r.tipo]||r.tipo||'-';
+      var fecha=r.fecha?new Date(r.fecha):null;
+      var fechaStr = fecha
+        ? pad(fecha.getDate())+'/'+pad(fecha.getMonth()+1)+' '+pad(fecha.getHours())+':'+pad(fecha.getMinutes())
+        : '-';
+      var pos = (r.cantidad||0)>=0;
+      return '<tr style="cursor:pointer" onclick="togHistRow(\''+r.id+'\')">'
+        +'<td style="font-size:12px;color:var(--muted);white-space:nowrap">'+fechaStr+'</td>'
+        +'<td><span class="mh-mov-type '+r.tipo+'">'+lbl+'</span></td>'
+        +'<td style="font-size:12px;font-weight:600">'+(r.referencia||'-')+'</td>'
+        +'<td style="text-align:right" class="mh-mov-cant '+(pos?'pos':'neg')+'">'+(pos?'+':'-')+Math.abs(r.cantidad)+'</td>'
+        +'<td style="text-align:right" class="mh-mov-saldo '+(r.saldo<0?'neg':'')+'">'+r.saldo+'</td>'
       +'</tr>'
-      // Fila expandible con todos los ítems del comprobante
-      +'<tr id="hdet'+c.id+'" style="display:none"><td colspan="7" style="padding:0">'
-        +'<div style="background:var(--card2);border-left:3px solid '+tc.col+';padding:10px 16px" id="hdetBody'+c.id+'">'
+      +'<tr id="hdet'+r.id+'" style="display:none"><td colspan="5" style="padding:0">'
+        +'<div style="background:var(--card2);padding:10px 16px;border-left:3px solid '+(pos?'var(--green)':'var(--red)')+'" id="hdetBody'+r.id+'">'
           +'<span style="color:var(--muted);font-size:12px">Cargando detalle...</span>'
         +'</div>'
       +'</td></tr>';
     }).join('');
+    html += '<tr style="background:var(--card2)"><td colspan="4" style="font-size:11px;color:var(--muted);font-style:italic;padding:10px 14px">Saldo anterior al periodo</td>'
+      +'<td style="text-align:right" class="mh-mov-saldo">'+saldoInicial+'</td></tr>';
+    $('invHistBody').innerHTML = html;
+
+    _invRenderGrafico(rows, saldoInicial);
 
   }catch(e){
-    document.getElementById('invHistBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red)">Error: '+e.message+'</td></tr>';
+    $('invHistBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--red)">Error: '+e.message+'</td></tr>';
   }
+}
+
+function _invRenderGrafico(rows, saldoInicial){
+  var wrap=document.getElementById('invChartWrap');
+  if(!wrap) return;
+  if(!rows || !rows.length){
+    wrap.innerHTML='<div class="mh-chart-empty">No hay movimientos en el periodo seleccionado para graficar.</div>';
+    return;
+  }
+  var fd=document.getElementById('invFD').value;
+  var puntos=[];
+  if(fd) puntos.push({x:new Date(fd+'T00:00:00').getTime(), y:saldoInicial, lbl:'Inicio'});
+  rows.forEach(function(r){ puntos.push({x:new Date(r.fecha).getTime(), y:r.saldo, lbl:r.referencia||r.tipo}); });
+  if(puntos.length<2){
+    wrap.innerHTML='<div class="mh-chart-empty">Hace falta mas de un punto para graficar.</div>';
+    return;
+  }
+  var W=800, H=120, PAD={t:14,b:24,l:36,r:14};
+  var gW=W-PAD.l-PAD.r, gH=H-PAD.t-PAD.b;
+  var xs=puntos.map(function(p){return p.x;}), ys=puntos.map(function(p){return p.y;});
+  var minX=Math.min.apply(null,xs), maxX=Math.max.apply(null,xs);
+  var minY=Math.min.apply(null,ys), maxY=Math.max.apply(null,ys);
+  if(minY===maxY){ minY-=1; maxY+=1; }
+  if(minY>0) minY=Math.min(minY, 0);
+  if(maxY<0) maxY=Math.max(maxY, 0);
+  var rangeX=Math.max(1, maxX-minX), rangeY=Math.max(1, maxY-minY);
+  var xPx=function(v){return PAD.l + (v-minX)/rangeX*gW;};
+  var yPx=function(v){return PAD.t + (1-(v-minY)/rangeY)*gH;};
+  var zeroY=yPx(0);
+  var d='M'+puntos.map(function(p){return xPx(p.x)+','+yPx(p.y);}).join(' L');
+  var area=d+' L'+xPx(puntos[puntos.length-1].x)+','+(PAD.t+gH)+' L'+xPx(puntos[0].x)+','+(PAD.t+gH)+' Z';
+  var ultimoY = puntos[puntos.length-1].y;
+  var colorLinea = ultimoY<0 ? '#ef4444' : (ultimoY===0 ? '#94a3b8' : '#22c55e');
+  var labelsY = [{v:maxY, y:yPx(maxY)}];
+  if(minY < 0 && maxY > 0) labelsY.push({v:0, y:zeroY});
+  if(minY!==maxY) labelsY.push({v:minY, y:yPx(minY)});
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'
+    +'<defs><linearGradient id="grdInv" x1="0" y1="0" x2="0" y2="1">'
+      +'<stop offset="0%" stop-color="'+colorLinea+'" stop-opacity="0.3"/>'
+      +'<stop offset="100%" stop-color="'+colorLinea+'" stop-opacity="0"/>'
+    +'</linearGradient></defs>'
+    +(minY<0&&maxY>0?'<line x1="'+PAD.l+'" y1="'+zeroY+'" x2="'+(W-PAD.r)+'" y2="'+zeroY+'" stroke="#3a414e" stroke-width="1" stroke-dasharray="3,3"/>':'')
+    +labelsY.map(function(L){return '<text x="'+(PAD.l-6)+'" y="'+(L.y+3)+'" font-size="10" fill="#8a92a3" text-anchor="end">'+L.v+'</text>';}).join('')
+    +'<path d="'+area+'" fill="url(#grdInv)"/>'
+    +'<path d="'+d+'" stroke="'+colorLinea+'" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    +puntos.map(function(p,i){
+      var fill=(i===puntos.length-1)?colorLinea:'#1a1d24';
+      return '<circle cx="'+xPx(p.x)+'" cy="'+yPx(p.y)+'" r="3" fill="'+fill+'" stroke="'+colorLinea+'" stroke-width="1.5"/>';
+    }).join('')
+    +'<text x="'+(xPx(puntos[puntos.length-1].x)-6)+'" y="'+(yPx(puntos[puntos.length-1].y)-8)+'" font-size="11" fill="'+colorLinea+'" font-weight="700" text-anchor="end">'+ultimoY+'</text>'
+    +'</svg>';
+  wrap.innerHTML = svg;
 }
 
 async function togHistRow(compId){
@@ -515,10 +833,12 @@ async function togHistRow(compId){
 
 // ── AJUSTE MANUAL ─────────────────────────────────────────
 function abrirAjuste(){
-  document.getElementById('invAjusteForm').style.display='block';
+  // Cambia al tab "Ajustar stock" del modal de historial.
+  // El form siempre esta visible dentro del tab; solo limpiamos campos.
   document.getElementById('ajCant').value='';
   document.getElementById('ajMotivo').value='';
-  document.getElementById('ajCant').focus();
+  if(typeof _invModalTab==='function') _invModalTab('ajuste');
+  var c=document.getElementById('ajCant'); if(c) c.focus();
 }
 
 async function guardarAjuste(){
@@ -572,8 +892,11 @@ async function guardarAjuste(){
     else _inv.prds.push({...stockRow, id:Date.now()});
     document.getElementById('invMStock').textContent=qNueva;
     renderInvTabla(_inv.prds);
-    document.getElementById('invAjusteForm').style.display='none';
-    toast('✓ Ajuste guardado — Stock: '+qNueva);
+    // Volver al tab de movimientos despues de guardar
+    if(typeof _invModalTab==='function') _invModalTab('mov');
+    toast('Ajuste guardado. Stock: '+qNueva);
+    // Refrescar tabla principal de inventarios + historial
+    if(typeof renderInvTabla==='function' && _inv.prds) renderInvTabla(_inv.prds);
     await cargarHistorial();
   }catch(e){ toast('Error: '+e.message); }
 }

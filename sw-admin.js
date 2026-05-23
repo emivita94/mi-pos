@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260523-dedup-depositos';
+const CACHE = 'ampersand-admin-v20260523-rediseno-inv-historial';
 
 const ASSETS = [
   '/admin-negocio.html',

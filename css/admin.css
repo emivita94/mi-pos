@@ -180,3 +180,124 @@ tr:last-child td{border-bottom:none;}
 
 /* Dark mode: hover sutil en filas de tabla */
 [data-theme="dark"] tr:hover td{background:rgba(255,255,255,.025);}
+
+/* ════════════════════════════════════════════════════════════
+   INVENTARIOS — rediseno 2026-05-23
+   ════════════════════════════════════════════════════════════ */
+.inv-toolbar{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:14px;flex-wrap:wrap;}
+.inv-search{flex:1;min-width:220px;position:relative;}
+.inv-search input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px 10px 36px;color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;outline:none;}
+.inv-search input:focus{border-color:var(--green);}
+.inv-search input::placeholder{color:var(--muted);}
+.inv-search .inv-search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);display:flex;align-items:center;pointer-events:none;}
+
+.inv-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.inv-chip{display:inline-flex;align-items:center;gap:7px;background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:6px 12px;font:600 12px 'Barlow',sans-serif;color:var(--muted);cursor:pointer;transition:all .12s;}
+.inv-chip:hover{border-color:var(--green);color:var(--text);}
+.inv-chip.on{background:var(--g2);border-color:var(--green);color:var(--green);}
+.inv-chip.on.orange{background:var(--o2);border-color:var(--orange);color:var(--orange);}
+.inv-chip.on.red{background:var(--r2);border-color:var(--red);color:var(--red);}
+.inv-chip .inv-chip-n{background:rgba(255,255,255,.07);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+[data-theme="light"] .inv-chip .inv-chip-n{background:rgba(0,0,0,.06);}
+
+/* Fila de producto con borde-izq por estado */
+.inv-tbl tr.inv-row td:first-child{position:relative;padding-left:18px;}
+.inv-tbl tr.inv-row td:first-child::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;}
+.inv-tbl tr.inv-row.ok td:first-child::before{background:var(--green);}
+.inv-tbl tr.inv-row.bajo td:first-child::before{background:var(--orange);}
+.inv-tbl tr.inv-row.cero td:first-child::before{background:var(--red);}
+
+/* Celda producto: dot color + nombre/codigo/categoria */
+.inv-prd{display:flex;align-items:center;gap:11px;}
+.inv-prd .inv-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.18);}
+.inv-prd .inv-prd-name{font-weight:700;color:var(--text);font-size:13.5px;line-height:1.25;}
+.inv-prd .inv-prd-meta{font-size:11px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;}
+.inv-prd .inv-cat{display:inline-block;background:var(--card2);color:var(--muted);padding:1px 8px;border-radius:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+
+/* Stock con barra de progreso */
+.inv-stk{text-align:center;min-width:80px;}
+.inv-stk .inv-stk-v{font-weight:800;font-size:16px;color:var(--text);line-height:1;}
+.inv-stk .inv-stk-v.orange{color:var(--orange);}
+.inv-stk .inv-stk-v.red{color:var(--red);}
+.inv-stk .inv-stk-bar{width:64px;height:4px;background:var(--card2);border-radius:2px;margin:6px auto 0;overflow:hidden;}
+.inv-stk .inv-stk-bar > span{display:block;height:100%;background:var(--green);}
+.inv-stk .inv-stk-bar > span.orange{background:var(--orange);}
+.inv-stk .inv-stk-bar > span.red{background:var(--red);}
+.inv-stk .inv-stk-min{font-size:10px;color:var(--muted);margin-top:3px;}
+
+/* Acciones por fila */
+.inv-ract{display:flex;gap:4px;justify-content:flex-end;align-items:center;}
+.inv-ract .inv-ab{background:transparent;border:1px solid transparent;color:var(--muted);padding:6px 10px;border-radius:7px;font:600 11px 'Barlow',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.inv-ract .inv-ab:hover{background:var(--card2);color:var(--text);border-color:var(--border);}
+.inv-ract .inv-ab.primary{color:var(--blue);}
+.inv-ract .inv-ab.primary:hover{background:var(--b2);border-color:var(--blue);}
+
+/* ────────────────────────────────────────────────────────────
+   MODAL HISTORIAL — rediseno
+   ──────────────────────────────────────────────────────────── */
+.mh-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);}
+.mh-ptl{display:flex;align-items:center;gap:14px;min-width:0;}
+.mh-ptl .mh-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.18);}
+.mh-ptl .mh-info{min-width:0;}
+.mh-ptl .mh-info .mh-name{font-size:17px;font-weight:800;color:var(--text);line-height:1.2;}
+.mh-ptl .mh-info .mh-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.mh-head-right{display:flex;align-items:center;gap:18px;flex-shrink:0;}
+.mh-stk-now{text-align:right;}
+.mh-stk-now .mh-stk-l{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:3px;}
+.mh-stk-now .mh-stk-v{font-size:26px;font-weight:800;line-height:1;}
+.mh-x{background:var(--card2);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.mh-x:hover{background:var(--border);}
+
+.mh-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 22px;background:var(--card);}
+.mh-tab{padding:13px 18px;font:700 12px 'Barlow',sans-serif;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;letter-spacing:.4px;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;}
+.mh-tab.on{color:var(--green);border-bottom-color:var(--green);}
+.mh-tab:hover:not(.on){color:var(--text);}
+
+.mh-filt{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
+.mh-filt-dates{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
+.mh-filt-dates input{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font:12px 'Barlow',sans-serif;outline:none;}
+.mh-filt-dates input:focus{border-color:var(--green);}
+.mh-period{display:flex;gap:5px;}
+.mh-pchip{padding:6px 13px;border:1px solid var(--border);border-radius:14px;font:600 11px 'Barlow',sans-serif;color:var(--muted);cursor:pointer;background:var(--card2);}
+.mh-pchip:hover{border-color:var(--green);color:var(--text);}
+.mh-pchip.on{background:var(--green);color:#fff;border-color:var(--green);}
+[data-theme="light"] .mh-pchip.on{color:#fff;}
+
+.mh-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:16px 22px;border-bottom:1px solid var(--border);background:var(--card);}
+.mh-kpi-item{padding:0 16px;border-right:1px solid var(--border);position:relative;}
+.mh-kpi-item:last-child{border-right:none;}
+.mh-kpi-item:first-child{padding-left:0;}
+.mh-kpi-item .mh-kpi-l{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px;}
+.mh-kpi-item .mh-kpi-v{font-size:22px;font-weight:800;line-height:1;font-family:'Consolas',monospace;}
+.mh-kpi-item .mh-kpi-arrow{position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;background:var(--card);padding:0 4px;font-weight:700;}
+.mh-kpi-item:last-child .mh-kpi-arrow{display:none;}
+.mh-kpi-item.ini .mh-kpi-v{color:var(--muted);}
+.mh-kpi-item.ent .mh-kpi-v{color:var(--blue);}
+.mh-kpi-item.sal .mh-kpi-v{color:var(--red);}
+.mh-kpi-item.fin .mh-kpi-v{color:var(--green);}
+.mh-kpi-item.fin.neg .mh-kpi-v{color:var(--red);}
+
+.mh-chart{padding:14px 22px;border-bottom:1px solid var(--border);background:var(--card);}
+.mh-chart svg{display:block;width:100%;height:120px;}
+.mh-chart-empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;}
+
+.mh-mov-type{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font:700 10px 'Barlow',sans-serif;text-transform:uppercase;letter-spacing:.5px;}
+.mh-mov-type.compra,.mh-mov-type.entrada,.mh-mov-type.transferencia_entrada{background:var(--g2);color:var(--green);}
+.mh-mov-type.venta,.mh-mov-type.salida,.mh-mov-type.transferencia_salida{background:var(--r2);color:var(--red);}
+.mh-mov-type.ajuste{background:var(--b2);color:var(--blue);}
+.mh-mov-type.conteo{background:var(--o2);color:var(--orange);}
+.mh-mov-type.anulacion{background:var(--card2);color:var(--muted);}
+.mh-mov-cant{font-weight:800;font-size:14px;font-family:'Consolas',monospace;}
+.mh-mov-cant.pos{color:var(--green);}
+.mh-mov-cant.neg{color:var(--red);}
+.mh-mov-saldo{font-weight:700;font-size:14px;font-family:'Consolas',monospace;}
+.mh-mov-saldo.neg{color:var(--red);}
+
+.mh-foot{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-top:1px solid var(--border);background:var(--card2);font-size:12px;color:var(--muted);gap:12px;flex-wrap:wrap;}
+.mh-foot-acts{display:flex;gap:8px;}
+
+.mh-tab-content{display:none;}
+.mh-tab-content.on{display:block;}
+
+/* Iconos inline */
+.inv-i{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
