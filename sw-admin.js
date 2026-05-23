@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260512-fix-terminales';
+const CACHE = 'ampersand-admin-v20260523-dedup-depositos';
 
 const ASSETS = [
   '/admin-negocio.html',

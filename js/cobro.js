@@ -870,6 +870,8 @@ async function confirmarPago() {
 
   // ── Limpiar estado ─────────────────────────────────────────
   resetTicketDescuento();
+  // Descartar snapshot de nav (al cobrar se cierra el ciclo del cart en curso)
+  if(typeof _cartEnCursoNavSnap !== 'undefined') _cartEnCursoNavSnap = null;
   cart.forEach(i => { delete i.desc; });
   // Limpiar divPagos para que no contamine la próxima venta normal
   clearDivPagos();

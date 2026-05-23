@@ -2,6 +2,51 @@
 // ── INVENTARIOS ───────────────────────────────────────────
 // Tablas usadas: sucursales, depositos, stock, stock_movimientos
 // licencia_id se resuelve via SE (email) → licencias.email_cliente
+
+// ──────────────────────────────────────────────────────────────────────
+// DEDUP defensivo: agrupa depósitos por (sucursal_id, UPPER(TRIM(nombre)))
+// para que duplicados en la base no aparezcan dos veces en los dropdowns.
+// Devuelve [{idsArr, idCanonico, nombre, sucursal_id, sucursal_nombre}].
+// El consumidor debe usar `idsArr.join(',')` como value y al filtrar:
+//   si value tiene "," → &deposito_id=in.(value)
+//   si no → &deposito_id=eq.value
+// Cuando el SQL de consolidación corra, cada grupo tendrá 1 solo id y
+// este helper queda inocuo. Si no corrió, igual se ven los movimientos.
+// ──────────────────────────────────────────────────────────────────────
+function depsAgrupados(deps, sucs){
+  if(!Array.isArray(deps)) return [];
+  var sucMap={};
+  if(Array.isArray(sucs)) sucs.forEach(function(s){ sucMap[s.id]=s.nombre; });
+  var grupos={}, orden=[];
+  deps.forEach(function(d){
+    var clave=d.sucursal_id+'::'+String(d.nombre||'').trim().toUpperCase();
+    if(!grupos[clave]){
+      grupos[clave]={
+        idsArr:[d.id],
+        idCanonico:d.id,
+        nombre:d.nombre,
+        sucursal_id:d.sucursal_id,
+        sucursal_nombre: sucMap[d.sucursal_id]||''
+      };
+      orden.push(clave);
+    } else {
+      grupos[clave].idsArr.push(d.id);
+      if(d.id < grupos[clave].idCanonico){
+        grupos[clave].idCanonico=d.id;
+        grupos[clave].nombre=d.nombre;
+      }
+    }
+  });
+  return orden.map(function(k){ return grupos[k]; });
+}
+
+// Construye filtro PostgREST para deposito_id a partir del value del select.
+// value puede ser "" (todos), "12" (un id) o "12,45,78" (grupo deduplicado).
+function depFilterPostgrest(value){
+  if(!value) return '';
+  if(String(value).indexOf(',')>=0) return '&deposito_id=in.('+value+')';
+  return '&deposito_id=eq.'+value;
+}
 var _inv = {
   licId: null, prds: [], deps: [], suc: [],
   sel: { depId:null, depIds:[], depNom:'', sucId:null, sucNom:'' },
@@ -41,9 +86,14 @@ async function renderInventarios(){
 
 function renderInvShell(){
   var deps=_inv.deps, sucs=_inv.suc;
-  // Selector de sucursales (DB ya normalizada, no hay duplicados)
+  // Selector de sucursales — dedup defensivo por nombre normalizado
+  // (legacy: la base puede tener duplicados con mayúsculas distintas)
   var selOpts='<option value="">Todas las sucursales</option>';
+  var sucsVistas={};
   sucs.forEach(function(s){
+    var key=String(s.nombre||'').trim().toUpperCase();
+    if(sucsVistas[key]) return;
+    sucsVistas[key]=true;
     var sel=(_inv.sel.sucNom===s.nombre)?'selected':'';
     selOpts+='<option value="'+s.nombre+'" '+sel+'>'+s.nombre+'</option>';
   });
@@ -530,17 +580,17 @@ async function guardarAjuste(){
 
 // ── TRANSFERENCIA ENTRE DEPÓSITOS ─────────────────────────
 function abrirTransferencia(){
-  var deps=_inv.deps;
-  if(deps.length<2){toast('Necesitás al menos 2 depósitos para transferir'); return;}
-  // Poblar selects de depósitos
-  var opsDeps=deps.map(function(d){
-    var s=_inv.suc.find(function(x){return x.id===d.sucursal_id;})||{};
-    return '<option value="'+d.id+'">'+(s.nombre?s.nombre+' › ':'')+d.nombre+'</option>';
+  // Dedup defensivo: una entrada por (sucursal, nombre) — el id canónico
+  // recibe la transferencia; los duplicados quedan ocultos.
+  var grupos=depsAgrupados(_inv.deps, _inv.suc);
+  if(grupos.length<2){toast('Necesitás al menos 2 depósitos para transferir'); return;}
+  var opsDeps=grupos.map(function(g){
+    return '<option value="'+g.idCanonico+'">'+(g.sucursal_nombre?g.sucursal_nombre+' › ':'')+g.nombre+'</option>';
   }).join('');
   document.getElementById('trOrigen').innerHTML=opsDeps;
   document.getElementById('trDestino').innerHTML=opsDeps;
   // Destino: el segundo por defecto
-  if(deps.length>1) document.getElementById('trDestino').selectedIndex=1;
+  if(grupos.length>1) document.getElementById('trDestino').selectedIndex=1;
   // Poblar productos: solo los que tienen stock en algún depósito
   var prdsUniq={};
   _inv.prds.forEach(function(r){
@@ -655,7 +705,14 @@ async function renderExtracto(){
       sg('depositos','licencia_id=eq.'+licId+'&activo=eq.true&order=nombre.asc')
     ]);
     _ext.prds=res[0]; _ext.sucs=res[1]; _ext.deps=res[2];
-    _ext.sucsUnicas=_ext.sucs; // DB ya normalizada
+    // Dedup defensivo de sucursales por nombre normalizado — si la base tiene
+    // duplicados legacy, el dropdown muestra una sola entrada.
+    var _vistas={};
+    _ext.sucsUnicas=_ext.sucs.filter(function(s){
+      var k=String(s.nombre||'').trim().toUpperCase();
+      if(_vistas[k]) return false;
+      _vistas[k]=true; return true;
+    });
   }catch(e){
     c.innerHTML='<div style="padding:24px;color:var(--red)">Error: '+e.message+'</div>';
     return;
@@ -775,8 +832,11 @@ function extActualizarDeps(){
   var deps=_ext.deps.filter(function(d){return sucIds.includes(d.sucursal_id);});
   var el=document.getElementById('extDep');
   if(!el) return;
+  var grupos=depsAgrupados(deps, _ext.sucs);
   el.innerHTML='<option value="">Todos los depósitos</option>'
-    +deps.map(function(d){return '<option value="'+d.id+'">'+d.nombre+'</option>';}).join('');
+    +grupos.map(function(g){
+       return '<option value="'+g.idsArr.join(',')+'">'+g.nombre+'</option>';
+     }).join('');
 }
 
 function extSetPeriodo(p){
@@ -804,7 +864,11 @@ async function extBuscar(){
   var fd=(document.getElementById('extFD')||{}).value||'';
   var fh=(document.getElementById('extFH')||{}).value||'';
   var sucNom=(document.getElementById('extSuc')||{}).value||'';
-  var depId=parseInt((document.getElementById('extDep')||{}).value||'0')||null;
+  // El value del select puede ser "" (todos), "12" o "12,45" (grupo deduplicado)
+  var depVal=(document.getElementById('extDep')||{}).value||'';
+  var depIdsFromSel = depVal
+    ? String(depVal).split(',').map(function(x){return parseInt(x,10);}).filter(function(x){return !!x;})
+    : [];
 
   var licId=await extGetLicId();
   var addDayExt=function(ds){var p=ds.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]+1);return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();};
@@ -819,8 +883,8 @@ async function extBuscar(){
   try{
     // Obtener dep_ids según filtros
     var depIds;
-    if(depId){
-      depIds=[depId];
+    if(depIdsFromSel.length){
+      depIds=depIdsFromSel;
     } else if(sucNom){
       var sucIdsFiltE=_ext.sucs.filter(function(s){return s.nombre===sucNom;}).map(function(s){return s.id;});
       depIds=_ext.deps.filter(function(d){return sucIdsFiltE.includes(d.sucursal_id);}).map(function(d){return d.id;});
@@ -1179,12 +1243,24 @@ async function renderMovStock(tab){
 
 function movBuildDepOpts(selectedId, withAll){
   var opts=(withAll?'<option value="">— Seleccionar —</option>':'');
+  // Dedup sucursales y depósitos para que duplicados legacy no aparezcan dos veces.
+  // Para sucursales: agrupamos por UPPER(TRIM(nombre)) y nos quedamos con el id más viejo.
+  var sucMap={};
   _mov.sucsU.forEach(function(s){
-    var dds=_mov.deps.filter(function(d){return d.sucursal_id===s.id;});
-    if(!dds.length) return;
-    opts+='<optgroup label="'+s.nombre+'">';
-    dds.forEach(function(d){
-      opts+='<option value="'+d.id+'"'+(selectedId===d.id?' selected':'')+'>'+d.nombre+'</option>';
+    var key=String(s.nombre||'').trim().toUpperCase();
+    if(!sucMap[key]) sucMap[key]={id:s.id, nombre:s.nombre, sucIds:[s.id]};
+    else { sucMap[key].sucIds.push(s.id); if(s.id<sucMap[key].id){sucMap[key].id=s.id;sucMap[key].nombre=s.nombre;} }
+  });
+  Object.keys(sucMap).forEach(function(key){
+    var sg=sucMap[key];
+    // Depósitos de TODAS las sucursales duplicadas del grupo, deduplicados a su vez
+    var deps=_mov.deps.filter(function(d){return sg.sucIds.indexOf(d.sucursal_id)>=0;});
+    var grupos=depsAgrupados(deps, [{id:sg.id,nombre:sg.nombre}]);
+    if(!grupos.length) return;
+    opts+='<optgroup label="'+sg.nombre+'">';
+    grupos.forEach(function(g){
+      var sel=(selectedId===g.idCanonico)?' selected':'';
+      opts+='<option value="'+g.idCanonico+'"'+sel+'>'+g.nombre+'</option>';
     });
     opts+='</optgroup>';
   });
@@ -1573,10 +1649,10 @@ async function movCargarLista(tipos, wraId){
 
   var tiposStr=tipos.join(',');
   var depOpts='<option value="">Todos los depósitos</option>'
-    +_mov.deps.map(function(d){
-      var s=(_mov.sucs.find(function(x){return x.id===d.sucursal_id;})||{}).nombre||'';
-      return '<option value="'+d.id+'">'+d.nombre+(s?' ('+s+')':'')+'</option>';
-    }).join('');
+    +depsAgrupados(_mov.deps, _mov.sucs).map(function(g){
+       var s=g.sucursal_nombre;
+       return '<option value="'+g.idsArr.join(',')+'">'+g.nombre+(s?' ('+s+')':'')+'</option>';
+     }).join('');
 
   // ¿La lista incluye compras? Si sí, mostramos columna "Total" y KPI con monto total
   var incluyeCompra = tipos.indexOf('compra') >= 0;
@@ -1615,7 +1691,8 @@ async function movFiltrarLista(tiposStr){
   var licId=await movGetLicId();
   var fd=(document.getElementById('mlFD')||{}).value||'';
   var fh=(document.getElementById('mlFH')||{}).value||'';
-  var depId=parseInt((document.getElementById('mlDep')||{}).value||'0')||null;
+  // El value puede ser "", "12" o "12,45" (grupo de duplicados deduplicados)
+  var depVal=(document.getElementById('mlDep')||{}).value||'';
   var tbody=document.getElementById('mlBody');
   if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="8" class="loading"><span class="sp"></span>Buscando...</td></tr>';
@@ -1626,7 +1703,7 @@ async function movFiltrarLista(tiposStr){
     var incluyeCompra = tipos.indexOf('compra') >= 0;
     var q='licencia_id=eq.'+licId
       +'&tipo=in.('+tipos.join(',')+')'
-      +(depId?'&deposito_id=eq.'+depId:'')
+      +depFilterPostgrest(depVal)
       +(fd?'&fecha=gte.'+fd+'T04:00:00':'')
       +(fh?'&fecha=lte.'+addDayMov(fh)+'T03:59:59':'')
       +'&order=fecha.desc&limit=300';
@@ -2182,10 +2259,12 @@ async function renderConteo(tab){
     // Nuevo conteo
     _cnt.conteoActual=null;
     var hoy=new Date().toISOString().split('T')[0];
+    // Para conteo SI usamos solo el id canónico (no CSV) — el conteo
+    // se crea contra UN solo depósito y queda asociado a ese id.
     var depOpts='<option value="">— Seleccionar depósito —</option>';
-    _cnt.deps.forEach(function(d){
-      var s=(_cnt.sucs.find(function(x){return x.id===d.sucursal_id;})||{}).nombre||'';
-      depOpts+='<option value="'+d.id+'">'+d.nombre+(s?' ('+s+')':'')+'</option>';
+    depsAgrupados(_cnt.deps, _cnt.sucs).forEach(function(g){
+      var s=g.sucursal_nombre;
+      depOpts+='<option value="'+g.idCanonico+'">'+g.nombre+(s?' ('+s+')':'')+'</option>';
     });
     c.innerHTML=tabs
       +'<div class="card" style="max-width:500px">'

@@ -190,6 +190,7 @@ function vaciarTicket(){
   if(currentTicketNro !== null){
     if(!confirm('¿Vaciar el ticket #'+String(currentTicketNro).padStart(4,'0')+'? Los cambios no se guardarán.')) return;
   }
+  _cartEnCursoNavSnap = null; // vaciar rompe el flujo de navegacion
   clearCart(); resetTicketDescuento(); setCurrentTicketNro(null); clearMesaActual();
   setTipoPedido('llevar'); updTabTicketHeader(); updMesaBtn?.();
   const dBar=document.getElementById('tabDeliveryBar'); if(dBar)dBar.classList.remove('visible');
@@ -270,6 +271,11 @@ var _ticketViewMode = 'edit'; // 'edit' (cart normal) | 'readonly' (modal venta 
 // de volver a calcular desde currentTicketNro (que sigue apuntando al cart).
 // Se resetea al cerrar el modal o al volver a un ticket editable.
 var _ticketNavViewingIdx = -1;
+// Snapshot del cart en curso cuando se navega a un pendiente por flecha.
+// Distinto de _cartEnCursoSnap (que es para MODO LECTURA de cobradas).
+// Vive hasta que: (a) el usuario vuelve al "enCurso" con ▶ — se restaura;
+// (b) el usuario abandona la nav (click en pendiente, cobra, nuevaVenta) — se descarta.
+var _cartEnCursoNavSnap = null;
 
 function _ticketsNavegables(){
   var lista = [];
@@ -313,8 +319,18 @@ function _ticketsNavegables(){
       });
     }
   } else {
-    // No modo lectura — agregamos enCurso si hay cart sin pendiente activo
-    if(typeof cart !== 'undefined' && cart && cart.length > 0 && currentTicketNro === null){
+    // No modo lectura
+    if(_cartEnCursoNavSnap && currentTicketNro !== null){
+      // Estamos editando un pendiente PERO hay cart en curso guardado
+      // por nav con flechas — mostrarlo en la lista para poder volver.
+      lista.push({
+        tipo:    'enCurso',
+        nro:     _cartEnCursoNavSnap.nro || ticketCounter,
+        fecha:   Date.now(),
+        snapshot: true,
+      });
+    } else if(typeof cart !== 'undefined' && cart && cart.length > 0 && currentTicketNro === null){
+      // Cart vivo (no proviene de pendiente) — el "enCurso" natural
       lista.push({ tipo:'enCurso', nro:ticketCounter, fecha:Date.now() });
     } else if(currentTicketNro === null){
       // Cart vacio sin pendiente — igual permite "volver al inicio"
@@ -324,7 +340,15 @@ function _ticketsNavegables(){
   // Mas VIEJO primero — para que las flechas se sientan naturales:
   //   < (izq, anterior) = mas viejo
   //   > (der, siguiente) = mas nuevo
-  lista.sort(function(a, b){ return a.fecha - b.fecha; });
+  // Ordenamos por NUMERO de ticket (estable, no cambia al auto-guardar)
+  // con desempate por fecha. El 'enCurso' usa ticketCounter, que siempre es
+  // mayor o igual al resto del turno, asi que queda al final natural.
+  lista.sort(function(a, b){
+    var na = (a.nro != null) ? a.nro : 0;
+    var nb = (b.nro != null) ? b.nro : 0;
+    if(na !== nb) return na - nb;
+    return (a.fecha || 0) - (b.fecha || 0);
+  });
   return lista;
 }
 
@@ -370,23 +394,47 @@ function navegarTicket(dir){
     _ticketNavViewingIdx = -1;
     // Restaurar el estado pre-lectura (cart vivo + variables) si lo teniamos
     if(_modoLectura){
-      salirDeModoLectura(); // restaura desde snapshot si existe
+      salirDeModoLectura(); // restaura desde _cartEnCursoSnap
+    } else if(_cartEnCursoNavSnap){
+      // Volviendo al cart en curso despues de haber navegado a un pendiente
+      // con flechas — restaurar el cart vivo guardado.
+      var s = _cartEnCursoNavSnap;
+      if(typeof setCart === 'function') setCart(s.cart || []);
+      if(typeof setCurrentTicketNro === 'function') setCurrentTicketNro(s.currentTicketNro);
+      if(s.mesaActual && typeof setMesaActual === 'function') setMesaActual(s.mesaActual);
+      else if(typeof clearMesaActual === 'function') clearMesaActual();
+      if(s.tipoPedido && typeof setTipoPedido === 'function') setTipoPedido(s.tipoPedido);
+      if(typeof setTicketDescuento === 'function') setTicketDescuento(s.ticketDescuento || 0);
+      var _nomRestaurar = s.clienteNombre || '';
+      if(typeof setClienteNombre === 'function') setClienteNombre(_nomRestaurar);
+      if(typeof clienteNombre !== 'undefined') clienteNombre = _nomRestaurar;
+      _cartEnCursoNavSnap = null;
     }
     updUI(); updBtnGuardar(); updTabTicketHeader();
     toast(cart && cart.length ? 'Ticket en curso' : 'Listo para nueva venta');
   } else {
-    _ticketNavViewingIdx = -1;
-    // Vamos a cargar otro pendiente/satelite — descartar snapshot (ya no es valido)
+    // Cargando pendiente/satelite/presupuesto — recordar posicion en lista
+    // para que la proxima flecha avance desde aca (sin recalcular contra
+    // currentTicketNro, que podria caer en otro lugar si la lista cambio).
+    _ticketNavViewingIdx = nueva;
+    // Saliendo del modo lectura para ir a un pendiente. Si _cartEnCursoSnap
+    // contiene el cart VIVO original (currentTicketNro=null) y todavia no
+    // teniamos snapshot de nav, transferirlo — sigue siendo "el cart en curso".
     if(_modoLectura){
       _modoLectura = false;
       _viewingCobradaVenta = null;
+      if(_cartEnCursoSnap && _cartEnCursoSnap.currentTicketNro === null && !_cartEnCursoNavSnap){
+        _cartEnCursoNavSnap = Object.assign({}, _cartEnCursoSnap, {
+          nro: (_cartEnCursoSnap.nro != null) ? _cartEnCursoSnap.nro : ticketCounter,
+        });
+      }
       _cartEnCursoSnap = null;
       if(typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
     }
     if(t.tipo === 'satelite' && typeof cajaAbrirPedidoSatelite === 'function'){
-      cajaAbrirPedidoSatelite(t.idx);
+      cajaAbrirPedidoSatelite(t.idx, { viaNav: true });
     } else {
-      cargarTicket(t.idx);
+      cargarTicket(t.idx, { viaNav: true });
     }
   }
 }
@@ -907,9 +955,13 @@ function renderPendientes() {
   }).join('');
 }
 
-async function cargarTicket(i) {
+async function cargarTicket(i, opts) {
   let t = pendientes[i];
   if(!t){ toast('Ticket no encontrado'); return; }
+  // Si NO es navegacion por flechas (click directo en pendiente, etc),
+  // descartar cualquier snapshot de cart en curso pendiente — el usuario
+  // rompio el flujo de navegacion al elegir manualmente.
+  if(!(opts && opts.viaNav)) _cartEnCursoNavSnap = null;
 
   // ── GUARDA: si soy satélite y el pendiente está enlazado a un pedido
   // de Supabase, validar que ese pedido NO esté cobrado/cancelado por la caja.
@@ -944,10 +996,29 @@ async function cargarTicket(i) {
       if (idx >= 0) {
         pendientes[idx].cart = JSON.parse(JSON.stringify(cart));
         pendientes[idx].total = totalActual;
-        pendientes[idx].fecha = new Date();
+        // NO tocar fecha — preservamos fecha de creacion para que el orden
+        // de navegacion (por nro con desempate por fecha) sea estable.
         pendientes[idx].descuentoTicket = ticketDescuento || 0;
         // Persistir cliente al auto-guardar el pendiente activo
         pendientes[idx].clienteNombre = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
+      }
+    } else if (opts && opts.viaNav) {
+      // Navegacion por flechas — NO convertir el cart en pendiente nuevo.
+      // Guardar snapshot para poder restaurar el cart en curso al volver con ▶.
+      // Solo creamos snapshot si NO hay uno ya (podria existir de una nav
+      // anterior o transferido desde el modo lectura — no lo pisamos con el
+      // cart actual, que puede ser de una venta cobrada).
+      if(!_cartEnCursoNavSnap){
+        _cartEnCursoNavSnap = {
+          cart:             JSON.parse(JSON.stringify(cart || [])),
+          currentTicketNro: null,
+          mesaActual:       (typeof mesaActual !== 'undefined' && mesaActual)
+                              ? JSON.parse(JSON.stringify(mesaActual)) : null,
+          tipoPedido:       (typeof tipoPedido !== 'undefined') ? tipoPedido : 'llevar',
+          clienteNombre:    (typeof clienteNombre !== 'undefined') ? clienteNombre : '',
+          ticketDescuento:  (typeof ticketDescuento !== 'undefined') ? ticketDescuento : 0,
+          nro:              ticketCounter,
+        };
       }
     } else {
       pendientes.push({
@@ -1000,29 +1071,45 @@ async function cargarTicket(i) {
 // Los pedidos de satélite no se "editan" — el cajero los cobra tal cual.
 // Carga el carrito del pedido y va directo a la pantalla de cobro.
 // El pedido queda en pendientes[] hasta que se confirme el cobro en pos_ventas.
-function cajaAbrirPedidoSatelite(i) {
+function cajaAbrirPedidoSatelite(i, opts) {
   var t = pendientes[i];
-  if (!t || !t.esSatelite) { if (typeof cargarTicket !== 'undefined') cargarTicket(i); return; }
+  if (!t || !t.esSatelite) { if (typeof cargarTicket !== 'undefined') cargarTicket(i, opts); return; }
+  // Si NO es nav por flechas, descartar snapshot de cart en curso (flujo roto)
+  if(!(opts && opts.viaNav)) _cartEnCursoNavSnap = null;
 
-  // Si hay carrito activo, preguntar antes de pisar
+  // Si hay carrito activo, preguntar antes de pisar — salvo que sea nav por flechas
+  // (la nav guarda snapshot y no pierde el cart, asi que no necesita confirm).
   var totalActual = typeof calcTotal === 'function' ? calcTotal() : 0;
   if (totalActual > 0) {
-    if (!confirm('Hay un ticket en curso. ¿Descartar y abrir el pedido de ' + (t.obs || 'mesero') + '?')) return;
-    // Auto-guardar el ticket activo antes de pisarlo (mismo patrón que cargarTicket)
+    if (!(opts && opts.viaNav) && !confirm('Hay un ticket en curso. ¿Descartar y abrir el pedido de ' + (t.obs || 'mesero') + '?')) return;
     if (currentTicketNro !== null) {
+      // Editando un pendiente — auto-guardar antes de pisar
       var idx = pendientes.findIndex(function(p){ return p.nro === currentTicketNro; });
       if (idx >= 0) {
         pendientes[idx].cart = JSON.parse(JSON.stringify(cart));
         pendientes[idx].total = totalActual;
-        pendientes[idx].fecha = new Date();
-        // Persistir cliente al auto-guardar
+        // NO tocar fecha — preservamos fecha de creacion (orden estable de nav)
         pendientes[idx].clienteNombre = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
       }
-      // Refrescar índice de t porque pendientes pudo haberse reordenado (no ocurre aquí, pero por consistencia)
       t = pendientes[i];
       if (!t || !t.esSatelite) return;
+    } else if (opts && opts.viaNav) {
+      // Cart vivo sin pendiente activo + nav por flechas — preservar en snapshot
+      // (solo si no hay uno ya, mismo criterio que cargarTicket)
+      if(!_cartEnCursoNavSnap){
+        _cartEnCursoNavSnap = {
+          cart:             JSON.parse(JSON.stringify(cart || [])),
+          currentTicketNro: null,
+          mesaActual:       (typeof mesaActual !== 'undefined' && mesaActual)
+                              ? JSON.parse(JSON.stringify(mesaActual)) : null,
+          tipoPedido:       (typeof tipoPedido !== 'undefined') ? tipoPedido : 'llevar',
+          clienteNombre:    (typeof clienteNombre !== 'undefined') ? clienteNombre : '',
+          ticketDescuento:  (typeof ticketDescuento !== 'undefined') ? ticketDescuento : 0,
+          nro:              ticketCounter,
+        };
+      }
     }
-    // Si currentTicketNro === null, el carrito es nuevo sin guardar — descartar
+    // Si currentTicketNro === null y NO es viaNav, el carrito es nuevo sin guardar — descartar
   }
 
   // Cargar el carrito del pedido satélite
@@ -1092,6 +1179,7 @@ function cajaAbrirPedidoSatelite(i) {
 
 function nuevaVenta() {
   guardarPendientesLocal();
+  _cartEnCursoNavSnap = null; // nueva venta rompe el flujo de navegacion
   const totalActual = calcTotal();
   const _nomCliAct = (typeof clienteNombre !== 'undefined') ? clienteNombre : '';
   if (totalActual > 0) {
