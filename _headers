@@ -1,8 +1,9 @@
 # Cloudflare Pages/Workers — Headers para PWA correcta
 
 # Permitir conexion a servidor local USB (mixed content exception para 127.0.0.1)
+# y WebSocket seguro (wss:) para Supabase Realtime
 /*
-  Content-Security-Policy: connect-src 'self' https: http://127.0.0.1:9200 http://127.0.0.1:8080
+  Content-Security-Policy: connect-src 'self' https: wss: http://127.0.0.1:9200 http://127.0.0.1:8080
   Permissions-Policy: screen-wake-lock=(self)
 
 
