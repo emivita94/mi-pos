@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260523-tutoriales-y-light-fix';
+const CACHE = 'ampersand-admin-v20260523-tutoriales-capturas';
 
 const ASSETS = [
   '/admin-negocio.html',

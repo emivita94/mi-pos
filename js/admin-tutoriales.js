@@ -372,12 +372,24 @@ function abrirTutorial(id){
 
   var ico = function(n,s){ return (typeof NodoIco==='function') ? NodoIco(n, s||16) : ''; };
 
+  // Para cada paso busca automaticamente la imagen /tutoriales-img/<id>/NN.png
+  // (donde NN es el numero del paso con padding 0). Si el archivo existe en
+  // el deploy de Cloudflare Pages, se muestra. Si no, queda oculta sin error.
   var pasosHtml = t.pasos.map(function(p, i){
+    var nro = (i+1).toString().padStart(2,'0');
+    var imgSrc = p.img || (nro + '.png'); // override manual con p.img si se quiere
+    var fullSrc = '/tutoriales-img/' + t.id + '/' + imgSrc;
+    var imgId = 'tutImg_' + t.id + '_' + nro;
     return '<div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)">'
       + '<div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--g2);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-family:Consolas,monospace">'+(i+1)+'</div>'
-      + '<div style="flex:1;padding-top:4px">'
+      + '<div style="flex:1;padding-top:4px;min-width:0">'
         + '<div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px">'+p.t+'</div>'
         + '<div style="font-size:13px;color:var(--text2);line-height:1.55">'+p.d+'</div>'
+        // Imagen del paso — onerror la oculta si no existe el archivo
+        + '<img id="'+imgId+'" src="'+fullSrc+'" alt="Paso '+(i+1)+'" '
+          + 'onclick="abrirTutImgZoom(this.src)" '
+          + 'onerror="this.style.display=\'none\'" '
+          + 'style="display:block;max-width:100%;width:auto;max-height:340px;border:1px solid var(--border);border-radius:8px;margin-top:12px;cursor:zoom-in;background:var(--card2);" />'
       + '</div>'
     + '</div>';
   }).join('');
@@ -418,4 +430,34 @@ function abrirTutorial(id){
 
   // Scroll arriba
   try { window.scrollTo({top:0, behavior:'smooth'}); } catch(e){}
+}
+
+// Modal de zoom para las capturas — click en la imagen abre fullscreen
+function abrirTutImgZoom(src){
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;animation:tutImgFade .15s ease-out';
+  ov.onclick = function(){ ov.remove(); };
+  var img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = 'max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.6)';
+  ov.appendChild(img);
+  // Boton cerrar arriba a la derecha
+  var btn = document.createElement('button');
+  btn.innerHTML = (typeof NodoIco==='function') ? NodoIco('close',18,'#fff') : '✕';
+  btn.style.cssText = 'position:absolute;top:18px;right:18px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center';
+  btn.onclick = function(e){ e.stopPropagation(); ov.remove(); };
+  ov.appendChild(btn);
+  // Escape cierra
+  var onEsc = function(e){
+    if(e.key === 'Escape'){ ov.remove(); document.removeEventListener('keydown', onEsc); }
+  };
+  document.addEventListener('keydown', onEsc);
+  // CSS de animacion (una vez)
+  if(!document.getElementById('tutImgFadeStyle')){
+    var st = document.createElement('style');
+    st.id = 'tutImgFadeStyle';
+    st.textContent = '@keyframes tutImgFade{from{opacity:0}to{opacity:1}}';
+    document.head.appendChild(st);
+  }
+  document.body.appendChild(ov);
 }
