@@ -76,130 +76,193 @@ var TUTORIALES = [
   {
     id: 'insumos',
     cat: 'Catálogo',
-    titulo: 'Insumos: qué son y cómo cargarlos',
+    titulo: 'Insumos: qué son, cómo cargarlos y aplicar stock',
     icono: 'box',
-    resumen: 'Mercadería que comprás para producir, pero que NO vendés directo (harina, aceite, servilletas).',
-    paraQueSirve: 'Algunas cosas las comprás pero no se venden por separado: la harina para hacer las pizzas, el aceite, las servilletas. Esos son <b>insumos</b>. Vas a llevarles stock pero no aparecen en el POS para vender por error.',
+    resumen: 'Mercadería que comprás para producir pero que NO vendés directo (harina, aceite, servilletas). Te explicamos paso a paso cómo darles stock.',
+    paraQueSirve: '<p>Algunas cosas las <b>comprás pero no se venden por separado</b>: la harina para hacer las pizzas, el aceite, las servilletas, el papel higiénico del baño. Esos son <b>insumos</b>.</p><p><b>Diferencia clara con productos:</b></p><ul style="margin:8px 0 8px 18px;line-height:1.6"><li><b>Producto</b> = ALGO QUE VENDÉS. Aparece en el POS del cajero. Tiene precio de venta. Ejemplo: "Pizza Margarita", "Coca 600ml".</li><li><b>Insumo</b> = ALGO QUE USÁS PARA PRODUCIR O PARA EL LOCAL. NO aparece en el POS. NO tiene precio de venta. Ejemplo: "Harina 000", "Queso muzzarella", "Servilletas", "Detergente".</li></ul><p>Si lo cargás como insumo y mañana lo querés vender, lo podés "mover a productos" sin perder el stock acumulado.</p>',
     pasos: [
-      { t:'Diferencia con productos', d:'<b>Producto</b> = se vende (Pizza Margarita). <b>Insumo</b> = se compra y descuenta del stock al producir, pero nadie lo ve en el POS (Harina, Queso, Salsa).' },
-      { t:'Crear insumo', d:'Menú lateral → <b>Insumos</b> → <b>+ Nuevo insumo</b>.' },
-      { t:'Cargar datos', d:'Nombre, unidad de medida (kg, lt, unid), costo. NO tiene precio de venta porque no se vende.' },
-      { t:'Stock inicial', d:'Cargá cuánto tenés ahora del insumo. Después vas a sumar/restar según compres o uses.' },
-      { t:'Filtros anti-venta', d:'El sistema bloquea automáticamente que aparezca un insumo en la grilla del POS, en búsqueda, en modificadores, etc. Tranquilo, no se va a vender por error.' }
+      { t:'Decidir si es producto o insumo', d:'Pregunta clave: <i>"¿el cliente lo pide y se lo cobro por separado?"</i>. Si SÍ → es <b>Producto</b>. Si NO (se usa adentro o para producir algo más) → es <b>Insumo</b>. Ejemplo: la <b>Pizza</b> es producto. La <b>Harina</b> que usás para hacerla es insumo.' },
+      { t:'Entrar a Insumos', d:'Menú lateral → sección Catálogo → <b>Insumos</b>. Es una pantalla muy parecida a Productos pero pintada de naranja para que no las confundas.' },
+      { t:'+ Nuevo Insumo', d:'Apretá el botón verde <b>+ Nuevo Insumo</b> arriba a la derecha. Se abre un panel a la derecha con el formulario.' },
+      { t:'Cargar nombre y categoría', d:'<b>Nombre</b>: descriptivo y claro (ej. "Harina 000 25kg", "Aceite girasol 5L"). <b>Categoría</b>: agrupá por tipo (Lácteos, Limpieza, Carnes, Envases, Verduleria, etc.). Si no existe la categoría, escribila y se crea sola.' },
+      { t:'Costo unitario (importante)', d:'Cuánto te sale UNA unidad del insumo. Ejemplo: si comprás una bolsa de harina por Gs 35.000 y la dividís en kg para llevar control, el costo unitario es Gs 1.400 (35.000 / 25 kg). Este número se usa para calcular cuánta plata tenés inmovilizada en stock.' },
+      { t:'Color (opcional)', d:'Útil para identificarlo rápido visualmente en las listas. Verde para verduras, marrón para carnes, etc.' },
+      { t:'Guardar insumo', d:'Apretá <b>Guardar insumo</b> abajo. El insumo se crea con stock = 0 (todavía no tenés nada cargado). Para CARGARLE STOCK seguí los siguientes pasos.' },
+      { t:'¿Cómo le aplico stock al insumo? (Opción A: por compra)', d:'<b>La forma normal:</b> cada vez que comprás insumos (al proveedor, al supermercado mayorista) lo registrás en <b>Compras</b>. Andá al tutorial "Cargar compras de mercadería" — el flujo es idéntico que para productos. Al guardar la compra, el stock del insumo se actualiza automáticamente.' },
+      { t:'¿Cómo le aplico stock al insumo? (Opción B: ajuste manual)', d:'<b>Para el stock inicial (la primera vez):</b> entrá a <b>Inventarios</b> → buscá el insumo en la lista → apretá <b>✏️ Ajustar</b>. Elegí "<b>Ajuste — fija el stock en</b>" y poné la cantidad real que tenés ahora. Motivo: "Stock inicial". Listo.' },
+      { t:'Ver el stock de los insumos', d:'En <b>Inventarios</b> aparecen TODOS: productos e insumos juntos. Si querés ver solo insumos, podés filtrarlos por categoría. También en el <b>Extracto de Producto</b> podés ver la evolución de un insumo específico (cuánto compraste, cuánto usaste).' }
     ],
     tips: [
-      'Si vendés productos COMPUESTOS (una pizza usa harina + queso + salsa) podés en el futuro armar recetas para que al vender una pizza se descuenten automáticamente los insumos.',
-      'Igual que con productos, los insumos podés cargarlos masivo por Excel.'
+      'El sistema te <b>bloquea</b> que el insumo aparezca en el POS del cajero: en la grilla, en la búsqueda, en pizzas mitad y mitad, en modificadores. Tranquilo, no se va a vender por error.',
+      'Si te equivocaste y cargaste como insumo algo que SÍ vendés, abrí el insumo y apretá "<b>→ Mover a Productos</b>" arriba. Se transfiere con stock intacto.',
+      'Igual que con productos, los insumos podés cargarlos masivo desde Excel — "Importar productos" sirve para ambos.',
+      'Si vendés productos COMPUESTOS (una pizza usa harina + queso + salsa) podés en el futuro armar <b>recetas</b> para que al vender una pizza se descuenten automáticamente los insumos que la componen.',
+      'Para limpieza/baño/papelería: cargá como insumo y al fin de mes hacé un <b>Movimiento de Stock → Salida</b> con motivo "Consumo del local". Así sabés cuánta plata gastás en eso por mes.'
     ]
   },
 
   // ───────── INVENTARIO ─────────
   {
-    id: 'inventarios',
+    id: 'stock-inicio',
     cat: 'Inventario',
-    titulo: 'Controlar mi stock — Inventarios',
-    icono: 'list',
-    resumen: 'Ver cuánto tenés de cada producto, en cada sucursal/depósito.',
-    paraQueSirve: 'Acá ves de un vistazo la situación del stock: cuántos productos hay activos, cuántos están en alerta, cuántos sin stock, y el valor total de tu mercadería. Es la pantalla de inicio del módulo de inventario.',
+    titulo: 'Arrancar con el control de stock — el flujo completo',
+    icono: 'help',
+    resumen: 'Antes de meterte en cada pantalla, entendé cómo se conectan todas. Tutorial recomendado PRIMERO si nunca usaste un sistema de stock.',
+    paraQueSirve: '<p>Si nunca usaste un sistema de stock antes, esto te va a ahorrar dolores de cabeza. Te explicamos el modelo completo antes de meternos en cada botón.</p><p><b>La idea de fondo es simple:</b></p><ol style="margin:8px 0 8px 18px;line-height:1.7"><li>Cargás tus productos en el sistema (una sola vez).</li><li>Le decís al sistema cuánto tenés HOY de cada uno (stock inicial).</li><li>Cuando compras al proveedor, lo cargás en COMPRAS → suma stock.</li><li>Cuando vendés a un cliente desde el POS → resta stock SOLO.</li><li>Si rompiste algo, lo regalaste, o pasó algo raro, lo cargás en MOVIMIENTOS DE STOCK.</li><li>Una vez por mes hacés CONTEO FÍSICO: contás lo real y ajustás diferencias.</li></ol><p>Si seguís este ciclo, el sistema siempre va a saber cuánto tenés. Si te salteás pasos, vas a tener diferencias.</p>',
     pasos: [
-      { t:'Entrar a Inventarios', d:'Menú lateral → sección Inventario → <b>Inventarios</b>.' },
-      { t:'Elegir sucursal', d:'Arriba a la derecha, dropdown <b>Todas las sucursales</b>. Podés filtrar por una sucursal específica o ver todas juntas.' },
-      { t:'Leer los 4 KPIs', d:'<b>Productos</b> (total activos) · <b>Stock bajo</b> (alerta naranja) · <b>Sin stock</b> (rojo, requieren reposición) · <b>Valor en inventario</b> (cantidad × costo unitario).' },
-      { t:'Usar los chips de filtro', d:'A la derecha de la búsqueda hay chips: <b>Todos</b> · <b>OK</b> · <b>Bajo</b> · <b>Sin stock</b>. Tocá uno y la tabla filtra.' },
-      { t:'Buscar producto rápido', d:'En el campo de búsqueda escribí por nombre o código. La tabla se filtra al instante.' },
-      { t:'Ver detalle de un producto', d:'En cada fila tenés dos botones: <b>Historial</b> (ver entradas/salidas) y <b>Ajustar</b> (corregir el stock manualmente).' },
-      { t:'Interpretar la barra de stock', d:'En la columna <b>Stock/Mínimo</b> hay una mini barra: verde = OK, naranja = bajo, roja = crítico. Y abajo te dice el mínimo configurado.' }
+      { t:'Glosario rápido — entendé estos 5 términos antes', d:'<b>Producto</b>: algo que vendés (pizza, coca). <b>Insumo</b>: algo que usás/comprás pero no vendés (harina, papel). <b>Stock</b>: cuánto tenés AHORA de algo. <b>Depósito</b>: dónde está guardado (depósito principal del local, depósito de la otra sucursal, etc.). <b>Comprobante</b>: cada vez que algo entra o sale, queda registrado como un "comprobante" con fecha y motivo.' },
+      { t:'Paso 1: Cargar tus productos', d:'Andá a <b>Productos</b> (sección Catálogo). Cargá cada cosa que vendés con su nombre y precio. <b>Importante:</b> en los productos que querés llevarles control de stock, activá el switch <b>Inventario</b>. Los que no necesitás controlar (ej. una bebida que reponés a diario), podés dejarlos sin inventario.' },
+      { t:'Paso 2: Cargar el stock inicial', d:'Entrá a <b>Inventarios</b>. Vas a ver todos los productos con stock en 0. Para cada uno apretá <b>✏️ Ajustar</b> → tipo <b>"Ajuste — fija el stock en"</b> → cantidad que tenés realmente AHORA → motivo "Stock inicial". Esto le dice al sistema "tengo TANTO de esto". Tarea de una sola vez.' },
+      { t:'Paso 3: A medida que comprás → Compras', d:'CADA VEZ que te llegan productos del proveedor, los cargás en la pantalla <b>Compras</b>. Eso suma stock automáticamente. NO uses ajuste manual para esto — usalo solo para el inicial o para casos raros.' },
+      { t:'Paso 4: A medida que vendés → automático', d:'Vos no hacés nada acá: cuando un cajero vende un producto en el POS y lo cobra, el sistema le resta uno al stock automáticamente. Cada venta es un <b>comprobante</b> que vas a ver después en el extracto del producto.' },
+      { t:'Paso 5: Casos raros → Movimientos de Stock', d:'Si <b>rompiste</b> un producto, lo <b>regalaste</b>, lo <b>consumiste</b> el personal, o lo <b>transferiste</b> a otra sucursal — eso NO es compra ni venta. Va en <b>Movimientos de Stock</b> con el motivo claro (rotura, regalo, consumo, transferencia).' },
+      { t:'Paso 6: Una vez por mes → Conteo físico', d:'Por más cuidado que tengas, el sistema y la realidad se desfasan (roturas no registradas, robos, errores). 1 vez por mes hacés un <b>Conteo Físico</b>: contás la mercadería real y el sistema te ajusta automáticamente las diferencias.' },
+      { t:'Paso 7: Mirar resultados → Inventarios + Extracto', d:'<b>Inventarios</b> te dice CÓMO ESTÁS HOY (cuánto tenés de cada, qué está bajo, qué está crítico). <b>Extracto de Producto</b> te dice por qué llegaste a ese stock (qué pasó en el tiempo). Son tus dos pantallas de control.' }
     ],
     tips: [
-      'Los productos críticos (rojo) se ordenan PRIMERO en la lista, para que veas lo urgente sin scrollear.',
-      'El <b>Valor en inventario</b> es plata real inmovilizada. Si ves un número muy alto, capaz tenés sobrestock y conviene bajar compras.'
+      'El error más común: cargar el stock inicial mal o no cargarlo nunca. Sin stock inicial el sistema no tiene de dónde partir y todo queda raro. Hacé este paso bien.',
+      'Si tenés POCOS productos (10-30), cargá stock inicial uno por uno. Si tenés MUCHOS (100+), pedile a un empleado que cuente todo en una tarde y vos cargás los números — es la única forma seria.',
+      'El segundo error más común: no cargar las compras. Si te llega mercadería y no la cargás en el sistema, el stock se va a hacer cada vez más negativo a medida que vendés. <b>Cargar compras es lo más importante</b>.',
+      'No te enrosques con que el stock esté siempre 100% exacto. El conteo mensual existe justamente para tolerar pequeñas diferencias. Buscá que el sistema te dé un orden, no una precisión imposible.'
+    ]
+  },
+  {
+    id: 'inventarios',
+    cat: 'Inventario',
+    titulo: 'Controlar mi stock — pantalla Inventarios',
+    icono: 'list',
+    resumen: 'La pantalla principal del módulo. Ver cuánto tenés de cada cosa, qué está bajo, qué está crítico, y cuánta plata tenés invertida en mercadería.',
+    paraQueSirve: '<p>Es como abrir la puerta del depósito y mirar todo de un vistazo. Esta pantalla te responde a 4 preguntas clave del día a día:</p><ol style="margin:8px 0 8px 18px;line-height:1.7"><li><b>¿Qué cosas estoy por quedarme sin stock?</b> (los del estado naranja/rojo).</li><li><b>¿Cuánta plata tengo "tirada" en mercadería?</b> (el KPI verde "Valor en inventario").</li><li><b>¿Cuánto me queda de [tal cosa]?</b> (busco el nombre y veo el número).</li><li><b>¿Por qué el stock de [tal cosa] está raro?</b> (apretás "Historial" y ves la evolución).</li></ol><p>Si entrás todos los días al admin, esta es la pantalla a mirar primero después del Dashboard.</p>',
+    pasos: [
+      { t:'Entrar a Inventarios', d:'Menú lateral → sección Inventario → <b>Inventarios</b>. Vas a ver una pantalla con 4 cards arriba, una barra de búsqueda y abajo una tabla con todos los productos.' },
+      { t:'Elegir sucursal (si tenés más de una)', d:'Arriba a la derecha hay un dropdown <b>"Todas las sucursales"</b>. Si tu negocio tiene una sola sucursal, dejá "Todas". Si tenés varias, podés filtrar por una específica para ver solo su stock.' },
+      { t:'Leer los 4 KPIs grandes de arriba', d:'<b>Productos</b> (azul): cantidad de items con inventario activo. <b>Stock bajo</b> (naranja): los que llegaron a su mínimo configurado — comprar pronto. <b>Sin stock</b> (rojo): los que están en 0 o negativo — urgente. <b>Valor en inventario</b> (verde): cantidad × costo unitario sumado de todo — es la PLATA REAL que tenés en mercadería.' },
+      { t:'Filtrar con los chips de estado', d:'A la derecha de la búsqueda hay 4 chips: <b>Todos</b>, <b>OK</b>, <b>Bajo</b>, <b>Sin stock</b>. Cada uno tiene un contador. Tocá "<b>Sin stock</b>" y la tabla te muestra SOLO lo que está crítico → eso es tu lista de compras urgente.' },
+      { t:'Buscar un producto específico', d:'Escribí en el campo de búsqueda (lupa) — busca por nombre, código o categoría. Útil cuando tenés muchos productos y querés ir directo a uno.' },
+      { t:'Interpretar cada fila', d:'Cada fila es un producto. Tiene: <b>círculo de color</b> (identificación visual), <b>nombre + código</b>, <b>stock actual</b> con una barra de progreso vs el mínimo (verde/naranja/roja), el <b>costo unitario</b>, el <b>valor</b> (cantidad × costo), un <b>tag de estado</b> (OK/Bajo/Sin stock) y a la derecha los botones <b>Historial</b> y <b>Ajustar</b>.' },
+      { t:'Ver el Historial de un producto', d:'Apretá <b>📊 Historial</b> en la fila del producto. Se abre un modal con TODOS los movimientos (compras, ventas, ajustes, conteos) y un mini-gráfico de evolución. Para entender por qué se quedó en ese stock.' },
+      { t:'Ajustar el stock manualmente', d:'Apretá <b>✏️ Ajustar</b> en la fila. Elegí el tipo: <b>Entrada</b> (suma — para cargar mercadería que apareció), <b>Salida</b> (resta — rotura, regalo) o <b>Ajuste</b> (fija en un número — para stock inicial o cuando ya no sabés qué pasó). Cargá la cantidad, motivo obligatorio (importante para tu auditoría), guardar.' },
+      { t:'Productos críticos primero', d:'La tabla está ordenada para ayudarte: primero los SIN STOCK (rojo), después los BAJOS (naranja), después los OK (verde). Así lo urgente lo ves sin scrollear.' }
+    ],
+    tips: [
+      'El <b>Valor en inventario</b> es plata real "atada" en mercadería. Si ese número es muy alto (más de 1-2 meses de ventas), tenés sobrestock — estás comprando más de lo que vendés.',
+      'Definí <b>mínimos</b> realistas en cada producto. El mínimo te avisa antes de que te quedes sin stock. Como regla: el mínimo debería ser lo que vendés en 5-7 días.',
+      'Si activaste inventario en muchos productos y se ve abrumador, podés dejar inventario solo en los más caros o más críticos. No tenés que llevar control de TODO.',
+      'En sucursales múltiples, el filtro de sucursal arriba es CLAVE. Te muestra solo el stock de ese local así no te confundís con el de otras.'
     ]
   },
   {
     id: 'extracto',
     cat: 'Inventario',
-    titulo: 'Extracto de un producto — entender por qué se mueve',
+    titulo: 'Extracto de un producto — auditoria del stock',
     icono: 'trending',
-    resumen: 'Ver la evolución completa de un producto: entradas, salidas y saldo en el tiempo.',
-    paraQueSirve: 'Cuando un producto te baja mucho y no entendés por qué, el extracto te muestra TODOS los movimientos en orden: cuándo vendiste, cuándo compraste, cuándo ajustaste. Es la auditoría del stock.',
+    resumen: 'Cuando un producto se mueve raro y querés saber POR QUÉ, esto te muestra la película completa: cada entrada, cada salida, cada ajuste — en orden cronológico.',
+    paraQueSirve: '<p>Si Inventarios es la "foto de hoy", el Extracto es la "película desde siempre". Es la herramienta de auditoría más potente del módulo de stock.</p><p><b>Cuándo lo usás:</b></p><ul style="margin:8px 0 8px 18px;line-height:1.6"><li>Un producto te aparece con stock raro y querés saber qué pasó.</li><li>Sospechás que falta algo (¿robo? ¿error?).</li><li>Querés ver cuánto vendiste de un producto en un mes específico.</li><li>Necesitás demostrar al contador qué movimientos hubo.</li><li>Querés ver el gráfico de evolución (sube? baja? cuándo subió mucho?).</li></ul>',
     pasos: [
-      { t:'Entrar a Extracto de Producto', d:'Menú lateral → sección Inventario → <b>Extracto de Producto</b>.' },
-      { t:'Elegir el producto', d:'En el dropdown <b>Producto</b> seleccioná el que querés revisar.' },
-      { t:'Filtrar por período', d:'Usá los chips rápidos <b>Hoy / Semana / Mes / Año</b> o cargá fechas Desde/Hasta manualmente.' },
-      { t:'Filtrar por depósito (opcional)', d:'Si querés ver solo una sucursal, elegí en el dropdown <b>Sucursal</b> y después el <b>Depósito</b>.' },
-      { t:'Apretar Buscar', d:'El sistema arma los KPIs (saldo inicial, entradas, salidas, saldo final), el gráfico y la tabla.' },
-      { t:'Leer el gráfico', d:'La línea muestra cómo evolucionó el stock. Si termina en verde = sumás, en rojo = quedaste negativo, gris = quedaste en cero.' },
-      { t:'Mirar la tabla', d:'Cada fila es un movimiento (venta, compra, ajuste, conteo). La última columna <b>Saldo</b> muestra cuánto te quedaba después de ese movimiento.' }
+      { t:'Entrar a Extracto de Producto', d:'Menú lateral → sección Inventario → <b>Extracto de Producto</b>. Vas a ver una pantalla casi vacía con filtros arriba — tenés que elegir un producto primero.' },
+      { t:'Elegir el producto a auditar', d:'Dropdown <b>Producto</b> arriba a la izquierda. Te muestra todos los que tienen inventario activo. Elegí el que querés revisar (ej. "Carne", "Coca Cola 1.5L").' },
+      { t:'Elegir el período', d:'Dos formas: (A) los chips rápidos <b>Hoy / Semana / Mes / Año</b> son atajos. (B) cargás manualmente <b>Desde</b> y <b>Hasta</b> con los calendarios. Para una auditoría completa, usá un período largo (3 meses, año).' },
+      { t:'Filtrar por sucursal (opcional)', d:'Si tu negocio tiene varias sucursales, podés ver el extracto de SOLO una. Sino dejá "Todas las sucursales" para ver todo.' },
+      { t:'Filtrar por depósito (opcional)', d:'Similar a sucursal. Si dentro de una sucursal tenés varios depósitos (ej. cocina + barra), podés filtrar uno solo.' },
+      { t:'Apretar BUSCAR', d:'Botón verde arriba a la derecha. El sistema arma los 4 KPIs, el gráfico y la tabla.' },
+      { t:'Leer los 4 KPIs grandes', d:'<b>Saldo anterior</b>: cuánto tenías ANTES de empezar el período. <b>Entradas</b>: cuánto entró (compras, ajustes positivos). <b>Salidas</b>: cuánto salió (ventas, roturas, ajustes negativos). <b>Saldo final</b>: lo que te quedó al final del período. La fórmula es: Saldo anterior + Entradas − Salidas = Saldo final. Si no cierra, hay algo raro.' },
+      { t:'Mirar el gráfico de evolución', d:'La línea muestra cómo se movió el stock día a día. <b>Verde</b> = creció en el período (compraste más de lo que vendiste). <b>Rojo</b> = terminaste negativo (vendiste lo que no tenías cargado — falta cargar compras). <b>Gris</b> = quedaste en cero al final. Los puntos son cada movimiento.' },
+      { t:'Leer la tabla cronológica', d:'Cada fila es un movimiento: <b>Fecha/Hora</b>, <b>Tipo</b> (Venta, Compra, Ajuste, Conteo, etc. — con color), <b>Comprobante</b> (el número o referencia), <b>Sucursal/Depósito</b> donde pasó, <b>Entrada</b> y <b>Salida</b> (cantidad), <b>Saldo</b> (cuánto te quedó después de ese movimiento). La tabla está en orden cronológico.' },
+      { t:'Expandir el detalle de un movimiento', d:'Hacé <b>click sobre una fila</b> y se abre debajo un mini-detalle con TODOS los productos que estaban en ese comprobante. Útil cuando una compra incluyó 10 cosas y querés verlo entero.' },
+      { t:'Filtrar por tipo de movimiento', d:'Abajo de la tabla hay un dropdown <b>"Todos los tipos"</b>. Podés elegir "Solo ventas", "Solo compras", "Solo ajustes". Útil para responder preguntas tipo: <i>"¿cuántas veces ajusté este producto a mano?"</i>.' }
     ],
     tips: [
-      'Si ves un salto raro (mucho stock que desaparece de golpe), hacé click en la fila para expandir el detalle del comprobante.',
-      'Cuando hay <b>conteo físico</b> en la tabla, ese es el momento donde alguien contó la mercadería real y el sistema se ajustó.'
+      'Si ves un <b>salto raro</b> (mucho stock que desaparece de golpe sin venta), hacé click en esa fila para expandir y ver qué fue. Capaz fue una transferencia, una rotura, o un error.',
+      'Cuando hay un <b>Conteo Físico</b> en la tabla (color naranja), ese día alguien contó la realidad y se ajustó la diferencia. Útil para saber cuándo fue la última vez que cuadraste ese producto.',
+      'Si el extracto muestra que vendiste 200 unidades en el mes pero el cliente te dice que no, capaz es un producto que se cobra por gramo o por porción (precio variable). Revisá la configuración del producto.',
+      'Para el contador o para imprimir: podés exportar todo el extracto a Excel si necesitás (botón Exportar arriba a la derecha). Sirve para el cierre fiscal.'
     ]
   },
   {
     id: 'compras',
     cat: 'Inventario',
-    titulo: 'Cargar compras de mercadería',
+    titulo: 'Cargar compras de mercadería — paso a paso',
     icono: 'shoppingCart',
-    resumen: 'Registrar cada vez que recibís mercadería del proveedor para que el stock se actualice.',
-    paraQueSirve: 'Esta es la operación más importante para que el sistema "sepa" cuánto stock tenés. Cada vez que te llega mercadería (te llega el pedido del proveedor), tenés que cargarla acá. Si no la cargás, el sistema sigue creyendo que no tenés stock.',
+    resumen: 'La operación MÁS IMPORTANTE del módulo de inventario. Cada vez que te llega mercadería del proveedor, la cargás acá y el stock se actualiza solo.',
+    paraQueSirve: '<p>Sin esto, todo el sistema deja de funcionar. Te lo explico con un ejemplo:</p><p><i>Hoy tenés 5 cocas en el sistema. Te llegan 20 más del proveedor. Si NO las cargás, el sistema sigue creyendo que tenés 5. Cuando vendas 6, te aparece en rojo "−1 stock". Si en cambio cargás la compra, el sistema pasa a "25 cocas", y vendiendo 6 te queda "19". Así de simple.</i></p><p><b>Hacé esto cada vez que recibís pedido</b>. Es la disciplina del local. 5 minutos cuando llega el camión te ahorran 5 horas de revisar diferencias después.</p>',
     pasos: [
-      { t:'Entrar a Compras', d:'Menú lateral → sección Inventario → <b>Compras</b>.' },
-      { t:'+ Nueva compra', d:'Apretá la pestaña <b>+ Nueva compra</b>.' },
-      { t:'Elegir depósito de entrada', d:'Indicá <b>en qué depósito</b> recibís la mercadería (si tenés una sola sucursal, hay uno solo).' },
-      { t:'Cargar el proveedor (opcional)', d:'Si querés trackear de quién comprás, escribí el nombre del proveedor.' },
-      { t:'Agregar productos', d:'Buscá los productos en el listado y al hacer click se agregan a la grilla. Cargá <b>cantidad</b> y <b>costo unitario</b> de cada uno.' },
-      { t:'Revisar el total', d:'Abajo se calcula el total de la compra automáticamente.' },
-      { t:'Cargar referencia (factura)', d:'Si tenés número de factura del proveedor, cargalo en el campo <b>Referencia</b>.' },
-      { t:'Guardar', d:'Apretá <b>Guardar compra</b>. El stock se actualiza al instante en todos los productos.' }
+      { t:'Tener la factura/remito del proveedor a mano', d:'Antes de empezar, tené el papel del proveedor delante: factura, remito, o lo que te dejó. Necesitás el <b>número de comprobante</b>, qué productos llegaron y con qué <b>costo unitario</b> cada uno. Si te lo enviaron por WhatsApp, abrí la foto al lado.' },
+      { t:'Entrar a Compras', d:'Menú lateral → sección Inventario → <b>Compras</b>. Te muestra el historial de compras anteriores. Para registrar una nueva, vamos al tab siguiente.' },
+      { t:'+ Nueva compra', d:'Apretá la pestaña <b>+ Nueva compra</b> arriba. Se abre el formulario en blanco.' },
+      { t:'Cargar el encabezado', d:'<b>Fecha</b>: la fecha que llegó la mercadería (no necesariamente la de la factura). <b>Tipo</b>: viene fijo en "Compra / Ingreso". <b>Comprobante N°</b>: número que figura en la factura/remito del proveedor (ej. "001-002-0001234"). <b>Depósito destino</b>: dónde estás guardando la mercadería (si tenés una sola sucursal, hay uno solo). <b>Proveedor</b>: nombre de quien te vendió (Coca FEMSA, Frigorífico San Juan, etc).' },
+      { t:'Observación (opcional pero útil)', d:'Campo libre. Útil para anotar cosas como "Vino sin 2 cajones del pedido, prometieron mandar mañana" o "Bonificación 5% por pago contado". Tu yo del futuro te lo agradece.' },
+      { t:'Agregar productos uno por uno', d:'En el campo <b>"Buscar producto para agregar"</b> escribí el nombre del producto. Aparece un dropdown con coincidencias. Hacé click en el que es. Aparece una fila nueva en la tabla. Repetí para cada producto que vino en la compra.' },
+      { t:'Cargar cantidad y costo unitario de cada producto', d:'En cada fila de producto: <b>Cantidad</b> que llegó (usá los botones − y + o escribí directo). <b>Costo unitario</b>: cuánto te costó UNA unidad (ej. si compraste 12 cocas a Gs 36.000, el costo unitario es 3.000). La columna <b>TOTAL</b> se calcula sola (cantidad × costo).' },
+      { t:'Verificar el TOTAL COMPRA abajo', d:'Cuando terminás de cargar todos los productos, el sistema te suma el <b>TOTAL COMPRA</b> abajo a la derecha en verde. Compará ese número con el total de la factura del proveedor. <b>Si no coincide, repasá las cantidades o costos.</b> Errores típicos: poner el costo total en vez del unitario, equivocar cantidad.' },
+      { t:'GUARDAR la compra', d:'Botón verde <b>💾 GUARDAR</b> abajo a la derecha. La compra se registra como un comprobante y el stock de TODOS los productos cargados se actualiza al instante. Vas a ver el toast verde de confirmación.' },
+      { t:'Verificar (opcional)', d:'Volvé a Inventarios y buscá uno de los productos que cargaste. El stock debería haber aumentado por la cantidad que pusiste. Si querés ver la compra después, el listado en "Lista de compras" te la muestra con el botón <b>Ver</b> para ver el detalle.' }
     ],
     tips: [
-      'Cargá las compras <b>el mismo día que llegan</b>. Si las dejás para después, perdés el control.',
-      'El <b>costo unitario</b> que cargás se usa para calcular el <b>Valor en inventario</b> y el margen real cuando vendés.',
-      'Si te equivocaste, en el listado podés apretar <b>Anular</b> y la compra se revierte (el stock vuelve a como estaba).'
+      '<b>Cargá las compras el mismo día que llegan.</b> Si las dejás para "después" o para "el fin de semana", te olvidás detalles, perdés papeles, y empezás a tener diferencias. Es la disciplina más importante del módulo.',
+      'El <b>costo unitario</b> que cargás se usa para 2 cosas: (1) calcular el <b>Valor en inventario</b> en la pantalla de Inventarios, (2) calcular el <b>costo de mercadería vendida</b> en el Balance P&G. Si cargás mal el costo, esos números van a estar mal.',
+      'Si recibís un producto que NO está cargado en tu catálogo de productos, primero andá a Productos → + Nuevo, lo creás, y volvés a la compra. Si lo cargás de cero como "varios", después no se puede rastrear.',
+      'Si te equivocaste al guardar (ej. cantidad mal), entrá a "Lista de compras", buscá la compra, apretá <b>Anular</b>. Eso REVIERTE el stock — vuelve a como estaba antes. Después cargá la compra correcta de cero.',
+      'Si te falta un producto del pedido y prometen mandarlo después, NO lo cargues "por las dudas". Cargá solo lo que llegó. Cuando llegue lo faltante, hacés OTRA compra (referencia: "Faltante pedido X").',
+      'Para insumos es exactamente lo mismo: en el buscador aparecen productos E insumos juntos. Cargás cantidad y costo igual. El stock se actualiza para el insumo automáticamente.'
     ]
   },
   {
     id: 'movstock',
     cat: 'Inventario',
-    titulo: 'Movimientos de stock — entradas, salidas, transferencias',
+    titulo: 'Movimientos de stock — para todo lo que no es compra ni venta',
     icono: 'transfer',
-    resumen: 'Para todo lo que no es compra: roturas, regalos, mermas, traslados entre depósitos.',
-    paraQueSirve: 'No todo movimiento de mercadería es una compra o una venta. Si rompiste algo, regalaste, sacaste para consumo del personal, o moviste de un depósito a otro — todo eso se registra acá.',
+    resumen: 'Roturas, regalos, mermas, consumo del personal, traslados entre sucursales. Todo lo que mueve mercadería pero no es venta ni compra normal.',
+    paraQueSirve: '<p>El día a día tiene mil situaciones que afectan el stock pero NO son una venta normal ni una compra al proveedor. Esta pantalla cubre todo eso para que el sistema se mantenga ordenado:</p><ul style="margin:8px 0 8px 18px;line-height:1.6"><li><b>Rotura/Merma</b>: se cayó una caja de cervezas, una pizza salió quemada, la verdura se pudrió → es una <b>Salida</b>.</li><li><b>Consumo del personal</b>: la moza tomó una coca → <b>Salida</b>.</li><li><b>Regalo / Cortesía</b>: invitaste al cliente importante → <b>Salida</b>.</li><li><b>Encontraste mercadería que no estaba en sistema</b>: → <b>Entrada</b> (raro pero pasa).</li><li><b>Mover mercadería entre sucursales</b>: el local A le presta carne al local B → <b>Transferencia</b>.</li></ul><p><b>Importante:</b> esto NO sirve para "cargar mercadería del proveedor" (eso va en Compras), ni para descontar ventas (eso lo hace el POS solo al cobrar).</p>',
     pasos: [
-      { t:'Entrar a Movimientos de Stock', d:'Menú lateral → sección Inventario → <b>Movimientos de Stock</b>.' },
-      { t:'+ Nuevo movimiento', d:'Apretá la pestaña <b>+ Nuevo movimiento</b>.' },
-      { t:'Elegir el tipo', d:'<b>Entrada</b> (suma stock) · <b>Salida</b> (resta stock) · <b>Transferencia</b> (saca de un depósito y mete en otro).' },
-      { t:'Para Entrada/Salida', d:'Elegí el depósito, agregá los productos con cantidad y un <b>motivo</b> (obligatorio: ej. "rotura", "regalo", "consumo personal").' },
-      { t:'Para Transferencia', d:'Elegí <b>depósito origen</b> (de dónde sale) y <b>depósito destino</b> (a dónde va). Cargá cantidades.' },
-      { t:'Guardar', d:'Apretá <b>Guardar</b>. El stock se actualiza en ambos depósitos si fue transferencia.' }
+      { t:'Entrar a Movimientos de Stock', d:'Menú lateral → sección Inventario → <b>Movimientos de Stock</b>. Vas a ver el historial de movimientos anteriores con filtros (fecha, depósito).' },
+      { t:'+ Nuevo movimiento', d:'Apretá la pestaña <b>+ Nuevo movimiento</b> arriba.' },
+      { t:'Elegir el TIPO (clave)', d:'Dropdown <b>Tipo</b>. Tres opciones: <b>Entrada</b> (suma stock), <b>Salida</b> (resta stock), <b>Transferencia</b> (saca de un depósito y mete en otro). Elegí el que aplique al caso.' },
+      { t:'Para ENTRADA o SALIDA', d:'Aparece un solo dropdown de <b>Depósito</b>: elegí dónde está la mercadería que vas a mover. Después cargás los productos con cantidades.' },
+      { t:'Para TRANSFERENCIA', d:'Aparecen DOS dropdowns: <b>Depósito origen</b> (de dónde sale) y <b>Depósito destino</b> (a dónde va). Útil cuando el local del centro le presta al del barrio (o viceversa). El sistema genera DOS movimientos asociados: una salida en origen y una entrada en destino.' },
+      { t:'Cargar Comprobante N° y Observación', d:'<b>Comprobante N°</b>: número interno tuyo si querés (ej. "ROTURA-001", "TRANS-2026-05-23"). Si dejás vacío, el sistema le pone uno automático. <b>Observación</b>: <b>OBLIGATORIO escribir el motivo claro</b>. Ej.: "Cayó la heladera, se perdieron 4 cocas y 2 cervezas". Tu yo del futuro va a leer esto en 6 meses y necesita entender qué pasó.' },
+      { t:'Agregar los productos afectados', d:'En el buscador <b>"Buscar producto para agregar"</b> escribí el nombre, hacé click. Aparece la fila con cantidad. Repetí para cada producto que se vio afectado.' },
+      { t:'Ajustar cantidades', d:'En cada fila, cantidad con los botones − y + o escribiendo directo. Si te equivocaste de producto, el botón × a la izquierda lo saca.' },
+      { t:'GUARDAR', d:'Botón verde <b>💾 GUARDAR</b> abajo a la derecha. El stock se actualiza al instante. En Entrada se suma; en Salida se resta; en Transferencia se resta de origen y se suma en destino.' }
     ],
     tips: [
-      'Siempre cargá un <b>motivo claro</b>. Cuando dentro de 6 meses revises el extracto, el motivo te recuerda qué pasó.',
-      'Las transferencias generan DOS movimientos: una salida en el depósito origen y una entrada en el destino. Si cancelás la transferencia, se cancelan los dos juntos.'
+      '<b>Siempre cargá un motivo claro</b> en la Observación. Cuando dentro de 6 meses revises el extracto y veas un movimiento de -10 cocas, el motivo te recuerda qué pasó (rotura? robo? regalo?). Sin motivo, es un misterio.',
+      'Las <b>transferencias</b> generan DOS comprobantes asociados (uno en cada depósito). Si querés cancelar una transferencia, anular cualquiera de los dos cancela el otro.',
+      'Si tenés MUCHAS roturas, podés hacer UN movimiento al final del mes que diga "Mermas mayo 2026" con la lista completa, en vez de cargar de a uno cada día. Pero no te olvides de hacerlo.',
+      'Para el <b>consumo del personal del local</b> (ej. cocas que toma el cocinero a la tarde): hacé un Movimiento de Salida una vez por mes con motivo "Consumo personal mes X". Te sirve para entender cuánto plata se va en esto.',
+      'Si <b>te equivocaste</b> al guardar un movimiento, en el listado podés apretar <b>Anular</b> y el stock vuelve a como estaba.',
+      'Diferencia clave: <b>Compras</b> = entrada del proveedor con costo. <b>Movimiento → Entrada</b> = entrada sin costo (apareció mercadería). Casi siempre usás Compras para sumar stock. Movimiento → Entrada es muy raro.'
     ]
   },
   {
     id: 'conteo',
     cat: 'Inventario',
-    titulo: 'Conteo físico — alinear sistema con realidad',
+    titulo: 'Conteo físico — alinear el sistema con la realidad',
     icono: 'check_circle',
-    resumen: 'Contar la mercadería real y ajustar el sistema para que coincida.',
-    paraQueSirve: 'Por más cuidado que tengas, siempre hay diferencias entre lo que dice el sistema y lo que hay en el depósito (roturas no registradas, robos, errores de carga). El conteo físico te permite contar la mercadería real y dejar todo cuadrado. Se recomienda hacer 1 vez por mes.',
+    resumen: 'Una vez por mes contás la mercadería real con los pies en el depósito y el sistema te ajusta las diferencias automáticamente.',
+    paraQueSirve: '<p>Por más cuidado que tengas con compras y movimientos, <b>siempre hay diferencias</b> entre lo que dice el sistema y lo que realmente hay en el depósito. ¿Por qué?</p><ul style="margin:8px 0 8px 18px;line-height:1.6"><li>Roturas que nadie cargó.</li><li>Regalos al cliente sin registrar.</li><li>Consumo del personal sin registrar.</li><li>Pequeños robos hormiga.</li><li>Errores de carga en compras.</li><li>Productos que se mezclan entre sí (ej. 2 sabores de coca en la misma estantería).</li></ul><p>El <b>conteo físico</b> es la herramienta para corregir todo eso. Una vez por mes (o cada 15 días si querés más rigor), agarrás una planilla, vas al depósito, contás la mercadería real, lo cargás en el sistema, y el sistema te ajusta las diferencias automáticamente. Después de un conteo, el sistema y la realidad están iguales.</p><p><b>Pensalo así:</b> es como hacer "cierre de caja" pero para la mercadería en vez del efectivo.</p>',
     pasos: [
-      { t:'Entrar a Conteo Físico', d:'Menú lateral → sección Inventario → <b>Conteo Físico</b>.' },
+      { t:'Elegir el momento', d:'Hacelo <b>fuera del horario de venta</b> (cierre del local, o un domingo). Si lo hacés mientras hay venta, vas a contar mientras la mercadería se está moviendo — vas a tener errores.' },
+      { t:'Tener 1 persona contando + el sistema cerca', d:'Lo ideal: <b>uno</b> con celular o planilla impresa contando en el depósito, <b>otro</b> en la PC cargando los números. Si lo hacés solo, abrí el sistema en el celular y cargá ahí mismo mientras contás.' },
+      { t:'Entrar a Conteo Físico', d:'Menú lateral → sección Inventario → <b>Conteo Físico</b>. Vas a ver el historial de conteos anteriores. Tabs: <b>Historial</b> (conteos pasados) y <b>+ Nuevo conteo</b> (para empezar uno nuevo).' },
       { t:'+ Nuevo conteo', d:'Apretá la pestaña <b>+ Nuevo conteo</b>.' },
-      { t:'Elegir depósito', d:'Seleccioná el depósito que vas a contar. Solo uno por conteo (si tenés varios, hacés uno por cada uno).' },
-      { t:'Cargar fecha y observación', d:'Fecha del conteo y observación opcional ("Conteo mensual junio").' },
-      { t:'Iniciar conteo', d:'El sistema carga todos los productos del depósito. Te aparece una lista con el stock que dice el sistema y un campo para cargar el <b>stock real</b> (lo que contás físicamente).' },
-      { t:'Contar y cargar', d:'Andá producto por producto en el depósito, contá lo que hay realmente y cargalo en el campo correspondiente. El sistema te muestra automáticamente la <b>diferencia</b>.' },
-      { t:'Confirmar', d:'Cuando terminás de contar todo, apretá <b>✓ Confirmar y ajustar</b>. El sistema genera un comprobante de tipo <b>Conteo</b> y deja el stock alineado con la realidad.' }
+      { t:'Elegir el depósito a contar', d:'Dropdown <b>Depósito a contar</b>. <b>Importante:</b> un conteo es de UN solo depósito. Si tenés varios (cocina + barra + sucursal otra), hacés un conteo separado por cada uno. No mezcles.' },
+      { t:'Fecha y observación', d:'<b>Fecha del conteo</b>: hoy normalmente. <b>Observación</b> (opcional pero útil): "Conteo mensual mayo 2026" o "Conteo de cierre de mes". Para tu auditoría después.' },
+      { t:'Iniciar conteo', d:'Apretá el botón verde <b>Iniciar conteo</b>. El sistema te arma una lista con TODOS los productos del depósito que tienen inventario activo. Vas a ver: columna PRODUCTO, columna SISTEMA (lo que el sistema cree que tenés), columna CONTEO FÍSICO (donde cargás lo real) y columna DIFERENCIA (se calcula sola).' },
+      { t:'Contar y cargar producto por producto', d:'Andá al depósito y por cada producto: <b>contá la cantidad real que hay</b> y escribila en el campo "Conteo físico" correspondiente. El sistema te muestra automáticamente la <b>diferencia</b> (verde si tenés MÁS de lo esperado, rojo si tenés MENOS).' },
+      { t:'¿Qué hacer si la diferencia es muy grande?', d:'Si la diferencia es ≥ 10% del stock, RECONTÁ ese producto antes de seguir. Capaz contaste mal, o capaz hay error de carga, o capaz hay un problema serio (robo). Si después de recontar sigue grande, dejala registrada y abordá la causa después.' },
+      { t:'Guardar como borrador (si no terminás de una)', d:'Si tenés MUCHA mercadería y no terminás en una sola sesión, apretá <b>Guardar borrador</b> abajo. Podés volver al día siguiente y seguir desde donde quedaste. Aparece en el Historial con estado "BORRADOR".' },
+      { t:'Confirmar y ajustar', d:'Cuando terminaste de contar TODO, apretá el botón verde <b>✓ Confirmar y ajustar</b> arriba a la derecha. El sistema te muestra un resumen: cuántos productos contaste, cuántos tienen diferencia ≠ 0. Confirmás y el sistema crea un comprobante de tipo <b>Conteo</b> que AJUSTA TODOS los productos con diferencia al número real que vos contaste. Los que no tienen diferencia, no se tocan.' },
+      { t:'Verificar después', d:'Andá a Inventarios. Los productos que ajustaste ahora muestran el stock que vos contaste (el real). Si querés ver la auditoría del ajuste, andá a Extracto de un producto cualquiera y vas a ver una línea de tipo <b>Conteo</b> con la fecha de hoy.' }
     ],
     tips: [
-      'Hacelo <b>fuera del horario de venta</b> para que nadie esté moviendo mercadería mientras contás.',
-      'Si tenés mucha mercadería, podés guardar el conteo como borrador y seguir después. No tenés que confirmar todo en una sola sentada.',
-      'Los productos con diferencia ≠ 0 generan el ajuste automático. Los que están bien (diferencia = 0) no se tocan.',
-      'Después del conteo, el extracto del producto muestra el movimiento tipo <b>Conteo</b> en la fecha que lo hiciste, así sabés cuándo fue la última vez.'
+      '<b>Hacelo una vez por mes mínimo.</b> Si nunca lo hacés, el desfase entre sistema y realidad crece y el sistema termina sirviendo para nada.',
+      'Si tu mercadería se mueve mucho (restaurante con 200 ingredientes), capaz conteo semanal o quincenal de los productos críticos es mejor que conteo mensual completo.',
+      'Llevá una <b>planilla impresa de Excel</b> al depósito para anotar los conteos a mano antes de cargarlos al sistema. Te evita ir y volver del depósito a la PC.',
+      'Los productos con <b>diferencia = 0</b> (cuadran) NO se tocan en el ajuste — el sistema solo modifica los que tienen diferencia ≠ 0. Eso es bueno: no se pierde historial.',
+      'Después del conteo, <b>el extracto del producto</b> muestra una línea tipo "Conteo CONTEO-005" en la fecha que lo hiciste. Así sabés siempre cuándo fue la última vez que cuadraste un producto.',
+      'Si en un conteo encontrás una diferencia rara y querés investigar antes de confirmar, podés <b>guardar como borrador</b>, ir a Extracto de ese producto, ver los movimientos, descubrir la causa, y después volver al conteo y completar.',
+      'Para insumos también — el conteo aparece junto con los productos. Contás todo lo del depósito.',
+      'Si querés ser muy riguroso: <b>imprimí el reporte del conteo</b> (en Historial → botón Ver) y archivalo con la fecha. Sirve para auditoría contable.'
     ]
   },
 
