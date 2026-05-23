@@ -1451,50 +1451,117 @@ async function usarImpresoraUSBLocal(tipo){
   toast('Buscando servidor USB...');
   var s = await USBPrinter.status();
   if(!s){
-    toast('\u26a0\ufe0f Servidor no encontrado. \u00bfEst\u00e1 corriendo ampersand-print-server?');
+    // Servidor no corriendo \u2014 mostrar modal con instrucciones de descarga
+    abrirModalDescargarAgente(tipo);
     return;
   }
   var lista = await USBPrinter.listarImpresoras();
   if(!lista || lista.length === 0){
-    toast('\u26a0\ufe0f No se encontraron puertos/impresoras');
+    abrirModalImpresoraVacia(tipo);
     return;
   }
-  // Separar puertos directos e impresoras instaladas
-  var puertos = lista.filter(function(x){ return x.tipo === 'puerto'; });
-  var impresoras = lista.filter(function(x){ return x.tipo === 'impresora'; });
-  var opts = '';
-  var items = [];
-  if(puertos.length){
-    opts += 'PUERTOS DIRECTOS (recomendado para Generic Text Only):\n';
-    puertos.forEach(function(p,i){
-      opts += (items.length+1)+'. '+p.nombre+'\n';
-      items.push(p);
-    });
-  }
-  if(impresoras.length){
-    opts += '\nIMPRESORAS WINDOWS:\n';
-    impresoras.forEach(function(p){
-      opts += (items.length+1)+'. '+p.nombre+'\n';
-      items.push(p);
-    });
-  }
-  var elegida = window.prompt('Seleccion\u00e1 el n\u00famero:\n\n'+opts+'\nPara Generic Text Only USB eleg\u00ed USB001 o USB002');
-  var idx = parseInt(elegida) - 1;
-  if(isNaN(idx) || idx < 0 || idx >= items.length) return;
-  var item = items[idx];
-  var r = await USBPrinter.seleccionar(item);
+  abrirModalElegirImpresoraUSB(tipo, lista);
+}
+
+// Modal: el agente no est\u00e1 corriendo, mostrar pasos para instalarlo
+function abrirModalDescargarAgente(tipo){
+  var existing = document.getElementById('modalUsbAgente');
+  if(existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = 'modalUsbAgente';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+  ov.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;padding:24px;color:var(--text);max-height:90vh;overflow-y:auto">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'+
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'+
+        '<div style="font-size:18px;font-weight:800">USB Print Server no encontrado</div>'+
+      '</div>'+
+      '<div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px">Para imprimir a impresoras t\u00e9rmicas USB (Generic / Text Only, Xprinter, etc.) necesit\u00e1s un peque\u00f1o agente local. Es un solo archivo, sin instalador.</div>'+
+      '<div style="background:var(--card2);border-radius:8px;padding:14px 16px;margin-bottom:14px">'+
+        '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:800;color:var(--green);margin-bottom:10px">Pasos para instalarlo</div>'+
+        '<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--g2);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">1</div><div style="font-size:13px;line-height:1.5">Descarg\u00e1 <b>usb-print-server.exe</b> (link abajo).</div></div>'+
+        '<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--g2);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">2</div><div style="font-size:13px;line-height:1.5">Pegalo en una carpeta tuya (ej. <code>C:\\NODO\\</code>) y hac\u00e9 <b>doble click</b>.</div></div>'+
+        '<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--g2);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">3</div><div style="font-size:13px;line-height:1.5">Se abre una consola negra \u2014 <b>dejala abierta</b>. Si la cerr\u00e1s, deja de imprimir.</div></div>'+
+        '<div style="display:flex;gap:10px"><div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--g2);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">4</div><div style="font-size:13px;line-height:1.5">Volv\u00e9 ac\u00e1 y apret\u00e1 <b>"Probar de nuevo"</b> abajo.</div></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">'+
+        '<a href="https://github.com/MULTIPLAZA/usb-print-server/releases/latest/download/usb-print-server.exe" target="_blank" rel="noopener" style="flex:1;min-width:180px;background:var(--green);border:none;border-radius:8px;color:#fff;font:800 14px Barlow,sans-serif;padding:13px;text-align:center;text-decoration:none">\u2b07 Descargar usb-print-server.exe</a>'+
+        '<button onclick="document.getElementById(\'modalUsbAgente\').remove();usarImpresoraUSBLocal(\''+tipo+'\')" style="flex:1;min-width:120px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font:700 13px Barlow,sans-serif;padding:13px;cursor:pointer">Probar de nuevo</button>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px">\u00bfPara qu\u00e9 sirve? Permite que el POS imprima directo a la impresora t\u00e9rmica USB sin pasar por el di\u00e1logo de Windows \u2014 funciona con cualquier driver, incluso Generic / Text Only.</div>'+
+      '<button onclick="document.getElementById(\'modalUsbAgente\').remove()" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font:600 12px Barlow,sans-serif;padding:10px;cursor:pointer">Cancelar</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+
+// Modal: el agente est\u00e1 corriendo pero no encontr\u00f3 impresoras
+function abrirModalImpresoraVacia(tipo){
+  var existing = document.getElementById('modalUsbVacio');
+  if(existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = 'modalUsbVacio';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+  ov.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:440px;width:100%;padding:24px;color:var(--text)">'+
+      '<div style="font-size:16px;font-weight:800;margin-bottom:10px">No hay impresoras instaladas</div>'+
+      '<div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">El agente est\u00e1 funcionando pero Windows no tiene ninguna impresora t\u00e9rmica instalada. Conect\u00e1 la impresora USB, esper\u00e1 que Windows la detecte y volv\u00e9 a probar.</div>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button onclick="document.getElementById(\'modalUsbVacio\').remove();usarImpresoraUSBLocal(\''+tipo+'\')" style="flex:1;background:var(--green);border:none;border-radius:8px;color:#fff;font:700 13px Barlow,sans-serif;padding:11px;cursor:pointer">Reintentar</button>'+
+        '<button onclick="document.getElementById(\'modalUsbVacio\').remove()" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font:600 12px Barlow,sans-serif;padding:11px;cursor:pointer">Cancelar</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+
+// Modal: elegir impresora de la lista (reemplaza al prompt() feo)
+function abrirModalElegirImpresoraUSB(tipo, lista){
+  var existing = document.getElementById('modalUsbLista');
+  if(existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = 'modalUsbLista';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+  var items = lista.map(function(p, i){
+    var driverInfo = p.driver ? '<div style="font-size:11px;color:var(--muted);margin-top:3px">'+p.driver+(p.puerto?' \u00b7 '+p.puerto:'')+'</div>' : '';
+    return '<div onclick="_seleccionarUsbImpresora('+i+',\''+tipo+'\')" style="background:var(--card2);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor=\'var(--green)\';this.style.background=\'var(--g2)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.background=\'var(--card2)\'">'+
+      '<div style="font-size:14px;font-weight:700">'+p.nombre+'</div>'+
+      driverInfo+
+    '</div>';
+  }).join('');
+  ov.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;padding:24px;color:var(--text);max-height:90vh;overflow-y:auto">'+
+      '<div style="font-size:16px;font-weight:800;margin-bottom:6px">Eleg\u00ed tu impresora t\u00e9rmica</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:18px">Toc\u00e1 la impresora que vas a usar. Tip: si ten\u00e9s varias, la t\u00e9rmica suele decir "POS-58", "Generic / Text Only" o tener "USB" en el puerto.</div>'+
+      items +
+      '<button onclick="document.getElementById(\'modalUsbLista\').remove()" style="width:100%;margin-top:12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font:600 12px Barlow,sans-serif;padding:10px;cursor:pointer">Cancelar</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+  // Guardar lista en variable temporal para el handler
+  window._usbListaTemp = lista;
+}
+
+async function _seleccionarUsbImpresora(idx, tipo){
+  var lista = window._usbListaTemp || [];
+  var item = lista[idx];
+  if(!item) return;
+  var modal = document.getElementById('modalUsbLista');
+  if(modal) modal.remove();
+  var r = await USBPrinter.seleccionar(item.nombre);
   if(r.status !== 'ok'){
-    toast('Error: '+r.mensaje); return;
+    toast('Error: '+(r.mensaje||'No se pudo configurar'));
+    return;
   }
   printers[tipo].name   = item.nombre;
   printers[tipo].type   = 'usblocal';
   printers[tipo].device = null;
   localStorage.setItem('printerType_'+tipo, 'usblocal');
   localStorage.setItem('printerName_'+tipo, item.nombre);
-  localStorage.setItem('usblocal_printer', item.valor);
+  localStorage.setItem('usblocal_printer', item.valor || item.nombre);
   localStorage.setItem('usblocal_printer_nombre', item.nombre);
   updPrinterUI(tipo);
-  toast('\u2713 Configurada: '+item.nombre);
+  toast('Configurada: '+item.nombre);
 }
 
 function usarImpresoraPC(tipo){
@@ -2618,10 +2685,10 @@ var USBPrinter = {
     var s = await this.status();
     if(!s){ this._updUI(false); return; }
     this._updUI(true);
-    // Re-seleccionar impresora guardada
-    var valor = localStorage.getItem('usblocal_printer');
-    var nombre = localStorage.getItem('usblocal_printer_nombre') || valor;
-    if(valor) await this.seleccionar({valor: valor, nombre: nombre});
+    // Re-seleccionar impresora guardada (el server espera string en body.nombre)
+    var nombre = localStorage.getItem('usblocal_printer_nombre')
+              || localStorage.getItem('usblocal_printer');
+    if(nombre) await this.seleccionar(nombre);
   },
 
   _updUI(conectada) {

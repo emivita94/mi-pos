@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.15-20260523-mesa-liberar-forzado';
+const CACHE = 'ampersand-pos-v1.14.16-20260524-usb-print-server';
 
 const ASSETS = [
   '/',
