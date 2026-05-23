@@ -316,8 +316,8 @@ function renderModalGestion(){
           mm.map(m =>
             '<div style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;">'+
             '<span style="font-size:13px;font-weight:700;color:var(--text);">'+m.nombre+'</span>'+
-            '<button class="mesas-btn-sm" style="padding:3px 7px;" onclick="editarMesa('+m.id+')">✎</button>'+
-            '<button class="mesas-btn-sm danger" style="padding:3px 7px;" onclick="eliminarMesa('+m.id+')">✕</button>'+
+            '<button class="mesas-btn-sm" style="padding:3px 7px;" onclick="editarMesa('+m.id+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'+
+            '<button class="mesas-btn-sm danger" style="padding:3px 7px;" onclick="eliminarMesa('+m.id+')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
             '</div>'
           ).join('')+
           '</div>'+
@@ -418,7 +418,7 @@ async function guardarSalon(salonId){
     }
     await mesasCargar();
     if(!mesaSalonSel && mesasSalones.length) mesaSalonSel = mesasSalones[0].id;
-    const msg = salonId ? '✓ Salón actualizado' : '✓ Salón creado'+(cantMesas>0?' con '+cantMesas+' mesas':'');
+    const msg = salonId ? 'Salón actualizado' : 'Salón creado'+(cantMesas>0?' con '+cantMesas+' mesas':'');
     toast(msg);
     renderMesasScreen();
     abrirGestionMesas();
@@ -432,7 +432,7 @@ async function eliminarSalon(id){
     await supaDelete('pos_salones', 'id=eq.'+id+(_licId ? '&licencia_id=eq.'+_licId : ''));
     await mesasCargar();
     if(mesaSalonSel===id) mesaSalonSel = (mesasSalones[0] && mesasSalones[0].id)||null;
-    toast('✓ Salón eliminado');
+    toast('Salón eliminado');
     abrirGestionMesas();
   }catch(e){ toast('Error: '+e.message); }
 }
@@ -471,7 +471,7 @@ async function guardarMesa(salonId, mesaId){
       await supaPost('pos_mesas', {salon_id:salonId, licencia_id:licId, sucursal_id:sucId, nombre, capacidad:cap}, null, true);
     }
     await mesasCargar();
-    toast('✓ Mesa guardada');
+    toast('Mesa guardada');
     abrirGestionMesas();
   }catch(e){ toast('Error: '+e.message); }
 }
@@ -481,7 +481,7 @@ async function eliminarMesa(id){
   try{
     await supaDelete('pos_mesas', 'id=eq.'+id);
     await mesasCargar();
-    toast('✓ Mesa eliminada');
+    toast('Mesa eliminada');
     abrirGestionMesas();
   }catch(e){ toast('Error: '+e.message); }
 }

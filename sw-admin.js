@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260523-rediseno-inv-historial';
+const CACHE = 'ampersand-admin-v20260523-barrido-emojis';
 
 const ASSETS = [
   '/admin-negocio.html',

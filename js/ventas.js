@@ -226,7 +226,7 @@ function agregarMontoDelivery(){
   if(!monto||monto<=0){toast('Ingresá el monto del envío');inp&&inp.focus();return;}
   quitarItemDelivery();
   cart.push({lineId:Date.now()*1000+999,id:'delivery_item',name:'Envío delivery',price:monto,qty:1,obs:'',iva:'10',esDelivery:true,color:'#e65100',colorPropio:true,enviado:false});
-  updUI(); updBtnGuardar(); toast('✓ Envío ₲'+monto.toLocaleString('es-PY')+' agregado'); if(inp)inp.value='';
+  updUI(); updBtnGuardar(); toast('Envío ₲'+monto.toLocaleString('es-PY')+' agregado'); if(inp)inp.value='';
 }
 
 // ── TICKETS PENDIENTES ───────────────────────────────────────
@@ -651,7 +651,7 @@ function verVentaCobradaModal(item){
         '<div style="display:flex;align-items:center;gap:10px;">'+
           '<span style="font-size:10px;font-weight:800;padding:3px 9px;border-radius:5px;letter-spacing:.5px;background:'+(anulada?'rgba(239,83,80,.18)':'rgba(33,150,243,.2)')+';color:'+(anulada?'#ef5350':'#42a5f5')+';">'+(anulada?'ANULADA':'COBRADO')+'</span>'+
           '<span style="font-size:18px;font-weight:800;color:var(--text);">#'+String(v.nroTicket).padStart(4,'0')+'</span>'+
-          (nroFact ? '<span style="font-size:11px;color:var(--muted);font-weight:700;">🧾 '+nroFact+'</span>' : '')+
+          (nroFact ? '<span style="font-size:11px;color:var(--muted);font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> '+nroFact+'</span>' : '')+
         '</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-top:4px;">'+fechaStr+'</div>'+
         (nomCli ? '<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text);font-weight:700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+nomCli+'</div>' : '')+
@@ -670,7 +670,7 @@ function verVentaCobradaModal(item){
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"/></svg>'+
         '</button>'+
         '<button onclick="cerrarVentaCobradaModal()" style="flex:1;padding:11px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">CERRAR</button>'+
-        (anulada ? '' : '<button onclick="cerrarVentaCobradaModal();reimprimirVentaTurno('+v.dbId+');" style="flex:1.4;padding:11px;border-radius:8px;background:var(--green);border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;">🖨 REIMPRIMIR</button>')+
+        (anulada ? '' : '<button onclick="cerrarVentaCobradaModal();reimprimirVentaTurno('+v.dbId+');" style="flex:1.4;padding:11px;border-radius:8px;background:var(--green);border:none;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> REIMPRIMIR</button>')+
         '<button onclick="navegarTicket(1)" title="Ticket siguiente" style="padding:11px 10px;border-radius:8px;background:transparent;border:1.5px solid var(--border);color:var(--text);cursor:pointer;flex-shrink:0;display:flex;align-items:center;">'+
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>'+
         '</button>'+
@@ -833,7 +833,7 @@ function doGuardar() {
     updUI(); updBtnGuardar();
     guardarPendientesLocal();
     goTo('scSale');
-    toast('✓ Ticket #' + String(nro).padStart(4, '0') + ' actualizado');
+    toast('Ticket #' + String(nro).padStart(4, '0') + ' actualizado');
   } else {
     const nro = ticketCounter;
     incrementTicketCounter();
@@ -853,7 +853,7 @@ function doGuardar() {
     updUI(); updBtnGuardar();
     guardarPendientesLocal();
     goTo('scSale');
-    toast('✓ Ticket #' + String(nro).padStart(4, '0') + ' guardado');
+    toast('Ticket #' + String(nro).padStart(4, '0') + ' guardado');
   }
 }
 
@@ -907,7 +907,7 @@ function renderPendientes() {
                 'border-radius:4px;letter-spacing:.5px;vertical-align:middle;">DELIVERY</span>';
       }
     } else if (t.esPresupuesto) {
-      badge = ' <span style="font-size:10px;">📋</span>';
+      badge = ' <span style="font-size:10px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>';
     }
     // Color del cuadradito del número según tipo de pedido (solo tickets normales)
     var bgNum = '';
@@ -1299,7 +1299,7 @@ function renderDivList() {
         <button class="div-cobrar-btn ${p.cobrado ? 'cobrado' : ''}"
           onclick="${p.cobrado ? '' : 'divCobrar(' + i + ')'}"
           ${p.cobrado ? 'disabled' : ''}>
-          ${p.cobrado ? '✓ COBRADO' : 'COBRAR'}
+          ${p.cobrado ? 'COBRADO' : 'COBRAR'}
         </button>
       </div>
       <div class="div-comp ${needsComp ? 'open' : ''}" id="divComp${i}">
@@ -1318,7 +1318,7 @@ function updDivRestante() {
   const cobrado = divPagos.filter(p => p.cobrado).reduce((s, p) => s + p.monto, 0);
   const restante = total - cobrado;
   document.getElementById('divRestante').textContent =
-    restante <= 0 ? 'Pagado ✓' : 'Restante ' + gs(restante);
+    restante <= 0 ? 'Pagado <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>' : 'Restante ' + gs(restante);
 }
 
 // Al editar el monto de un pago, ajusta los OTROS pagos no cobrados para que
@@ -1357,9 +1357,9 @@ function divCobrar(i) {
   p.cobrado = true;
   renderDivList();
   updDivRestante();
-  toast('✓ Pago cobrado');
+  toast('Pago cobrado');
   if (divPagos.every(p => p.cobrado)) {
-    toast('✓ Todos los pagos cobrados — presioná HECHO');
+    toast('Todos los pagos cobrados — presioná HECHO');
   }
 }
 

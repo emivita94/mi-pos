@@ -134,7 +134,7 @@
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:17px;font-weight:800;color:var(--text);">Asignar Terminales</div>
-      <button onclick="cerrarModalAsignar()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;">✕</button>
+      <button onclick="cerrarModalAsignar()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div id="mAsignarBody"></div>
   </div>
@@ -148,8 +148,8 @@
     <div style="margin-bottom:12px;">
       <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;display:block;margin-bottom:5px;">Tipo</label>
       <div style="display:flex;gap:8px;">
-        <button id="btnAuto" onclick="selTipo('autoimpresor')" style="flex:1;background:var(--g2);border:1.5px solid var(--green);border-radius:8px;color:var(--green);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;">🖨️ Autoimpresor</button>
-        <button id="btnElec" onclick="selTipo('electronico')" style="flex:1;background:#1e1e1e;border:1.5px solid #333;border-radius:8px;color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;">📱 Electrónico</button>
+        <button id="btnAuto" onclick="selTipo('autoimpresor')" style="flex:1;background:var(--g2);border:1.5px solid var(--green);border-radius:8px;color:var(--green);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Autoimpresor</button>
+        <button id="btnElec" onclick="selTipo('electronico')" style="flex:1;background:#1e1e1e;border:1.5px solid #333;border-radius:8px;color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Electrónico</button>
       </div>
       <input type="hidden" id="mTipo" value="autoimpresor">
     </div>
@@ -170,7 +170,7 @@
     </div>
     <!-- Certificado digital (solo electrónico) -->
     <div id="certRow" style="display:none;background:rgba(66,165,245,.08);border:1px solid rgba(66,165,245,.2);border-radius:8px;padding:12px 14px;margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:10px;">📱 Certificado Digital</div>
+      <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:10px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Certificado Digital</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
           <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;display:block;margin-bottom:5px;">Vencimiento certificado</label>
@@ -219,6 +219,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="js/config.js"></script>
+<script src="js/nodo-ico.js"></script>
 <script src="js/admin-dashboard.js"></script>
 <script src="js/admin-productos.js"></script>
 <script src="js/admin-inventario.js"></script>
@@ -435,7 +436,7 @@ async function renderSucursalesTab(tc){
     var v=await sg('pos_ventas','licencia_email=ilike.'+encodeURIComponent(SE)+'&fecha=gte.'+fd.d+'&fecha=lte.'+fd.h+'&select=sucursal,total&limit=500');
     var m={};
     v.forEach(function(x){var s=x.sucursal||'Principal';if(!m[s])m[s]={tot:0,ops:0};m[s].tot+=x.total||0;m[s].ops++;});
-    tc.innerHTML=Object.entries(m).length?Object.entries(m).map(function(entry){var s=entry[0];var d=entry[1];return '<div class="li"><div class="li-ic" style="background:var(--g2);color:var(--green)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="li-inf"><div class="li-t">'+s+'</div><div class="li-s">'+d.ops+' ventas este mes</div></div><div class="li-r"><div class="li-v" style="color:var(--green)">'+gs(d.tot)+'</div></div></div>';}).join(''):'<div class="empty"><div class="empty-i">🏢</div><div class="empty-t">Sin sucursales</div></div>';
+    tc.innerHTML=Object.entries(m).length?Object.entries(m).map(function(entry){var s=entry[0];var d=entry[1];return '<div class="li"><div class="li-ic" style="background:var(--g2);color:var(--green)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="li-inf"><div class="li-t">'+s+'</div><div class="li-s">'+d.ops+' ventas este mes</div></div><div class="li-r"><div class="li-v" style="color:var(--green)">'+gs(d.tot)+'</div></div></div>';}).join(''):'<div class="empty"><div class="empty-i"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg></div><div class="empty-t">Sin sucursales</div></div>';
   }catch(e){tc.innerHTML='<div class="loading">Sin datos</div>';}
 }
 
@@ -451,8 +452,8 @@ async function saveConf(){
   document.getElementById('sbNeg').textContent=cfg.an||'Mi Negocio';
   try{
     await supaPost('pos_config',{licencia_email:SE,clave:'negocio_config',valor:JSON.stringify(cfg)},'licencia_email,clave');
-    toast('✓ Guardado y sincronizado');
-  }catch(e){toast('✓ Guardado localmente');}
+    toast('Guardado y sincronizado');
+  }catch(e){toast('Guardado localmente');}
 }
 
 // ── AUTO LOGIN ────────────────────────────────────────────

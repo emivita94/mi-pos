@@ -138,7 +138,7 @@
   <header class="header">
     <button class="hbtn" onclick="openDrawer()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="htitle"><span class="htitle-text">Configuración</span></div>
-    <button class="hbtn" onclick="sincronizarConfigNegocio().then(()=>{renderConfigInfo();toast('✓ Sincronizado');})" title="Sincronizar">
+    <button class="hbtn" onclick="sincronizarConfigNegocio().then(()=>{renderConfigInfo();toast('Sincronizado');})" title="Sincronizar">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
     </button>
   </header>
@@ -314,11 +314,11 @@
 
     <!-- Info -->
     <div class="print-info-box">
-      <div class="print-info-title">📱 Celular / Tablet</div>
+      <div class="print-info-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Celular / Tablet</div>
       <div class="print-info-text">Usá <strong>Bluetooth</strong> para conectar impresoras térmicas inalámbricas. Requiere Chrome o Edge en Android.</div>
     </div>
     <div class="print-info-box" style="margin-top:0;border-left-color:#1565c0;">
-      <div class="print-info-title">💻 PC / Notebook</div>
+      <div class="print-info-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> PC / Notebook</div>
       <div class="print-info-text">Seleccioná <strong>PC / USB</strong> — conectá el puerto COM de tu impresora térmica. Imprime automático sin diálogo, igual que Bluetooth. Requiere Chrome 89+.</div>
     </div>
     <div style="height:16px;"></div>
@@ -358,7 +358,7 @@
   <header class="header">
     <button class="hbtn" onclick="goTo('scConfig')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="htitle"><span class="htitle-text">General</span></div>
-    <button class="hbtn" onclick="sincronizarConfigNegocio().then(()=>{renderGeneralInfo();toast('✓ Sincronizado');})" title="Sincronizar desde admin">
+    <button class="hbtn" onclick="sincronizarConfigNegocio().then(()=>{renderGeneralInfo();toast('Sincronizado');})" title="Sincronizar desde admin">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
     </button>
   </header>
@@ -447,7 +447,7 @@
       <div class="general-field">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div>
-            <div style="font-size:14px;font-weight:600;color:var(--text);">Asistente de voz 🎤</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);">Asistente de voz <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
             <div style="font-size:12px;color:var(--muted);margin-top:2px;">Botón flotante para hablarle al POS. Decí "agregar pizza", "cobrar efectivo", "cuánto vendí hoy", etc.</div>
           </div>
           <label class="toggle-switch" style="flex-shrink:0;">
@@ -474,9 +474,9 @@
             <button onclick="filtrarVocesPorGenero('all')" id="btnVozAll"
               style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">TODAS</button>
             <button onclick="filtrarVocesPorGenero('male')" id="btnVozM"
-              style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">♂ MASC</button>
+              style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="10" cy="14" r="5"/><line x1="14" y1="10" x2="20" y2="4"/><polyline points="14 4 20 4 20 10"/></svg> MASC</button>
             <button onclick="filtrarVocesPorGenero('female')" id="btnVozF"
-              style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">♀ FEM</button>
+              style="background:var(--bg-dark);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="9" r="6"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="9" y1="19" x2="15" y2="19"/></svg> FEM</button>
           </div>
           <select id="cfgVozSelect" onchange="seleccionarVozDesdeConfig()"
             style="width:100%;background:var(--bg-dark);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;padding:10px;outline:none;">
@@ -1011,7 +1011,7 @@
     <div style="padding:0 14px 14px;">
       <div id="artImgPreview" style="display:none;position:relative;margin-bottom:10px;">
         <img id="artImgPreviewImg" src="" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;display:block;">
-        <button onclick="quitarImagen()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:28px;height:28px;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+        <button onclick="quitarImagen()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:28px;height:28px;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div id="artImgUpload" style="border:2px dashed #2a2a2a;border-radius:10px;padding:20px;text-align:center;cursor:pointer;" onclick="document.getElementById('artImgInput').click()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5" style="margin-bottom:6px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -1040,7 +1040,7 @@
           <div id="modifSheetTitle" style="font-size:16px;font-weight:800;color:var(--text);"></div>
           <div id="modifSheetSub" style="font-size:11px;color:var(--muted);margin-top:1px;"></div>
         </div>
-        <button onclick="modifCancelar()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;line-height:1;">✕</button>
+        <button onclick="modifCancelar()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;line-height:1;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
     </div>
     <div id="modifSheetBody" style="flex:1;overflow-y:auto;"></div>
@@ -1059,7 +1059,7 @@
           <div style="font-size:17px;font-weight:800;color:var(--text);">Pizza por mitades</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px;">Elegí el segundo sabor</div>
         </div>
-        <button onclick="mitadCancelar()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">✕</button>
+        <button onclick="mitadCancelar()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="mitad-preview" style="margin-top:12px;">
         <div class="mitad-lado sel">
@@ -1124,7 +1124,7 @@
       <button class="npb" onclick="pmP('1')">1</button><button class="npb" onclick="pmP('2')">2</button><button class="npb" onclick="pmP('3')">3</button>
       <button class="npb" onclick="pmP('4')">4</button><button class="npb" onclick="pmP('5')">5</button><button class="npb" onclick="pmP('6')">6</button>
       <button class="npb" onclick="pmP('7')">7</button><button class="npb" onclick="pmP('8')">8</button><button class="npb" onclick="pmP('9')">9</button>
-      <button class="npb" onclick="pmP('000')">000</button><button class="npb" onclick="pmP('0')">0</button><button class="npb" onclick="pmD()">⌫</button>
+      <button class="npb" onclick="pmP('000')">000</button><button class="npb" onclick="pmP('0')">0</button><button class="npb" onclick="pmD()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></button>
       <button class="npb npok" onclick="pmOK()">AGREGAR AL TICKET</button>
     </div>
   </div>
@@ -1324,7 +1324,7 @@
         <select id="activadoDepositoSel"
           style="background:#2a2a2a;border:1.5px solid #444;border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;padding:13px 40px 13px 14px;outline:none;width:100%;box-sizing:border-box;appearance:none;-webkit-appearance:none;cursor:pointer;"
           onchange="onDepositoSelChange(this)">
-          <option value="__nuevo__">➕ Nuevo depósito</option>
+          <option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo depósito</option>
         </select>
         <svg style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
@@ -1432,7 +1432,7 @@
   <div class="mesas-body">
     <div class="mesas-grid" id="mesasGrid"></div>
     <div class="mesas-empty" id="mesasEmpty" style="display:none;">
-      Sin mesas configuradas.<br>Tocá ⚙ para crear salones y mesas.
+      Sin mesas configuradas.<br>Tocá <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> para crear salones y mesas.
     </div>
   </div>
 </div>
@@ -1508,7 +1508,7 @@
         <span class="sync-count hidden" id="syncCount"></span>
       </button>
       <button class="hbtn" id="btnClienteNombre" onclick="abrirInputClienteNombre()" title="Nombre del cliente"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></button>
-      <button class="hbtn theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+      <button class="hbtn theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
     </div>
   </header>
   <div class="action-bar">
@@ -1860,7 +1860,7 @@
       <button class="npb" onclick="npP('1')">1</button><button class="npb" onclick="npP('2')">2</button><button class="npb" onclick="npP('3')">3</button>
       <button class="npb" onclick="npP('4')">4</button><button class="npb" onclick="npP('5')">5</button><button class="npb" onclick="npP('6')">6</button>
       <button class="npb" onclick="npP('7')">7</button><button class="npb" onclick="npP('8')">8</button><button class="npb" onclick="npP('9')">9</button>
-      <button class="npb" onclick="npP('000')">000</button><button class="npb" onclick="npP('0')">0</button><button class="npb" onclick="npD()">⌫</button>
+      <button class="npb" onclick="npP('000')">000</button><button class="npb" onclick="npP('0')">0</button><button class="npb" onclick="npD()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></button>
       <button class="npb npok" onclick="npOK()">ACEPTAR</button>
     </div>
   </div>
@@ -1871,7 +1871,7 @@
   <div class="cat-sheet">
     <div class="cat-sheet-hdr">
       <span class="cat-sheet-ttl">Categorías</span>
-      <button class="cat-sheet-cls" onclick="document.getElementById('catOv').classList.remove('open')">✕</button>
+      <button class="cat-sheet-cls" onclick="document.getElementById('catOv').classList.remove('open')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div id="catSheetContent"></div>
   </div>
@@ -1887,7 +1887,7 @@
   if(v > 0 && v < 80){
     document.body.innerHTML =
       '<div style="padding:40px 24px;text-align:center;font-family:sans-serif;color:#fff;background:#2e2e2e;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
-      '<div style="width:64px;height:64px;border-radius:16px;background:#c62828;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:28px;">⚠</div>' +
+      '<div style="width:64px;height:64px;border-radius:16px;background:#c62828;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:28px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>' +
       '<h2 style="margin:0 0 12px;font-size:20px;">Navegador desactualizado</h2>' +
       '<p style="margin:0 0 8px;color:#aaa;font-size:14px;line-height:1.5;max-width:320px;">Tu versión de Chrome (v' + v + ') es muy antigua para esta aplicación.</p>' +
       '<p style="margin:0 0 24px;color:#aaa;font-size:14px;line-height:1.5;max-width:320px;">Actualizá <b>Google Chrome</b> o <b>Android System WebView</b> desde Play Store para continuar.</p>' +
@@ -1898,6 +1898,7 @@
 })();
 </script>
 <script src="js/config.js?v=20260412103"></script>
+<script src="js/nodo-ico.js?v=20260523"></script>
 <script src="js/state.js?v=20260412103"></script>
 <script src="js/selectors.js?v=20260412103"></script>
 <script src="js/sounds.js?v=20260413110"></script>

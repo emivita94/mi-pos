@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.10-20260523-navfix';
+const CACHE = 'ampersand-pos-v1.14.11-20260523-barrido-emojis';
 
 const ASSETS = [
   '/',

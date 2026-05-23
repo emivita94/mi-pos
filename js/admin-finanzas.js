@@ -53,7 +53,7 @@ async function renderPlanGastos(){
               +'<div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--card2)">'
                 +'<div style="font-size:14px;font-weight:800;flex:1">'+cat.nombre+'</div>'
                 +'<span style="font-size:11px;color:var(--muted)">'+cons.length+' conceptos</span>'
-                +'<button onclick="planEliminarCat('+cat.id+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px" title="Eliminar categoría">✕</button>'
+                +'<button onclick="planEliminarCat('+cat.id+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px" title="Eliminar categoría"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
               +'</div>'
               // Conceptos de esta categoría
               +'<div style="padding:4px 18px 8px 36px">'
@@ -62,7 +62,7 @@ async function renderPlanGastos(){
                     +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+con.nombre+'</div>'
                       +(con.descripcion?'<div style="font-size:11px;color:var(--muted)">'+con.descripcion+'</div>':'')
                     +'</div>'
-                    +'<button onclick="planEliminarCon('+con.id+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px" title="Eliminar concepto">✕</button>'
+                    +'<button onclick="planEliminarCon('+con.id+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px" title="Eliminar concepto"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
                   +'</div>';
                 }).join('')
                 // Input para agregar concepto a esta categoría
@@ -85,7 +85,7 @@ async function planCrearCat(){
   try{
     await supaPost('gasto_categorias',{licencia_id:licId,nombre:nom,orden:_plan.cats.length},null);
     document.getElementById('planNomCat').value='';
-    toast('✓ Categoría creada');
+    toast('Categoría creada');
     await planCargar();
     renderPlanGastos();
   }catch(e){ toast('Error: '+e.message); }
@@ -103,7 +103,7 @@ async function planCrearCon(catId){
       nombre:nom, descripcion:desc||null,
       orden:_plan.cons.filter(function(c){return c.categoria_id===catId;}).length
     },null);
-    toast('✓ Concepto creado');
+    toast('Concepto creado');
     await planCargar();
     renderPlanGastos();
   }catch(e){ toast('Error: '+e.message); }
@@ -157,7 +157,7 @@ async function renderGastos(tab){
   if(!_plan.cats.length) await planCargar().catch(function(e){ console.warn('[Gastos] Error cargando plan:', e.message); });
 
   var tabs='<div class="admin-tabs">'
-    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderGastos(&apos;lista&apos;)">📋 Listado</button>'
+    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderGastos(&apos;lista&apos;)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Listado</button>'
     +'<button class="atab'+(tab==='nuevo'?' on':'')+'" onclick="renderGastos(&apos;nuevo&apos;)">+ Nuevo gasto</button>'
     +'</div>';
 
@@ -172,7 +172,7 @@ async function renderGastos(tab){
       conOpts+='</optgroup>';
     });
     if(!_plan.cats.length){
-      c.innerHTML=tabs+'<div class="empty"><div class="empty-i">📋</div>'
+      c.innerHTML=tabs+'<div class="empty"><div class="empty-i"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>'
         +'<div class="empty-t">Sin conceptos de gasto</div>'
         +'<div class="empty-s">Primero creá tus categorías y conceptos en <strong>Plan de Gastos</strong></div>'
         +'<button onclick="goTo(&apos;plan-gastos&apos;)" class="btn-sv" style="margin-top:14px">Ir a Plan de Gastos</button>'
@@ -202,7 +202,7 @@ async function renderGastos(tab){
           +'</div>'
           +'<div style="grid-column:1/-1;display:flex;gap:10px;justify-content:flex-end">'
             +'<button onclick="renderGastos(&apos;lista&apos;)" class="btn-dn" style="padding:11px 22px">Cancelar</button>'
-            +'<button onclick="gastoGuardar()" class="btn-sv" style="padding:11px 28px">💾 Guardar gasto</button>'
+            +'<button onclick="gastoGuardar()" class="btn-sv" style="padding:11px 28px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar gasto</button>'
           +'</div>'
         +'</div>'
       +'</div>';
@@ -266,11 +266,11 @@ async function gastoGuardar(){
       tiene_factura:!!(document.getElementById('gTieneFact')||{}).checked,
       created_at:new Date().toISOString()
     },null);
-    toast('✓ Gasto guardado — '+gs(monto));
+    toast('Gasto guardado — '+gs(monto));
     renderGastos('lista');
   }catch(e){
     toast('Error: '+e.message);
-    if(btn){ btn.disabled=false; btn.textContent='💾 Guardar gasto'; }
+    if(btn){ btn.disabled=false; btn.textContent='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar gasto'; }
   }
 }
 
@@ -588,7 +588,7 @@ async function balanceBuscar(licId){
           +'<span style="font-size:20px;font-weight:800;color:var(--red)">−'+gs(ivaAPagar)+'</span>'
         +'</div>'
         :'<div style="padding:10px 16px;font-size:12px;color:var(--muted);background:var(--card2);border-radius:8px;margin-top:8px">'
-          +'💡 <button onclick="goTo(&apos;iva&apos;)" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;text-decoration:underline;font-family:Barlow,sans-serif">Calculá la liquidación de IVA</button> para ver el resultado neto real.'
+          +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg> <button onclick="goTo(&apos;iva&apos;)" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;text-decoration:underline;font-family:Barlow,sans-serif">Calculá la liquidación de IVA</button> para ver el resultado neto real.'
         +'</div>'
       )
       // UTILIDAD FINAL (después de IVA)
@@ -812,7 +812,7 @@ async function renderIVA(){
         +(historial.length?'<div style="margin-left:auto;font-size:12px;color:var(--muted)">Períodos anteriores: '
           +historial.slice(0,6).map(function(h){
             return '<button onclick="ivaCargarPeriodo(\''+h.periodo+'\')" style="background:var(--card2);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-family:Barlow,sans-serif;font-size:11px;font-weight:600;padding:3px 8px;cursor:pointer;margin-left:4px">'
-              +h.periodo+(h.estado==='cerrado'?' ✓':'')+'</button>';
+              +h.periodo+(h.estado==='cerrado'?' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>':'')+'</button>';
           }).join('')+'</div>':'')
       +'</div>'
     +'</div>'
@@ -973,7 +973,7 @@ function ivaRenderResultado(d){
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">'
       +'<div style="font-size:15px;font-weight:700">Período: <span style="color:var(--green)">'+d.periodo+'</span>'
         +'&nbsp; <span class="tag '+(d.estado==='cerrado'?'tag-g':'tag-o')+'">'+d.estado.toUpperCase()+'</span></div>'
-      +(d.estado!=='cerrado'?'<button onclick="ivaCerrar(\''+d.id+'\')" style="background:var(--g2);border:1px solid var(--green);border-radius:8px;color:var(--green);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 16px;cursor:pointer">✓ Cerrar período</button>':'')
+      +(d.estado!=='cerrado'?'<button onclick="ivaCerrar(\''+d.id+'\')" style="background:var(--g2);border:1px solid var(--green);border-radius:8px;color:var(--green);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:8px 16px;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Cerrar período</button>':'')
     +'</div>'
 
     // ── DÉBITO FISCAL ──
@@ -1031,7 +1031,7 @@ function ivaRenderResultado(d){
 
     // NOTAS
     +'<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--muted)">'
-      +'⚠️ <strong style="color:var(--text)">Importante:</strong> Este cálculo es una estimación. '
+      +'<strong style="color:var(--text)">Importante:</strong> Este cálculo es una estimación. '
       +'El crédito de gastos solo incluye los gastos marcados como "Tiene factura". '
       +'Verificá con tu contador antes de presentar la declaración.'
     +'</div>';
@@ -1051,7 +1051,7 @@ async function ivaCerrar(id){
   if(!confirm('¿Cerrar el período? Una vez cerrado no se recalcula automáticamente.')) return;
   try{
     await supaPatch('iva_liquidaciones','id=eq.'+id,{estado:'cerrado',updated_at:new Date().toISOString()});
-    toast('✓ Período cerrado');
+    toast('Período cerrado');
     await ivaCalcular();
   }catch(e){ toast('Error: '+e.message); }
 }
@@ -1436,7 +1436,7 @@ async function cargarTimbradosDesdeSupabase(){
 }
 
 function renderAdmin(){
-  document.getElementById('content').innerHTML='<div class="ph"><div><div class="pt">Administración</div><div class="ps">Configuración avanzada del sistema</div></div></div><div class="admin-tabs"><button class="atab on" id="atab-timbrado" onclick="goAdminTab(\'timbrado\')">📄 Puntos de Expedición</button><button class="atab" id="atab-sucursales" onclick="goAdminTab(\'sucursales\')">🏢 Sucursales</button></div><div id="adminTabContent"></div>';
+  document.getElementById('content').innerHTML='<div class="ph"><div><div class="pt">Administración</div><div class="ps">Configuración avanzada del sistema</div></div></div><div class="admin-tabs"><button class="atab on" id="atab-timbrado" onclick="goAdminTab(\'timbrado\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Puntos de Expedición</button><button class="atab" id="atab-sucursales" onclick="goAdminTab(\'sucursales\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg> Sucursales</button></div><div id="adminTabContent"></div>';
   goAdminTab('timbrado');
 }
 
@@ -1469,7 +1469,7 @@ function refreshTimLista(){
 }
 
 function buildTimLista(){
-  if(!timbrados.length) return '<div class="empty"><div class="empty-i">📄</div><div class="empty-t">Sin puntos de expedición</div><div class="empty-s">Agregá el timbrado habilitado por SET/DNIT</div></div>';
+  if(!timbrados.length) return '<div class="empty"><div class="empty-i"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-t">Sin puntos de expedición</div><div class="empty-s">Agregá el timbrado habilitado por SET/DNIT</div></div>';
   var hoy=new Date();
   return timbrados.map(function(t,i){
     var fin=new Date((t.vig_fin||'2999-12-31')+'T00:00:00');
@@ -1482,12 +1482,12 @@ function buildTimLista(){
     return '<div class="tim-card"><div class="tim-h" onclick="togTim('+i+')">'+
       '<div class="tim-ico" style="background:'+(act?'var(--g2)':'var(--r2)')+'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(act?'var(--green)':'var(--red)')+'" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div>'+
       '<div class="tim-info"><div class="tim-nro">Timbrado '+t.nro+'</div>'+
-      '<div class="tim-meta">'+pad3(t.sucursal)+'-002 · '+(t.tipo==='electronico'?'📱 Electrónico':'🖨️ Autoimpresor')+(t.nombre_suc?' · '+t.nombre_suc:'')+'</div>'+
-      '<div class="tim-tags">'+vBdg+terTxt+(t.seleccionado?'<span class="tag tag-g">✓ CON TERMINALES</span>':'')+'</div></div>'+
+      '<div class="tim-meta">'+pad3(t.sucursal)+'-002 · '+(t.tipo==='electronico'?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Electrónico':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Autoimpresor')+(t.nombre_suc?' · '+t.nombre_suc:'')+'</div>'+
+      '<div class="tim-tags">'+vBdg+terTxt+(t.seleccionado?'<span class="tag tag-g"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> CON TERMINALES</span>':'')+'</div></div>'+
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>'+
       '<div class="tim-body" id="tB'+i+'">'+
       '<div class="tim-row"><span style="color:var(--muted)">Timbrado</span><span style="font-family:monospace;font-size:15px;font-weight:700">'+t.nro+'</span></div>'+
-      '<div class="tim-row"><span style="color:var(--muted)">Tipo</span><span>'+(t.tipo==='electronico'?'📱 Electrónico':'🖨️ Autoimpresor')+'</span></div>'+
+      '<div class="tim-row"><span style="color:var(--muted)">Tipo</span><span>'+(t.tipo==='electronico'?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Electrónico':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Autoimpresor')+'</span></div>'+
       '<div class="tim-row"><span style="color:var(--muted)">Inicio vigencia</span><span>'+fmt(t.vig_ini)+'</span></div>'+
       '<div class="tim-row"><span style="color:var(--muted)">Fin vigencia</span><span>'+(t.vig_fin==='2999-12-31'?'<span style="color:var(--muted)">Sin límite</span>':fmt(t.vig_fin))+'</span></div>'+
       '<div class="tim-row"><span style="color:var(--muted)">Sucursal</span><span style="font-family:monospace;font-weight:700">'+pad3(t.sucursal)+'</span></div>'+
@@ -1495,7 +1495,7 @@ function buildTimLista(){
       '<div class="tim-row"><span style="color:var(--muted)">Siguiente nro</span><span style="color:var(--green);font-weight:700">'+padN(t.nro_actual||t.desde||1)+'</span></div>'+
       '<div class="tim-row"><span style="color:var(--muted)">Terminales asignadas</span><span>'+(asigs.length?asigs.map(function(a){return '<span class="tag tag-g">'+a.terminal+'</span>';}).join(' '):'<span style="color:var(--muted)">Sin asignar</span>')+'</span></div>'+
       '<div style="margin:10px 0 4px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Uso de numeración</span><span>'+pct+'%</span></div><div style="background:#1e1e1e;border-radius:4px;height:5px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(pct>80?'var(--red)':pct>60?'var(--orange)':'var(--green)')+';border-radius:4px"></div></div></div>'+
-      '<div class="tim-acts"><button class="btn-usar" onclick="abrirModalAsignar('+i+')">🖥️ ASIGNAR TERMINALES</button><button class="btn-editar" onclick="editTim('+i+')">EDITAR</button><button class="btn-elim" onclick="elimTim('+i+')">ELIMINAR</button></div>'+
+      '<div class="tim-acts"><button class="btn-usar" onclick="abrirModalAsignar('+i+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> ASIGNAR TERMINALES</button><button class="btn-editar" onclick="editTim('+i+')">EDITAR</button><button class="btn-elim" onclick="elimTim('+i+')">ELIMINAR</button></div>'+
       '</div></div>';
   }).join('');
 }
@@ -1533,7 +1533,7 @@ async function abrirModalAsignar(timIdx){
       html+='<div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>';
       html+='<div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#fff;">'+a.terminal+'</div>';
       html+='<div style="font-size:11px;color:var(--muted);">Pto.Exp.: <b style="color:var(--green);font-family:monospace;">'+String(a.punto_exp||'001').padStart(3,'0')+'</b> · Sig.: <b style="color:var(--green);font-family:monospace;">'+String(a.nro_actual||1).padStart(7,'0')+'</b></div></div>';
-      html+='<button data-j="'+j+'" class="btn-elim-asig" style="background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;">✕</button>';
+      html+='<button data-j="'+j+'" class="btn-elim-asig" style="background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
       html+='</div>';
     });
   } else {
@@ -1560,7 +1560,7 @@ async function abrirModalAsignar(timIdx){
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">';
   html+='<div><label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Pto. Expedición *</label><input id="asigPtoExp" type="text" maxlength="3" value="001" style="width:100%;background:#111;border:1.5px solid #2a2a2a;border-radius:6px;color:#fff;font-family:monospace;font-size:15px;font-weight:700;letter-spacing:2px;padding:8px 10px;outline:none;text-align:center;box-sizing:border-box;"></div>';
   html+='<div><label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Nro desde</label><input id="asigDesde" type="number" value="1" min="1" style="width:100%;background:#111;border:1.5px solid #2a2a2a;border-radius:6px;color:#fff;font-family:inherit;font-size:13px;padding:8px 10px;outline:none;box-sizing:border-box;"></div></div>';
-  html+='<button id="btnAsigTerminal" style="width:100%;background:var(--green);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:14px;font-weight:800;padding:12px;cursor:pointer;margin-top:12px;">✓ ASIGNAR TERMINAL</button>';
+  html+='<button id="btnAsigTerminal" style="width:100%;background:var(--green);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:14px;font-weight:800;padding:12px;cursor:pointer;margin-top:12px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> ASIGNAR TERMINAL</button>';
   html+='</div>';
   body.innerHTML=html;
 
@@ -1628,7 +1628,7 @@ async function agregarAsig(){
     alert('Error al asignar: '+e.message);
   }
 
-  if(btnA){btnA.disabled=false;btnA.textContent='✓ ASIGNAR TERMINAL';}
+  if(btnA){btnA.disabled=false;btnA.textContent='ASIGNAR TERMINAL';}
   await abrirModalAsignar(timIdx);
 }
 
@@ -1784,8 +1784,8 @@ function updPrev(){
   var certAlert='';
   if(tipo==='electronico'&&certV){
     var dias=Math.ceil((new Date(certV+' 00:00:00')-new Date())/(1000*60*60*24));
-    if(dias<0) certAlert='<div style="background:rgba(239,83,80,.15);border:1px solid var(--red);border-radius:6px;padding:6px 10px;margin-top:6px;font-size:11px;color:var(--red);">⚠️ CERTIFICADO VENCIDO hace '+Math.abs(dias)+' días</div>';
-    else if(dias<=30) certAlert='<div style="background:rgba(255,152,0,.15);border:1px solid var(--orange);border-radius:6px;padding:6px 10px;margin-top:6px;font-size:11px;color:var(--orange);">⚠️ Certificado vence en '+dias+' días</div>';
+    if(dias<0) certAlert='<div style="background:rgba(239,83,80,.15);border:1px solid var(--red);border-radius:6px;padding:6px 10px;margin-top:6px;font-size:11px;color:var(--red);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ CERTIFICADO VENCIDO hace '+Math.abs(dias)+' días</div>';
+    else if(dias<=30) certAlert='<div style="background:rgba(255,152,0,.15);border:1px solid var(--orange);border-radius:6px;padding:6px 10px;margin-top:6px;font-size:11px;color:var(--orange);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ Certificado vence en '+dias+' días</div>';
   }
   prev.innerHTML='<div style="color:#555;margin-bottom:4px;font-size:10px;">── VISTA PREVIA ──</div>'+
     '<div><span style="color:#666">TIMBRADO: </span><span style="color:#4caf50;font-weight:700">'+nro+'</span></div>'+

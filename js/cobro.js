@@ -497,7 +497,7 @@ async function cargarTimbradoSesion() {
       localStorage.setItem('pos_timbrados', JSON.stringify(tims));
       localStorage.setItem('pos_timbrados_mapa', JSON.stringify({ [terminal]: { timIdx: 0, asigIdx: 0 } }));
       timbradoSession = d;
-      console.log('[Timbrado] ✅ Cargado:', d.nro, '| Próx.:', getNroFactura(d));
+      console.log('[Timbrado] <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 16 9"/></svg> Cargado:', d.nro, '| Próx.:', getNroFactura(d));
     } else {
       console.warn('[Timbrado] Sin asignación para terminal:', terminal, d);
       timbradoSession = getTimbradoActivo();
@@ -521,7 +521,7 @@ function toggleFactura() {
       t.tipo === 'electronico' || (t.vig_fin ? new Date(t.vig_fin + ' 00:00:00') >= hoy : true)
     );
     if (!vigentes.length) {
-      toast('⚠️ Sin timbrado configurado. Configurá uno en Panel Admin → Administración');
+      toast('Sin timbrado configurado. Configurá uno en Panel Admin → Administración');
       return;
     }
   }
@@ -600,7 +600,7 @@ function renderTimbradoBanner(el, selected, todos) {
   let certAlert = '';
   if (selected && selected.tipo === 'electronico' && selected.cert_venc) {
     const dias = Math.ceil((new Date(selected.cert_venc + ' 00:00:00') - new Date()) / (1000 * 60 * 60 * 24));
-    if (dias <= 30) certAlert = '<div style="font-size:11px;color:var(--orange);margin-top:4px;">⚠️ Certificado vence en ' + dias + ' días</div>';
+    if (dias <= 30) certAlert = '<div style="font-size:11px;color:var(--orange);margin-top:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ Certificado vence en ' + dias + ' días</div>';
   }
 
   el.style.display = 'block';
@@ -727,7 +727,7 @@ async function consultarRuc() {
         const c = data[0];
         document.getElementById('factNombre').value = c.razon_social;
         document.getElementById('factRuc').value    = c.ruc + (c.dv ? '-' + c.dv : '');
-        setRucStatus('✓ ' + c.razon_social + (c.estado !== 'ACTIVO' ? ' (' + c.estado + ')' : ''), c.estado === 'ACTIVO' ? 'ok' : 'warn');
+        setRucStatus('' + c.razon_social + (c.estado !== 'ACTIVO' ? ' (' + c.estado + ')' : ''), c.estado === 'ACTIVO' ? 'ok' : 'warn');
         if(typeof hablarRazonSocial === 'function') hablarRazonSocial(c.razon_social);
         encontrado = true;
       }
@@ -746,7 +746,7 @@ async function consultarRuc() {
           const c = data2[0];
           document.getElementById('factNombre').value = c.razon_social;
           document.getElementById('factRuc').value    = c.ruc + (c.dv ? '-' + c.dv : '');
-          setRucStatus('✓ ' + c.razon_social + (c.estado !== 'ACTIVO' ? ' (' + c.estado + ')' : ''), c.estado === 'ACTIVO' ? 'ok' : 'warn');
+          setRucStatus('' + c.razon_social + (c.estado !== 'ACTIVO' ? ' (' + c.estado + ')' : ''), c.estado === 'ACTIVO' ? 'ok' : 'warn');
           if(typeof hablarRazonSocial === 'function') hablarRazonSocial(c.razon_social);
           encontrado = true;
         }
@@ -758,7 +758,7 @@ async function consultarRuc() {
       const demo = RUC_DEMO[rucLimpio] || RUC_DEMO[rucLimpio.slice(0, -1)];
       if (demo) {
         document.getElementById('factNombre').value = demo.nombre;
-        setRucStatus('✓ ' + demo.nombre, 'ok');
+        setRucStatus('' + demo.nombre, 'ok');
         if(typeof hablarRazonSocial === 'function') hablarRazonSocial(demo.nombre);
         encontrado = true;
       }
@@ -851,7 +851,7 @@ async function confirmarPago() {
     const tim      = timbradoSeleccionado || getTimbradoActivo();
 
     if (!tim) {
-      toast('⚠️ Sin timbrado configurado. No se puede emitir factura.');
+      toast('Sin timbrado configurado. No se puede emitir factura.');
       return;
     }
     // Si no se ingresó cliente, facturar como consumidor final (DNIT)

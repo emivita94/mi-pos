@@ -364,7 +364,7 @@ async function iniciarApp(){
         localStorage.setItem('pos_deposito_id', String(dd[0].id));
         cookieSet('pos_dep_id', String(dd[0].id), 365);
         console.log('[App] Depósito restaurado:', dd[0].id);
-        toast('✓ Depósito listo (ID '+dd[0].id+')');
+        toast('Depósito listo (ID '+dd[0].id+')');
       }catch(e){ console.warn('[App] Error recuperando depósito:', e.message); }
     }, 4000);
   }
@@ -526,7 +526,7 @@ function guardarDepositoId(){
     sucursal_id: sucId || localStorage.getItem('pos_sucursal_id'),
     deposito_id: depId,
   }).catch(e=>{ console.warn('[Terminal] Error guardando config en Supabase:', e && e.message); });
-  toast('✓ Depósito ID '+depId+' guardado');
+  toast('Depósito ID '+depId+' guardado');
   renderGeneralInfo();
 }
 
@@ -595,8 +595,8 @@ async function renderVentasList(){
             <div class="venta-card-info">
               <div class="venta-card-titulo">
                 Ticket #${String(t.nro||i+1).padStart(4,'0')}
-                ${esPresupuesto ? `<span style="font-size:11px;background:rgba(103,58,183,.15);color:#9c27b0;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">📋 Presupuesto</span>` : ''}
-                ${t.esSatelite ? `<span style="font-size:11px;background:rgba(83,74,183,.15);color:#534AB7;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">📡 ${t.terminalOrigen||'Satélite'}</span>` : ''}
+                ${esPresupuesto ? `<span style="font-size:11px;background:rgba(103,58,183,.15);color:#9c27b0;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Presupuesto</span>` : ''}
+                ${t.esSatelite ? `<span style="font-size:11px;background:rgba(83,74,183,.15);color:#534AB7;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> ${t.terminalOrigen||'Satélite'}</span>` : ''}
                 ${t.obs?' — '+t.obs:''}
               </div>
               <div class="venta-card-sub">${fecha} · ${items.length} artículo${items.length!==1?'s':''}</div>
@@ -611,7 +611,7 @@ async function renderVentasList(){
             ${itemsHTML}
             <div class="venta-det-footer">
               <span class="venta-det-badge ${esPresupuesto?'':'pendiente'}" style="${esPresupuesto?'background:rgba(103,58,183,.15);color:#9c27b0;':''}">
-                ${esPresupuesto?'📋 Presupuesto':'⏱ Pendiente'}
+                ${esPresupuesto?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Presupuesto':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pendiente'}
               </span>
               <div><span class="venta-det-total-lbl">Total </span><span class="venta-det-total-val">${gs(t.total)}</span></div>
             </div>
@@ -620,7 +620,7 @@ async function renderVentasList(){
                 onclick="${!esPresupuesto && !presupuestosHabilitados() ? `toast('Presupuestos deshabilitados. Habilitá la función en Config → General')` : `marcarPresupuesto(${i},${!esPresupuesto})`}">
                 ${esPresupuesto
                   ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Marcar pendiente`
-                  : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ${presupuestosHabilitados()?'Marcar presupuesto':'🔒 Presupuesto'}`}
+                  : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ${presupuestosHabilitados()?'Marcar presupuesto':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Presupuesto'}`}
               </button>
               ${esPresupuesto ? `
               <button class="venta-act-btn" style="flex:1;background:rgba(33,150,243,.1);color:#2196f3;border:1.5px solid rgba(33,150,243,.25);" onclick="imprimirPresupuesto(${i})">
@@ -727,18 +727,18 @@ async function renderVentasList(){
 
     // Badges de estado
     const badgeEstado = anulada
-      ? `<span class="venta-det-badge anulada">✕ Anulada</span>`
-      : `<span class="venta-det-badge cobrado">✓ Cobrado</span>`;
+      ? `<span class="venta-det-badge anulada"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Anulada</span>`
+      : `<span class="venta-det-badge cobrado"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Cobrado</span>`;
     const badgeFactura = facturada
       ? (v.factura_anulada
-          ? `<span class="venta-det-badge" style="background:rgba(239,83,80,.1);color:#ef5350;margin-left:6px;text-decoration:line-through;">🧾 ${nroFact||'FAC'} ANULADA</span>`
-          : `<span class="venta-det-badge" style="background:rgba(33,150,243,.12);color:#2196f3;margin-left:6px;">🧾 ${nroFact||'Facturada'}</span>`)
+          ? `<span class="venta-det-badge" style="background:rgba(239,83,80,.1);color:#ef5350;margin-left:6px;text-decoration:line-through;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> ${nroFact||'FAC'} ANULADA</span>`
+          : `<span class="venta-det-badge" style="background:rgba(33,150,243,.12);color:#2196f3;margin-left:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> ${nroFact||'Facturada'}</span>`)
       : `<span class="venta-det-badge" style="background:var(--bg);color:var(--muted);border:1px solid var(--border);margin-left:6px;">Sin factura</span>`;
 
     // Info de factura en detalle
     const facturaDetalle = facturada ? `
       <div style="background:rgba(33,150,243,.06);border:1px solid rgba(33,150,243,.2);border-radius:6px;padding:8px 12px;margin-top:8px;margin-bottom:4px;font-size:12px;">
-        <div style="font-weight:700;color:#2196f3;margin-bottom:4px;">🧾 Factura ${nroFact}</div>
+        <div style="font-weight:700;color:#2196f3;margin-bottom:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> Factura ${nroFact}</div>
         ${rucFact ? `<div style="color:var(--text);">RUC: <b>${rucFact}</b>${nombreFact?' · '+nombreFact:''}</div>` : ''}
       </div>` : '';
 
@@ -778,7 +778,7 @@ async function renderVentasList(){
           <div class="venta-card-info">
             <div class="venta-card-titulo">
               Venta #${v.id||i+1}
-              ${facturada ? ` <span style="font-size:11px;background:${v.factura_anulada?'rgba(239,83,80,.15)':'rgba(33,150,243,.15)'};color:${v.factura_anulada?'#ef5350':'#2196f3'};padding:1px 6px;border-radius:10px;font-weight:700;">${v.factura_anulada?'🧾 ANULADA':'🧾 '+( nroFact||'FAC')}</span>` : ''}
+              ${facturada ? ` <span style="font-size:11px;background:${v.factura_anulada?'rgba(239,83,80,.15)':'rgba(33,150,243,.15)'};color:${v.factura_anulada?'#ef5350':'#2196f3'};padding:1px 6px;border-radius:10px;font-weight:700;">${v.factura_anulada?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> ANULADA':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> '+( nroFact||'FAC')}</span>` : ''}
               ${anulada ? ` <span style="font-size:11px;color:#ef5350;font-weight:700;">ANULADA</span>` : ''}
             </div>
             <div class="venta-card-sub">${fecha} · ${items.length} artículo${items.length!==1?'s':''}${rucFact?' · '+rucFact:''}</div>
@@ -838,7 +838,7 @@ async function anularVenta(id){
 
       ${tieneFac ? `
         <div style="background:rgba(239,83,80,.08);border:1px solid rgba(239,83,80,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;">
-          <div style="font-size:12px;font-weight:800;color:#ef5350;margin-bottom:4px;">⚠️ Esta venta tiene factura asociada</div>
+          <div style="font-size:12px;font-weight:800;color:#ef5350;margin-bottom:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ Esta venta tiene factura asociada</div>
           <div style="font-size:12px;color:var(--text);">Factura <b>${nroFac||'—'}</b>${rucFac?' · RUC '+rucFac:''}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:4px;">La factura quedará marcada como anulada en el registro.</div>
         </div>` : ''}
@@ -1103,7 +1103,7 @@ function hideSplash(){
     ]) : Promise.resolve(),
   ]);
 
-  splashStatus('Listo ✓');
+  splashStatus('Listo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
 
   if(ok) {
     await iniciarApp();

@@ -47,7 +47,7 @@ function renderDescList(){
 
   if(!descs.length){
     list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">'+
-      '<div style="font-size:32px;margin-bottom:8px;">🏷️</div>'+
+      '<div style="font-size:32px;margin-bottom:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>'+
       'Sin descuentos creados<br>'+
       '<span style="font-size:12px;">Tocá + para crear uno</span></div>';
     return;
@@ -68,7 +68,7 @@ function renderDescList(){
       '</div>'+
       '<button onclick="event.stopPropagation();eliminarDesc('+d.id+')" '+
         'style="background:rgba(239,83,80,.1);border:1px solid var(--red);border-radius:6px;'+
-        'color:var(--red);font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;">✕</button>'+
+        'color:var(--red);font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
     '</div>';
   }).join('');
 }
@@ -476,13 +476,13 @@ async function cropConfirmar(){
       } catch(e){/* IndexedDB cache write — no afecta funcionalidad */}
     }
     console.log('[Imagen] Subida OK:', publicUrl);
-    toast('✅ Imagen guardada');
+    toast('Imagen guardada');
   } catch(e){
     console.warn('[Imagen] Error Storage:', e.message);
     // Fallback: usar el base64 del canvas localmente
     artImagenBase64 = previewUrl;
     mostrarPreviewImagen(previewUrl, false);
-    toast('⚠️ Sin internet — imagen guardada localmente');
+    toast('Sin internet — imagen guardada localmente');
   }
 }
 
@@ -540,7 +540,7 @@ async function quitarImagen(){
       });
       if(db) try { await db.config.delete('img_cache_'+imgAnterior); } catch(e){/* IndexedDB cache cleanup — no afecta funcionalidad */}
       console.log('[Imagen] Eliminada del Storage:', oldPath);
-      toast('🗑 Imagen eliminada');
+      toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Imagen eliminada');
     } catch(e){ console.warn('[Imagen] Error borrando:', e.message); toast('Error al eliminar imagen'); }
   }
   window._artImagenAnterior = null;
@@ -618,7 +618,7 @@ function buildArtItem(p, inact){
 
   div.innerHTML =
     '<div class="art-item-color" style="background:'+(inact?'#2a2a2a':getProductColor(p))+'">'+
-      '<span style="font-size:11px;font-weight:700;">'+(inact?'✕':p.name.substring(0,2))+'</span>'+
+      '<span style="font-size:11px;font-weight:700;">'+(inact?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>':p.name.substring(0,2))+'</span>'+
     '</div>'+
     '<div class="art-item-info">'+
       '<div class="art-item-name">'+p.name+
@@ -675,7 +675,7 @@ async function reactivarArticulo(prodIdx){
 
   filterP();
   renderArtList();
-  toast('✓ "'+p.name+'" reactivado');
+  toast('"'+p.name+'" reactivado');
 }
 
 function filterArts(){
@@ -1346,7 +1346,7 @@ function renderModifOpciones(){
         oninput="modifOpciones[${i}].precio_adicional=parseInt(this.value)||0"
         style="flex:1;margin:0;">
       <button onclick="modifOpciones.splice(${i},1);renderModifOpciones();"
-        style="background:rgba(229,57,53,.12);border:none;border-radius:6px;color:#e53935;padding:8px 10px;cursor:pointer;flex-shrink:0;">✕</button>
+        style="background:rgba(229,57,53,.12);border:none;border-radius:6px;color:#e53935;padding:8px 10px;cursor:pointer;flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
   `).join('');
 }
@@ -1361,7 +1361,7 @@ function renderModifProductos(){
       style="padding:10px;border-radius:8px;border:2px solid ${sel?'var(--green)':'var(--border)'};
       background:${sel?'rgba(76,175,80,.08)':'var(--bg-card)'};cursor:pointer;font-size:12px;font-weight:700;
       color:var(--text);text-align:center;">
-      ${sel?'✓ ':''} ${p.name}
+      ${sel?'':''} ${p.name}
     </div>`;
   }).join('');
 }
@@ -1409,7 +1409,7 @@ async function guardarModif(){
     }
 
     await cargarModificadores();
-    toast('✅ Modificador guardado');
+    toast('Modificador guardado');
     goTo('scModificadores');
     renderModifList();
   } catch(e){
@@ -1604,7 +1604,7 @@ function _renderFlujoSheet(){
             </div>
             <div style="width:20px;height:20px;border:1.5px solid ${sel?'var(--green)':'var(--border2)'};
               background:${sel?'var(--green)':'transparent'};display:flex;align-items:center;
-              justify-content:center;color:#fff;font-size:11px;border-radius:0;">${sel?'✓':''}</div>
+              justify-content:center;color:#fff;font-size:11px;border-radius:0;">${sel?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
           </div>`;
         }).join('')}
       </div>

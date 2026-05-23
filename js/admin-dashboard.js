@@ -490,12 +490,12 @@ async function loadDashChartsData(f){
     });
     var pEntries=Object.entries(pagosMap).sort(function(a,b){return b[1].tot-a[1].tot;});
     var pColores={'EFECTIVO':'var(--green)','POS':'var(--blue)','TRANSFERENCIA':'var(--orange)'};
-    var pIconos={'EFECTIVO':'💵','POS':'💳','TRANSFERENCIA':'🏦'};
+    var pIconos={'EFECTIVO':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>','POS':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>','TRANSFERENCIA':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>'};
     if($$('pagosCards')){
       $$('pagosCards').innerHTML=pEntries.length?pEntries.map(function(e){
         var pct=tot>0?Math.round(e[1].tot/tot*100):0;
         var col=pColores[e[0]]||'var(--muted)';
-        var ico=pIconos[e[0]]||'💰';
+        var ico=pIconos[e[0]]||'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>';
         return '<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;">'+
           '<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+col+';"></div>'+
           '<div style="font-size:20px;margin-bottom:6px;">'+ico+'</div>'+
@@ -1097,7 +1097,7 @@ function vAnularVenta(id){
       +'</div>'
     +'</div>'
     +(tieneFac
-      ?'<div style="background:var(--r2);border:1px solid rgba(239,83,80,.35);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--red);font-weight:700">⚠ Esta venta tiene factura asociada. Quedará marcada como anulada en los reportes.</div>'
+      ?'<div style="background:var(--r2);border:1px solid rgba(239,83,80,.35);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--red);font-weight:700"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Esta venta tiene factura asociada. Quedará marcada como anulada en los reportes.</div>'
       :'')
     +'<div style="background:rgba(255,152,0,.08);border:1px solid var(--orange);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text);line-height:1.5">'
       +'<strong style="color:var(--orange)">Importante:</strong> esta acción <strong>NO revierte stock automáticamente</strong>. Si la venta había descontado mercadería, ajustá desde Inventarios → Movimientos.'
@@ -1125,7 +1125,7 @@ async function vAnularVentaConfirmar(id){
       motivo_anulacion: motivo.trim().substring(0,500)
     });
     var ov = document.getElementById('vAnulOv'); if(ov) ov.remove();
-    toast('✓ Venta anulada');
+    toast('Venta anulada');
     // Refrescar la lista
     if(typeof loadVData === 'function') loadVData(filtroV||'hoy');
   }catch(e){
@@ -1229,7 +1229,7 @@ async function renderTerminales(){
       m[k].activ_id=a.id;
     });
     var items=Object.values(m);
-    if(!items.length){document.getElementById('terBody').innerHTML='<div class="empty"><div class="empty-i">📱</div><div class="empty-t">Sin terminales registradas</div></div>';return;}
+    if(!items.length){document.getElementById('terBody').innerHTML='<div class="empty"><div class="empty-i"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div><div class="empty-t">Sin terminales registradas</div></div>';return;}
     document.getElementById('terBody').innerHTML='<div class="tg">'+items.map(function(t){
       var ul=t.ul?new Date(t.ul):null;
       var on=ul&&(now-ul)<25*3600000;

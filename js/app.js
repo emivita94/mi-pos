@@ -95,7 +95,7 @@ function renderGeneralInfo(){
   const depId2    = localStorage.getItem('pos_deposito_id') || '—';
   const termId    = localStorage.getItem('pos_terminal_id') || '—';
   const dbVer     = localStorage.getItem('pos_db_version') || '—';
-  const online    = navigator.onLine ? '✓ Online' : '✗ Offline';
+  const online    = navigator.onLine ? 'Online' : 'Offline';
   const ua        = navigator.userAgent.match(/Chrome\/([\d.]+)/);
   const chrome    = ua ? 'Chrome '+ua[1] : navigator.userAgent.substring(0,40);
   const pwaMode   = window.matchMedia('(display-mode: standalone)').matches ? 'PWA (standalone)' : 'Navegador';
@@ -107,7 +107,7 @@ function renderGeneralInfo(){
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff9800" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span style="font-size:10px;font-weight:800;color:#ff9800;letter-spacing:1px;text-transform:uppercase;">Diagnóstico</span>
         </div>
-        <button onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('diagPanel').innerText).then(()=>toast('✓ Copiado'))" style="background:none;border:1px solid #333;border-radius:6px;color:#777;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;font-family:Barlow,sans-serif;">COPIAR</button>
+        <button onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('diagPanel').innerText).then(()=>toast('Copiado'))" style="background:none;border:1px solid #333;border-radius:6px;color:#777;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;font-family:Barlow,sans-serif;">COPIAR</button>
       </div>
       <div id="diagPanel" style="padding:10px 14px;display:flex;flex-direction:column;gap:5px;font-family:monospace;font-size:12px;">
         <div style="display:flex;justify-content:space-between;"><span style="color:#777;">Licencia ID</span><span style="color:#fff;font-weight:700;">${licId}</span></div>
@@ -195,7 +195,7 @@ function toggleAsistenteConfig(){
   if(!chk || typeof asistenteHabilitadoSet !== 'function') return;
   asistenteHabilitadoSet(chk.checked);
   if(chk.checked){
-    if(typeof toast === 'function') toast('🎤 Asistente activado — tocá el botón verde abajo');
+    if(typeof toast === 'function') toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Asistente activado — tocá el botón verde abajo');
   } else {
     if(typeof toast === 'function') toast('Asistente desactivado');
   }
@@ -240,7 +240,7 @@ function poblarSelectorVoces(filtro){
   var html = '';
   filtradas.forEach(function(v, idx){
     var g = generoVoz(v);
-    var icon = g === 'female' ? '♀ ' : (g === 'male' ? '♂ ' : '• ');
+    var icon = g === 'female' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="9" r="6"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="9" y1="19" x2="15" y2="19"/></svg> ' : (g === 'male' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="10" cy="14" r="5"/><line x1="14" y1="10" x2="20" y2="4"/><polyline points="14 4 20 4 20 10"/></svg> ' : '• ');
     // Usar el índice como value para poder mapear luego al objeto voz completo
     var isSel = (actualURI && v.voiceURI === actualURI) ||
                 (!actualURI && actualName && v.name === actualName);
@@ -314,7 +314,7 @@ function updBtnComandaCobro(){
     badgeEl.textContent = pendientes;
     badgeEl.style.display = pendientes > 0 ? 'inline-flex' : 'none';
   }
-  // Badge en botón 🍳 de pantalla de venta
+  // Badge en botón <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M12 22c-4.97 0-9-4.03-9-9 0-6 5-13 9-13s9 7 9 13c0 4.97-4.03 9-9 9z"/></svg> de pantalla de venta
   const badge2 = document.getElementById('comandaBadge2');
   if(badge2){
     badge2.textContent = pendientes;
@@ -371,7 +371,7 @@ function renderConfigInfo(){
           <span style="font-size:13px;font-weight:700;color:#fff;font-family:monospace;">${pad3(tim.sucursal)}-${pad3(tim.punto_exp)}-${padN(tim.nro_actual||tim.desde||1)}</span>
         </div>` : `
         <div style="border-top:1px solid #2a2a2a;padding-top:8px;">
-          <span style="font-size:12px;color:#ef5350;">⚠️ Sin timbrado asignado</span>
+          <span style="font-size:12px;color:#ef5350;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ Sin timbrado asignado</span>
         </div>`}
       </div>
     </div>
@@ -463,10 +463,10 @@ function renderTkt(){
     return;
   }
   tl.innerHTML = bannerLectura + headerCliente + cart.map(i=>i.esDescuento
-    ? `<div class="titem" style="border-left:2px solid #ef5350;"><div class="tiname" style="color:#ef9a9a;">${i.name}</div><div class="tictrl"><button class="qbtn" onclick="chgQty(${i.lineId},-1)">✕</button></div><div class="tiprice" style="color:#ef5350;">-${gs(i.montoDesc)}</div></div>`
+    ? `<div class="titem" style="border-left:2px solid #ef5350;"><div class="tiname" style="color:#ef9a9a;">${i.name}</div><div class="tictrl"><button class="qbtn" onclick="chgQty(${i.lineId},-1)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="tiprice" style="color:#ef5350;">-${gs(i.montoDesc)}</div></div>`
     : `<div class="titem" style="${i.enviado?'opacity:.6;':''}">`+
         `<div class="tiname">`+
-          (i.enviado ? '<span style="font-size:9px;color:#4caf50;font-weight:700;letter-spacing:.3px;text-transform:uppercase;display:block;line-height:1.2;">✓ enviado</span>' : '')+
+          (i.enviado ? '<span style="font-size:9px;color:#4caf50;font-weight:700;letter-spacing:.3px;text-transform:uppercase;display:block;line-height:1.2;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> enviado</span>' : '')+
           i.name+
           (i.obs?'<div style="font-size:11px;color:#888;font-weight:400;text-transform:none;margin-top:2px;">'+i.obs+'</div>':'')+
         `</div>`+
@@ -527,7 +527,7 @@ async function doOpenShift(){
   }
   // Persistir en localStorage DESPUÉS de tener el dbId
   turnoGuardar();
-  goTo('scSale'); renderCatPills(); filterP(); toast('Turno abierto ✓');
+  goTo('scSale'); renderCatPills(); filterP(); toast('Turno abierto <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -618,7 +618,7 @@ function renderCatPills(){
   const cats = [todos, ...CATEGORIAS.map(c=>c.nombre)];
   const hasDescs = (typeof DESCUENTOS!=='undefined' && DESCUENTOS.filter(d=>d.activo!==false).length) ||
     PRODS.filter(p=>p.cat==='Descuentos'&&p.activo!==false).length;
-  if(hasDescs) cats.push('🏷️ Descuentos');
+  if(hasDescs) cats.push('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Descuentos');
   bar.innerHTML = cats.map(function(c){
     const sel = curCat===c ? ' sel' : '';
     return '<button class="cat-pill'+sel+'" onclick="pickCat(this)">'+c+'</button>';
@@ -716,11 +716,11 @@ async function recargarCategoriasAhora(){
         data.forEach(function(c){
           CATEGORIAS.push({ id:c.id, nombre:c.nombre, color:c.color||'#546e7a' });
         });
-        resultHtml += '<div style="color:#4caf50;">✓ '+CATEGORIAS.length+' categorías cargadas manualmente</div>'
+        resultHtml += '<div style="color:#4caf50;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> '+CATEGORIAS.length+' categorías cargadas manualmente</div>'
           + '<div style="margin-top:8px;">'+CATEGORIAS.map(function(c){return c.nombre;}).join(', ')+'</div>'
           + '<button onclick="document.getElementById(\'catOv\').classList.remove(\'open\');filterP();" style="margin-top:16px;background:var(--green);border:none;border-radius:6px;color:#fff;padding:12px 24px;font-weight:800;cursor:pointer;">CERRAR Y APLICAR</button>';
       } else {
-        resultHtml += '<div style="color:#ef5350;">⚠ Supabase devolvió ' + (Array.isArray(data) ? '0' : 'algo raro') + '</div>'
+        resultHtml += '<div style="color:#ef5350;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Supabase devolvió ' + (Array.isArray(data) ? '0' : 'algo raro') + '</div>'
           + '<div style="margin-top:8px;color:#999;">Posibles causas:<br>'
           + '• Email no coincide con el de Supabase<br>'
           + '• RLS policy bloquea SELECT en pos_categorias<br>'
@@ -777,7 +777,7 @@ function _filterPInternal(){
   const q = document.getElementById('sinput').value.toLowerCase();
 
   // Categoría especial: Descuentos
-  if(curCat==='Descuentos' || curCat==='🏷️ Descuentos'){
+  if(curCat==='Descuentos' || curCat==='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Descuentos'){
     renderDescuentosTiles();
     return;
   }
@@ -1708,7 +1708,7 @@ async function _guardarConfigSupabase(){
       }),
     };
     await supaPost('pos_config', payload, 'licencia_email,clave', true);
-    console.log('[Config] Guardado en Supabase ✓');
+    console.log('[Config] Guardado en Supabase <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
     return true;
   } catch(e){
     console.warn('[Config] Error guardando en Supabase:', e.message);
@@ -1735,8 +1735,8 @@ function _marcarNegocioDirty(){
 // ── GUARDAR EXPLÍCITO DE DATOS DEL NEGOCIO ──
 // El usuario toca el botón "Guardar datos" y ve feedback claro:
 // - Spinner mientras guarda
-// - ✓ verde + "Guardado en la nube" al terminar
-// - ✗ rojo + mensaje de error si falla
+// - <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> verde + "Guardado en la nube" al terminar
+// - <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> rojo + mensaje de error si falla
 // - Horario del último guardado exitoso
 async function guardarNegocioAhora(){
   // 1. Leer valores actuales de los inputs
@@ -1774,16 +1774,16 @@ async function guardarNegocioAhora(){
       btn.style.background = 'var(--green)';
       btn.style.boxShadow  = '0 3px 10px rgba(76,175,80,.3)';
     }
-    if(txt) txt.textContent = '✓ GUARDADO';
+    if(txt) txt.textContent = 'GUARDADO';
     if(status){
       var ahora = new Date();
       var hh = String(ahora.getHours()).padStart(2,'0');
       var mm = String(ahora.getMinutes()).padStart(2,'0');
-      status.textContent = '✓ Guardado en la nube · ' + hh + ':' + mm;
+      status.textContent = 'Guardado en la nube · ' + hh + ':' + mm;
       status.style.color = 'var(--green)';
       localStorage.setItem('pos_negocio_last_sync', ahora.toISOString());
     }
-    if(typeof toast === 'function') toast('✓ Datos del negocio guardados');
+    if(typeof toast === 'function') toast('Datos del negocio guardados');
     // Restablecer el texto del botón después de 2 segundos
     setTimeout(function(){
       if(btn) { btn.disabled = false; btn.style.opacity = '1'; }
@@ -1791,12 +1791,12 @@ async function guardarNegocioAhora(){
     }, 2000);
   } catch(e){
     // 6. Error
-    if(txt) txt.textContent = '✗ ERROR';
+    if(txt) txt.textContent = 'ERROR';
     if(status){
-      status.textContent = '✗ No se pudo sincronizar: ' + (e.message || 'sin detalle') + ' — se guardó localmente';
+      status.textContent = 'No se pudo sincronizar: ' + (e.message || 'sin detalle') + ' — se guardó localmente';
       status.style.color = '#e53935';
     }
-    if(typeof toast === 'function') toast('⚠ Error al sincronizar — guardado solo local');
+    if(typeof toast === 'function') toast('Error al sincronizar — guardado solo local');
     setTimeout(function(){
       if(btn) { btn.disabled = false; btn.style.opacity = '1'; }
       if(txt) txt.textContent = 'REINTENTAR';

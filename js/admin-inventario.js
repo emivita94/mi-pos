@@ -332,7 +332,7 @@ function renderInvShell(){
       +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:520px;margin:0 auto;overflow:hidden">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">'
           +'<div style="font-size:17px;font-weight:800">Transferir stock entre depósitos</div>'
-          +'<button onclick="cerrarTransModal()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:8px 14px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700">✕</button>'
+          +'<button onclick="cerrarTransModal()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:8px 14px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
         +'</div>'
         +'<div style="padding:20px">'
           +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
@@ -994,7 +994,7 @@ async function ejecutarTransferencia(){
     if(rowsDest&&rowsDest.length) await supaPatch('stock','id=eq.'+rowsDest[0].id,{cantidad:qDestNueva,updated_at:ts});
     else await supaPost('stock',{licencia_id:_inv.licId,deposito_id:destinoId,sucursal_id:depDestino.sucursal_id,producto_id:prodId,nombre_producto:prodNom,cantidad:qDestNueva},null);
 
-    toast('✓ Transferencia realizada: '+cant+' unidades');
+    toast('Transferencia realizada: '+cant+' unidades');
     cerrarTransModal();
     // Refrescar si el depósito activo es origen o destino
     if(_inv.sel.depId===origenId||_inv.sel.depId===destinoId) await cargarStockDeposito();
@@ -1141,7 +1141,7 @@ async function renderExtracto(){
       +'</div>'
     +'</div>'
     +'<div id="extEmpty" style="display:none" class="empty">'
-      +'<div class="empty-i">📊</div>'
+      +'<div class="empty-i"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>'
       +'<div class="empty-t">Sin movimientos</div>'
       +'<div class="empty-s">No hay movimientos para el período y filtros seleccionados</div>'
     +'</div>';
@@ -1519,7 +1519,7 @@ async function renderCompras(tab){
   c.innerHTML='<div class="loading"><span class="sp"></span>Cargando...</div>';
   try{ await movCargarMaestros(); } catch(e){ c.innerHTML='<div style="padding:24px;color:var(--red)">Error: '+e.message+'</div>'; return; }
   var tabs='<div class="admin-tabs">'
-    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderCompras(&apos;lista&apos;)">📋 Lista de compras</button>'
+    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderCompras(&apos;lista&apos;)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Lista de compras</button>'
     +'<button class="atab'+(tab==='nuevo'?' on':'')+'" onclick="renderCompras(&apos;nuevo&apos;)">+ Nueva compra</button>'
     +'</div>';
   if(tab==='lista'){
@@ -1545,7 +1545,7 @@ async function renderMovStock(tab){
   c.innerHTML='<div class="loading"><span class="sp"></span>Cargando...</div>';
   try{ await movCargarMaestros(); } catch(e){ c.innerHTML='<div style="padding:24px;color:var(--red)">Error: '+e.message+'</div>'; return; }
   var tabs='<div class="admin-tabs">'
-    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderMovStock(&apos;lista&apos;)">📋 Lista de movimientos</button>'
+    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderMovStock(&apos;lista&apos;)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Lista de movimientos</button>'
     +'<button class="atab'+(tab==='nuevo'?' on':'')+'" onclick="renderMovStock(&apos;nuevo&apos;)">+ Nuevo movimiento</button>'
     +'</div>';
   if(tab==='lista'){
@@ -1672,7 +1672,7 @@ function movBuildShell(cfg){
     // ── Botones ──
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:24px">'
       +'<button onclick="movLimpiar()" class="btn-dn" style="padding:12px 24px">Cancelar</button>'
-      +'<button onclick="movGuardar()" class="btn-sv" style="padding:12px 32px;font-size:14px">💾 GUARDAR</button>'
+      +'<button onclick="movGuardar()" class="btn-sv" style="padding:12px 32px;font-size:14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> GUARDAR</button>'
     +'</div>'
   );
 }
@@ -1783,7 +1783,7 @@ function movRenderGrilla(){
     totalCosto+=subtotal;
     return '<tr>'
       +'<td style="text-align:center">'
-        +'<button onclick="movQuitarItem('+i+')" style="background:var(--r2);border:1px solid var(--red);border-radius:5px;color:var(--red);cursor:pointer;padding:3px 7px;font-size:12px;font-weight:700">✕</button>'
+        +'<button onclick="movQuitarItem('+i+')" style="background:var(--r2);border:1px solid var(--red);border-radius:5px;color:var(--red);cursor:pointer;padding:3px 7px;font-size:12px;font-weight:700"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
       +'</td>'
       +'<td><div style="display:flex;align-items:center;gap:8px">'
         +'<div style="width:24px;height:24px;border-radius:5px;background:'+it.color+';flex-shrink:0"></div>'
@@ -1924,10 +1924,10 @@ async function movGuardar(){
     if(tipo==='transferencia'){
       await procesarLado(depSalidaId, -1, 'transferencia_salida');
       await procesarLado(depEntradaId, +1, 'transferencia_entrada');
-      toast('✓ Transferencia guardada — '+_mov.items.length+' productos');
+      toast('Transferencia guardada — '+_mov.items.length+' productos');
     } else if(tipo==='salida'){
       await procesarLado(depSalidaId, -1, 'salida');
-      toast('✓ Salida guardada — '+_mov.items.length+' productos');
+      toast('Salida guardada — '+_mov.items.length+' productos');
     } else { // compra o entrada
       await procesarLado(depEntradaId, +1, tipo==='compra'?'compra':'entrada');
       // Si es compra: actualizar último costo en pos_productos
@@ -1940,20 +1940,20 @@ async function movGuardar(){
         });
       }
       var totalComp=_mov.items.reduce(function(s,i){return s+(i.cantidad||0)*(i.costo||0);},0);
-      toast('✓ '+(tipo==='compra'?'Compra':'Entrada')+' guardada — '+_mov.items.length+' productos — Total: '+gs(totalComp));
+      toast(''+(tipo==='compra'?'Compra':'Entrada')+' guardada — '+_mov.items.length+' productos — Total: '+gs(totalComp));
     }
 
     // Limpiar e invalidar cache de stock
     _mov.items=[];
     _inv.prds=[]; // forzar recarga en inventarios
     setTimeout(function(){
-      if(btn){btn.disabled=false;btn.textContent='💾 GUARDAR';}
+      if(btn){btn.disabled=false;btn.textContent='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> GUARDAR';}
       if(_mov.modo==='compra') renderCompras('lista'); else renderMovStock('lista');
     },800);
 
   }catch(e){
     toast('Error al guardar: '+e.message);
-    if(btn){btn.disabled=false;btn.textContent='💾 GUARDAR';}
+    if(btn){btn.disabled=false;btn.textContent='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> GUARDAR';}
   }
 }
 
@@ -2124,7 +2124,7 @@ async function movVerDetalle(compId){
   ov.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;width:100%;max-width:620px;overflow:hidden">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">'
       +'<div style="font-size:16px;font-weight:800">Detalle del comprobante</div>'
-      +'<button onclick="document.getElementById(\'movDetOv\').remove()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:7px 13px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700">✕ Cerrar</button>'
+      +'<button onclick="document.getElementById(\'movDetOv\').remove()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:7px 13px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cerrar</button>'
     +'</div>'
     +'<div id="movDetBody" style="padding:20px"><div class="loading"><span class="sp"></span>Cargando...</div></div>'
     +'</div>';
@@ -2211,7 +2211,7 @@ function movConfirmarAnulacion(compId, referencia){
   ov.id='movAnulOv';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1001;display:flex;align-items:center;justify-content:center;padding:20px';
   ov.innerHTML='<div style="background:var(--card);border:1px solid var(--red);border-radius:14px;max-width:420px;width:100%;padding:28px 24px;text-align:center">'
-    +'<div style="font-size:32px;margin-bottom:12px">⚠️</div>'
+    +'<div style="font-size:32px;margin-bottom:12px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️</div>'
     +'<div style="font-size:17px;font-weight:800;margin-bottom:8px">¿Anular comprobante?</div>'
     +'<div style="font-size:13px;color:var(--muted);margin-bottom:6px">Comprobante: <strong>'+(referencia||('#'+compId))+'</strong></div>'
     +'<div style="font-size:13px;color:var(--muted);margin-bottom:20px">Se creará un comprobante inverso que revierte todos los movimientos de stock. Esta acción queda registrada.</div>'
@@ -2309,7 +2309,7 @@ async function movEjecutarAnulacion(compId){
 
     var ovAnul=document.getElementById('movAnulOv');
     if(ovAnul) ovAnul.remove();
-    toast('✓ Comprobante anulado — stock revertido');
+    toast('Comprobante anulado — stock revertido');
 
     // Recargar lista
     var mlBody=document.getElementById('mlBody');
@@ -2338,10 +2338,10 @@ async function abrirReconciliacion(){
     '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:780px;margin:0 auto;overflow:hidden">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">'
         +'<div>'
-          +'<div style="font-size:17px;font-weight:800">🔄 Reconciliación de Stock</div>'
+          +'<div style="font-size:17px;font-weight:800"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M3 12a9 9 0 0 1 15.5-6.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.5L3 16"/><path d="M3 21v-5h5"/></svg> Reconciliación de Stock</div>'
           +'<div style="font-size:12px;color:var(--muted);margin-top:2px">Compara tabla stock vs comprobantes y corrige diferencias</div>'
         +'</div>'
-        +'<button onclick="document.getElementById(\'reconOv\').remove()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:8px 14px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700">✕ Cerrar</button>'
+        +'<button onclick="document.getElementById(\'reconOv\').remove()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:8px 14px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cerrar</button>'
       +'</div>'
       +'<div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);font-size:13px;color:var(--muted)">'
         +'<strong style="color:var(--text)">¿Cómo funciona?</strong> Calcula el saldo real sumando todos los comprobantes por producto+depósito, '
@@ -2428,7 +2428,7 @@ async function reconCargar(){
     if(!diffs.length){
       body.innerHTML=
         '<div style="text-align:center;padding:40px">'
-          +'<div style="font-size:40px;margin-bottom:12px">✅</div>'
+          +'<div style="font-size:40px;margin-bottom:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 16 9"/></svg></div>'
           +'<div style="font-size:16px;font-weight:800;color:var(--green)">Sin diferencias</div>'
           +'<div style="font-size:13px;color:var(--muted);margin-top:6px">La tabla stock coincide exactamente con los comprobantes</div>'
         +'</div>';
@@ -2444,7 +2444,7 @@ async function reconCargar(){
           +'<span style="font-size:15px;font-weight:800;color:var(--red)">'+diffs.length+' diferencia'+(diffs.length===1?'':'s')+' encontrada'+(diffs.length===1?'':'s')+'</span>'
           +'<span style="font-size:12px;color:var(--muted);margin-left:10px">La columna "Comp." es la fuente de verdad</span>'
         +'</div>'
-        +'<button onclick="reconCorregirTodo()" style="background:var(--green);border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer">✓ Corregir todo</button>'
+        +'<button onclick="reconCorregirTodo()" style="background:var(--green);border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Corregir todo</button>'
       +'</div>'
       +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'
         +'<th style="padding:9px 12px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;background:var(--card2)">Producto</th>'
@@ -2474,7 +2474,7 @@ async function reconCargar(){
       }).join('')
       +'</tbody></table></div>'
       +'<div style="margin-top:14px;padding:12px 16px;background:var(--o2);border:1px solid var(--orange);border-radius:8px;font-size:12px;color:var(--orange)">'
-        +'⚠️ <strong>Corregir</strong> actualiza la tabla <code>stock</code> para que coincida con los comprobantes. '
+        +'<strong>Corregir</strong> actualiza la tabla <code>stock</code> para que coincida con los comprobantes. '
         +'Los comprobantes son la fuente de verdad y no se modifican.'
       +'</div>';
 
@@ -2520,9 +2520,9 @@ async function reconAplicarCorrecciones(diffs){
   }
 
   if(errores===0){
-    toast('✓ '+diffs.length+' corrección'+(diffs.length===1?'':'es')+' aplicada'+(diffs.length===1?'':'s'));
+    toast(''+diffs.length+' corrección'+(diffs.length===1?'':'es')+' aplicada'+(diffs.length===1?'':'s'));
   } else {
-    toast('⚠️ '+errores+' error'+(errores===1?'':'s')+' al corregir — revisá la consola');
+    toast(''+errores+' error'+(errores===1?'':'s')+' al corregir — revisá la consola');
   }
 
   // Recargar modal y tabla de inventario
@@ -2567,9 +2567,9 @@ async function renderConteo(tab){
   catch(e){ c.innerHTML='<div style="padding:24px;color:var(--red)">Error: '+e.message+'</div>'; return; }
 
   var tabs='<div class="admin-tabs">'
-    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderConteo(&apos;lista&apos;)">📋 Historial de conteos</button>'
+    +'<button class="atab'+(tab==='lista'?' on':'')+'" onclick="renderConteo(&apos;lista&apos;)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Historial de conteos</button>'
     +'<button class="atab'+(tab==='nuevo'?' on':'')+'" onclick="renderConteo(&apos;nuevo&apos;)">+ Nuevo conteo</button>'
-    +(tab==='activo'?'<button class="atab on">📝 Conteo en curso</button>':'')
+    +(tab==='activo'?'<button class="atab on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Conteo en curso</button>':'')
     +'</div>';
 
   if(tab==='lista'){
@@ -2693,9 +2693,9 @@ function cntRenderFormulario(){
   if(!ct) return;
   var c=document.getElementById('content');
   var tabs='<div class="admin-tabs">'
-    +'<button class="atab" onclick="renderConteo(&apos;lista&apos;)">📋 Historial</button>'
+    +'<button class="atab" onclick="renderConteo(&apos;lista&apos;)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Historial</button>'
     +'<button class="atab" onclick="renderConteo(&apos;nuevo&apos;)">+ Nuevo</button>'
-    +'<button class="atab on">📝 En curso</button>'
+    +'<button class="atab on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> En curso</button>'
     +'</div>';
 
   // Calcular stats
@@ -2721,7 +2721,7 @@ function cntRenderFormulario(){
           +'<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Con diferencia</div>'
         +'</div>'
         +'<button onclick="cntConfirmar()" class="btn-sv" style="padding:10px 20px;font-size:13px" '+(contados===0?'disabled title="Contá al menos un producto"':'')+'>'
-          +'✓ Confirmar y ajustar</button>'
+          +'Confirmar y ajustar</button>'
       +'</div>'
     +'</div>'
     // Barra de progreso
@@ -2892,11 +2892,11 @@ async function cntConfirmar(){
     _cnt.conteoActual=null;
     _inv.prds=[]; // invalidar cache inventario
 
-    toast('✓ Conteo confirmado — '+conAjuste.length+' ajuste'+(conAjuste.length===1?'':'s')+' aplicado'+(conAjuste.length===1?'':'s'));
+    toast('Conteo confirmado — '+conAjuste.length+' ajuste'+(conAjuste.length===1?'':'s')+' aplicado'+(conAjuste.length===1?'':'s'));
     renderConteo('lista');
   }catch(e){
     toast('Error: '+e.message);
-    if(btn){ btn.disabled=false; btn.textContent='✓ Confirmar y ajustar'; }
+    if(btn){ btn.disabled=false; btn.textContent='Confirmar y ajustar'; }
   }
 }
 
@@ -3032,7 +3032,7 @@ async function cntVerDetalle(conteoId){
   ov.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:700px;margin:0 auto;overflow:hidden">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">'
       +'<div style="font-size:16px;font-weight:800">Detalle del conteo</div>'
-      +'<button onclick="document.getElementById(&apos;cntDetOv&apos;).remove()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:7px 13px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700">✕ Cerrar</button>'
+      +'<button onclick="document.getElementById(&apos;cntDetOv&apos;).remove()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;padding:7px 13px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Cerrar</button>'
     +'</div>'
     +'<div id="cntDetBody" style="padding:20px"><div class="loading"><span class="sp"></span></div></div>'
     +'</div>';
@@ -3079,7 +3079,7 @@ async function cntVerDetalle(conteoId){
           +'<td style="padding:9px 12px;text-align:center;font-weight:800;color:'+(i.stock_fisico!==null?difCol:'var(--muted)')+'">'
             +(i.stock_fisico!==null?(dif>0?'+':'')+dif:'—')
           +'</td>'
-          +'<td style="padding:9px 12px;text-align:center">'+(i.ajustado?'<span class="tag tag-g">✓</span>':'<span class="tag tag-gr">—</span>')+'</td>'
+          +'<td style="padding:9px 12px;text-align:center">'+(i.ajustado?'<span class="tag tag-g"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg></span>':'<span class="tag tag-gr">—</span>')+'</td>'
         +'</tr>';
       }).join('')
       +'</tbody></table></div>';

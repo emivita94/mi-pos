@@ -303,7 +303,7 @@ async function licInit(){
           const activ = Array.isArray(rows) && rows[0] ? rows[0] : null;
 
           if(activ && activ.email){
-            console.log('[licInit] ✓ Dispositivo reconocido en Supabase — restaurando sesión...');
+            console.log('[licInit] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Dispositivo reconocido en Supabase — restaurando sesión...');
             console.log('[licInit]   Email:', activ.email, '| Terminal:', activ.nombre_terminal, '| Modo:', activ.modo);
 
             // Restaurar datos de licencia en localStorage
@@ -344,7 +344,7 @@ async function licInit(){
               }catch(e){ console.warn('[licInit] Error recuperando config terminal:', e.message); }
 
               recuperado = true;
-              console.log('[licInit] ✓ Sesión restaurada automáticamente — sin re-registro');
+              console.log('[licInit] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Sesión restaurada automáticamente — sin re-registro');
             } else {
               console.warn('[licInit] Supabase dice que la licencia no está activa para este device');
             }
@@ -474,7 +474,7 @@ async function cargarSucursalesExistentes(email){
   if(!sel) return;
   if(!email || USAR_DEMO){
     // Sin datos reales: dejar el campo listo para escribir nombre libre
-    sel.innerHTML = '<option value="__nuevo__">➕ Nueva sucursal</option>';
+    sel.innerHTML = '<option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva sucursal</option>';
     onSucursalSelChange(sel);
     return;
   }
@@ -524,7 +524,7 @@ async function cargarSucursalesExistentes(email){
       opciones += '<option value="' + (s.id||'__nombre__:'+s.nombre) + '" data-nombre="' + s.nombre.replace(/"/g,'&quot;') + '">'
                + s.nombre + '</option>';
     });
-    opciones += '<option value="__nuevo__">➕ Nueva sucursal</option>';
+    opciones += '<option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva sucursal</option>';
     sel.innerHTML = opciones;
 
     // Si solo hay una, preseleccionarla y disparar cambio
@@ -544,7 +544,7 @@ async function cargarSucursalesExistentes(email){
     console.warn('[Setup] Error cargando sucursales:', e.message);
     // En caso de error, dejar opción de escribir manualmente
     var sel2 = document.getElementById('activadoSucursalSel');
-    if(sel2) sel2.innerHTML = '<option value="__nuevo__">➕ Nueva sucursal</option>';
+    if(sel2) sel2.innerHTML = '<option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nueva sucursal</option>';
     onSucursalSelChange(document.getElementById('activadoSucursalSel'));
   }
 }
@@ -640,7 +640,7 @@ async function _cargarDepositosSel(sucursalId, sucursalNombre){
       opciones += '<option value="' + d.id + '" data-nombre="' + d.nombre.replace(/"/g,'&quot;') + '">'
                + d.nombre + '</option>';
     });
-    opciones += '<option value="__nuevo__">➕ Nuevo depósito</option>';
+    opciones += '<option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo depósito</option>';
     sel.innerHTML = opciones;
 
     // Preseleccionar el primero
@@ -650,7 +650,7 @@ async function _cargarDepositosSel(sucursalId, sucursalNombre){
     console.log('[Setup] Depósitos cargados:', depositos.length);
   } else {
     // Sin depósitos: solo opción nueva
-    sel.innerHTML = '<option value="__nuevo__">➕ Nuevo depósito</option>';
+    sel.innerHTML = '<option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo depósito</option>';
     sel.value = '__nuevo__';
     onDepositoSelChange(sel);
   }
@@ -659,7 +659,7 @@ async function _cargarDepositosSel(sucursalId, sucursalNombre){
 function _limpiarDepositosSel(sucursalId, sucursalNombre){
   var sel = document.getElementById('activadoDepositoSel');
   if(!sel) return;
-  sel.innerHTML = '<option value="__nuevo__">➕ Nuevo depósito</option>';
+  sel.innerHTML = '<option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo depósito</option>';
   sel.value = '__nuevo__';
   onDepositoSelChange(sel);
 }

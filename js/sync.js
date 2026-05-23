@@ -426,9 +426,9 @@ async function syncConSupabase(){
     }
     // Notificar resultado si había pendientes
     if(exitos > 0 && fallos === 0){
-      toast('✅ ' + exitos + ' venta' + (exitos !== 1 ? 's' : '') + ' sincronizada' + (exitos !== 1 ? 's' : ''));
+      toast('' + exitos + ' venta' + (exitos !== 1 ? 's' : '') + ' sincronizada' + (exitos !== 1 ? 's' : ''));
     } else if(fallos > 0){
-      toast('⚠️ ' + exitos + ' sincronizada' + (exitos !== 1 ? 's' : '') + ' — ' + fallos + ' con error. Revisá Configuración → Sincronización');
+      toast('' + exitos + ' sincronizada' + (exitos !== 1 ? 's' : '') + ' — ' + fallos + ' con error. Revisá Configuración → Sincronización');
     }
     // Limpiar cola y actualizar badge
     await limpiarSyncQueue();
@@ -475,11 +475,11 @@ window.addEventListener('online', () => {
   if(db){
     db.sync_queue.where('sincronizado').equals(0).count().then(n => {
       if(n > 0){
-        toast('📶 Conexión restaurada — sincronizando ' + n + ' venta' + (n !== 1 ? 's' : '') + ' pendiente' + (n !== 1 ? 's' : '') + '...');
+        toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Conexión restaurada — sincronizando ' + n + ' venta' + (n !== 1 ? 's' : '') + ' pendiente' + (n !== 1 ? 's' : '') + '...');
       } else {
-        toast('📶 Conexión restaurada');
+        toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Conexión restaurada');
       }
-    }).catch(()=>{ toast('📶 Conexión restaurada'); });
+    }).catch(()=>{ toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Conexión restaurada'); });
   }
   setTimeout(async () => {
     _syncCheckStuck(); // forzar reset si sync anterior quedó trabada
@@ -492,7 +492,7 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
   console.log('[Sync] Sin conexión');
   updSyncBadge();
-  toast('📵 Sin conexión — las ventas se guardan localmente');
+  toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Sin conexión — las ventas se guardan localmente');
 });
 
 // ══════════════════════════════════════════════════════════
@@ -560,7 +560,7 @@ async function renderSyncPanel(){
   html += '<div class="sync-section-title">Estado</div>';
   html += '<div class="sync-stat-row">';
   html += '<span class="sync-stat-label">Conexión</span>';
-  html += '<span class="sync-stat-value" style="color:' + (online ? '#4caf50' : '#e53935') + '">' + (online ? '🟢 En línea' : '🔴 Sin internet') + '</span>';
+  html += '<span class="sync-stat-value" style="color:' + (online ? '#4caf50' : '#e53935') + '">' + (online ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 16 9"/></svg> En línea' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Sin internet') + '</span>';
   html += '</div>';
   html += '<div class="sync-stat-row"><span class="sync-stat-label">Última sync exitosa</span><span class="sync-stat-value" style="font-size:11px;">' + ultimaSync + '</span></div>';
   html += '<div class="sync-stat-row"><span class="sync-stat-label">Ventas pendientes</span><span class="sync-stat-value" style="color:' + (pendientes > 0 ? '#ff9800' : 'var(--text)') + '">' + pendientes + '</span></div>';
@@ -579,8 +579,8 @@ async function renderSyncPanel(){
   if(errores > 0 && db){
     html += '<div class="sync-section">';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
-    html += '<div class="sync-section-title" style="margin-bottom:0;">⚠️ Con error — requieren atención</div>';
-    html += '<button onclick="limpiarErroresSync()" style="background:rgba(229,57,53,.12);border:1.5px solid #e53935;border-radius:8px;color:#e53935;font-family:Barlow,sans-serif;font-size:11px;font-weight:800;padding:5px 12px;cursor:pointer;letter-spacing:.3px;">🗑 Limpiar errores</button>';
+    html += '<div class="sync-section-title" style="margin-bottom:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ Con error — requieren atención</div>';
+    html += '<button onclick="limpiarErroresSync()" style="background:rgba(229,57,53,.12);border:1.5px solid #e53935;border-radius:8px;color:#e53935;font-family:Barlow,sans-serif;font-size:11px;font-weight:800;padding:5px 12px;cursor:pointer;letter-spacing:.3px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Limpiar errores</button>';
     html += '</div>';
     try {
       const items = await db.sync_queue.where('sincronizado').equals(2).limit(20).toArray();
@@ -603,7 +603,7 @@ async function renderSyncPanel(){
   // Items pendientes
   if(pendientes > 0 && db){
     html += '<div class="sync-section">';
-    html += '<div class="sync-section-title">🟡 Pendientes de envío</div>';
+    html += '<div class="sync-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Pendientes de envío</div>';
     try {
       const items = await db.sync_queue.where('sincronizado').equals(0).limit(20).toArray();
       items.forEach(item => {
@@ -622,13 +622,13 @@ async function renderSyncPanel(){
   }
 
   if(pendientes === 0 && errores === 0){
-    html += '<div class="sync-empty">✅ Todo sincronizado<br><span style="font-size:11px;margin-top:4px;display:block;">No hay ventas pendientes de envío</span></div>';
+    html += '<div class="sync-empty"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 16 9"/></svg> Todo sincronizado<br><span style="font-size:11px;margin-top:4px;display:block;">No hay ventas pendientes de envío</span></div>';
   }
 
   // Nota informativa
   html += '<div class="sync-section">';
   html += '<div style="background:rgba(255,152,0,.08);border:1.5px solid rgba(255,152,0,.25);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.5;">';
-  html += '<b style="color:#ff9800;">⚠️ Importante sobre el modo offline</b><br>';
+  html += '<b style="color:#ff9800;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>️ Importante sobre el modo offline</b><br>';
   html += 'Podés vender sin internet — todas las ventas se guardan en tu dispositivo. ';
   html += 'Cuando volvés a conectarte, la app sincroniza automáticamente con la nube. ';
   html += 'Si cerrás la app con ventas pendientes, se enviarán la próxima vez que abras con internet.';
@@ -648,9 +648,9 @@ async function syncManual(){
     await limpiarSyncQueue();
     updSyncBadge();
     renderSyncPanel();
-    toast('✅ Sincronización completada');
+    toast('Sincronización completada');
   } catch(e){
-    toast('⚠️ Error al sincronizar: ' + e.message);
+    toast('Error al sincronizar: ' + e.message);
     renderSyncPanel();
   }
 }
@@ -665,12 +665,12 @@ async function reintentarSyncItem(itemId){
     const tabla = 'pos_' + item.tabla;
     await supaFetch('POST', tabla, datos);
     await db.sync_queue.update(itemId, { sincronizado: 1 });
-    toast('✅ Venta sincronizada correctamente');
+    toast('Venta sincronizada correctamente');
     updSyncBadge();
     renderSyncPanel();
   } catch(e){
     await db.sync_queue.update(itemId, { error_msg: e.message });
-    toast('⚠️ Error: ' + e.message);
+    toast('Error: ' + e.message);
     renderSyncPanel();
   }
 }
@@ -684,7 +684,7 @@ async function limpiarErroresSync(){
     await db.sync_queue.where('sincronizado').equals(2).delete();
     updSyncBadge();
     renderSyncPanel();
-    toast('🗑 ' + n + ' error' + (n !== 1 ? 'es' : '') + ' eliminado' + (n !== 1 ? 's' : ''));
+    toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> ' + n + ' error' + (n !== 1 ? 'es' : '') + ' eliminado' + (n !== 1 ? 's' : ''));
   } catch(e){
     toast('Error al limpiar: ' + e.message);
   }

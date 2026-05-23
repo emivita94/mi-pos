@@ -43,7 +43,7 @@ async function renderImportar(){
           '<div style="font-size:12px;color:var(--muted);margin-top:4px">o hacé clic para seleccionar</div>' +
         '</div>' +
         '<input type="file" id="impFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="impLeerArchivo(this)">' +
-        '<div style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center">💡 Si el archivo tiene columna <code style="background:var(--card2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--blue)">id</code>, esas filas se actualizarán. Sin id = producto nuevo.</div>' +
+        '<div style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg> Si el archivo tiene columna <code style="background:var(--card2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--blue)">id</code>, esas filas se actualizarán. Sin id = producto nuevo.</div>' +
       '</div>' +
     '</div>' +
     '<div id="impPreviewSection" style="display:none">' +
@@ -287,7 +287,7 @@ async function sincronizarCategorias(nombresCateg){
     });
     await supaPost('pos_categorias', payload, 'id');
     console.log('[Import] Categorías creadas:', nuevas);
-    toast('✓ Categorías creadas: '+nuevas.join(', '));
+    toast('Categorías creadas: '+nuevas.join(', '));
   }catch(e){
     console.warn('[Import] Error sincronizando categorías:', e.message);
   }
@@ -350,7 +350,7 @@ async function impConfirmar(){
   document.getElementById('impResultSection').style.display='block';
   document.getElementById('impResultBody').innerHTML=
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
-      '<div style="width:52px;height:52px;border-radius:50%;background:'+(err?'var(--o2)':'var(--g2)')+';display:flex;align-items:center;justify-content:center;font-size:24px">'+(err?'⚠':'✓')+'</div>'+
+      '<div style="width:52px;height:52px;border-radius:50%;background:'+(err?'var(--o2)':'var(--g2)')+';display:flex;align-items:center;justify-content:center;font-size:24px">'+(err?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>')+'</div>'+
       '<div><div style="font-size:18px;font-weight:800;color:var(--text)">'+(err===0?'Importación completa':'Importación con errores')+'</div>'+
       '<div style="font-size:13px;color:var(--muted)">'+ok+' importados'+(err?' · '+err+' fallaron':'')+'</div></div>'+
     '</div>'+
@@ -542,12 +542,12 @@ async function _guardarProd(){
   try{
     if(_prodPanel.prod){
       await supaPatch('pos_productos','id=eq.'+_prodPanel.prod.id+'&licencia_email=ilike.'+encodeURIComponent(SE),payload);
-      toast('✓ Producto actualizado');
+      toast('Producto actualizado');
     } else {
       // pos_productos.id no tiene autoincrement → calcular max+1 desde la DB
       payload.id = await _nextProductoId();
       await supaPost('pos_productos',payload,null,true);
-      toast('✓ Producto creado');
+      toast('Producto creado');
     }
     cerrarProdPanel();
     allPrds=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.false&order=nombre.asc&limit=500');
@@ -730,7 +730,7 @@ function abrirInsumoPanel(ins){
       +'<div style="padding:20px;flex:1;display:flex;flex-direction:column;gap:16px">'
         // Aviso
         +'<div style="background:rgba(255,152,0,.08);border:1px solid var(--orange);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text);line-height:1.5">'
-          +'<strong style="color:var(--orange)">⚠ Este registro NO sale en la pantalla de ventas.</strong> '
+          +'<strong style="color:var(--orange)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Este registro NO sale en la pantalla de ventas.</strong> '
           +'Sí aparece en Compras, Inventarios, Movimientos y Conteo. '
           +(esEd?'Si era un producto de venta, tocá <strong>"→ Mover a Productos"</strong> arriba.':'Si esto era un producto que querés vender, cancelá y cargalo en <a onclick="cerrarInsumoPanel();goTo(\'productos\')" style="color:var(--green);font-weight:700;cursor:pointer;text-decoration:underline">Productos</a>.')
         +'</div>'
@@ -790,12 +790,12 @@ async function _guardarInsumo(){
   try{
     if(_insPanel.ins){
       await supaPatch('pos_productos','id=eq.'+_insPanel.ins.id+'&licencia_email=ilike.'+encodeURIComponent(SE),payload);
-      toast('✓ Insumo actualizado');
+      toast('Insumo actualizado');
     } else {
       // pos_productos.id no tiene autoincrement → calcular max+1 desde la DB
       payload.id = await _nextProductoId();
       await supaPost('pos_productos',payload,null,true);
-      toast('✓ Insumo creado');
+      toast('Insumo creado');
     }
     cerrarInsumoPanel();
     allInsumos=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=500');
@@ -827,7 +827,7 @@ async function _convertirInsumoAProducto(){
   if(!confirm('¿Pasar "'+_insPanel.ins.nombre+'" a Productos?\n\nVa a empezar a aparecer en la pantalla de ventas del POS. Después podés editarle el precio desde la pantalla de Productos.')) return;
   try{
     await supaPatch('pos_productos','id=eq.'+_insPanel.ins.id+'&licencia_email=ilike.'+encodeURIComponent(SE),{es_insumo:false,updated_at:new Date().toISOString()});
-    toast('✓ Movido a Productos');
+    toast('Movido a Productos');
     cerrarInsumoPanel();
     allInsumos=await sg('pos_productos','licencia_email=ilike.'+encodeURIComponent(SE)+'&activo=eq.true&es_insumo=is.true&order=nombre.asc&limit=500');
     renderInsT(allInsumos);

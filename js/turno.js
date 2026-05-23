@@ -563,7 +563,7 @@ function guardarEgreso(){
   }
   document.getElementById('egresoModal').classList.remove('open');
   renderTurno();
-  toast('✓ Egreso registrado');
+  toast('Egreso registrado');
 }
 
 async function emitirFacturaPostCobro(ventaId){
@@ -578,7 +578,7 @@ async function emitirFacturaPostCobro(ventaId){
     return t.vig_fin ? new Date(t.vig_fin+' 00:00:00') >= hoy : true;
   });
   if(!vigentes.length){
-    toast('⚠️ Sin timbrado configurado. Configurá uno en Panel Admin → Administración');
+    toast('Sin timbrado configurado. Configurá uno en Panel Admin → Administración');
     return;
   }
 
@@ -635,7 +635,7 @@ async function emitirFacturaPostCobro(ventaId){
         </button>
         <button onclick="fpConfirmar(${ventaId})"
           style="flex:2;padding:14px;border-radius:8px;border:none;background:#2196f3;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;cursor:pointer;">
-          🧾 Emitir factura
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> Emitir factura
         </button>
       </div>
     </div>`;
@@ -656,7 +656,7 @@ async function fpBuscarRuc(){
     if(nombre){
       const inp = document.getElementById('fpNombre');
       if(inp) inp.value = nombre;
-      if(st) st.textContent = '✓ ' + nombre;
+      if(st) st.textContent = '' + nombre;
       if(st) st.style.color = 'var(--green)';
     }
   } catch(e){
@@ -670,13 +670,13 @@ async function fpConfirmar(ventaId){
   const nombre = _elNom ? _elNom.value.trim() : '';
   const dir    = _elDir ? _elDir.value.trim() : '';
 
-  if(!ruc){   toast('⚠️ RUC / C.I. es obligatorio'); if(_elRuc)_elRuc.focus(); return; }
-  if(!nombre){ toast('⚠️ Razón social es obligatoria'); if(_elNom)_elNom.focus(); return; }
+  if(!ruc){   toast('RUC / C.I. es obligatorio'); if(_elRuc)_elRuc.focus(); return; }
+  if(!nombre){ toast('Razón social es obligatoria'); if(_elNom)_elNom.focus(); return; }
 
   if(!db) return toast('Sin base de datos local');
 
   const tim = getTimbradoActivo();
-  if(!tim){ toast('⚠️ Sin timbrado configurado'); return; }
+  if(!tim){ toast('Sin timbrado configurado'); return; }
 
   const pad3 = n=>String(n).padStart(3,'0');
   const padN = n=>String(n).padStart(7,'0');
@@ -707,7 +707,7 @@ async function fpConfirmar(ventaId){
 
     // Cerrar modal y refrescar
     var _facPost=document.getElementById('facPostOv'); if(_facPost)_facPost.remove();
-    toast('🧾 Factura '+nroFact+' emitida');
+    toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> Factura '+nroFact+' emitida');
     await renderVentasList();
   } catch(e){
     toast('Error al emitir factura: '+e.message);
@@ -718,7 +718,7 @@ function marcarPresupuesto(idx, esPresupuesto){
   if(!pendientes[idx]) return;
   pendientes[idx].esPresupuesto = !!esPresupuesto;
   try{ localStorage.setItem('pos_pendientes', JSON.stringify(pendientes)); }catch(e){ /* safe: pendientes persist best-effort */ }
-  toast(esPresupuesto ? '📋 Ticket marcado como presupuesto' : '⏱ Ticket marcado como pendiente');
+  toast(esPresupuesto ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Ticket marcado como presupuesto' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Ticket marcado como pendiente');
   // Si el modal de cierre de turno está abierto, refrescarlo
   const modalAbierto = !!document.getElementById('pendCierreOv');
   if(modalAbierto){
@@ -764,9 +764,9 @@ function _mostrarModalPendientesCierre(pendActivos){
               <div style="font-size:11px;color:var(--muted);">${t.cart.length} art. · ${gs(t.total)}</div>
             </div>
             <button onclick="marcarPresupuesto(${idx},true)" style="padding:6px 10px;border-radius:6px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
-              📋 Presupuesto
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Presupuesto
             </button>
-            ${t.esSatelite ? `<button onclick="cancelarPedidoSatelite(${idx})" style="padding:6px 10px;border-radius:6px;border:none;background:rgba(244,67,54,.15);color:#f44336;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">✕ Anular</button>` : ''}
+            ${t.esSatelite ? `<button onclick="cancelarPedidoSatelite(${idx})" style="padding:6px 10px;border-radius:6px;border:none;background:rgba(244,67,54,.15);color:#f44336;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Anular</button>` : ''}
             <button onclick="abrirPendienteYCerrarModal(${idx})" style="padding:6px 10px;border-radius:6px;border:none;background:var(--green);color:#fff;font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
               Abrir
             </button>
@@ -774,7 +774,7 @@ function _mostrarModalPendientesCierre(pendActivos){
         }).join('')}
       </div>
       <div style="font-size:12px;color:var(--muted);background:var(--bg-dark);border-radius:8px;padding:10px;margin-bottom:14px;">
-        💡 Marcá como <b style="color:var(--text);">Presupuesto</b> los tickets que no se van a cobrar hoy.
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg> Marcá como <b style="color:var(--text);">Presupuesto</b> los tickets que no se van a cobrar hoy.
       </div>
       <button onclick="document.getElementById('pendCierreOv').remove()"
         style="width:100%;padding:14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
@@ -1027,7 +1027,7 @@ function cerrarTurno(){
   }
 }
 
-// Botón "🔊 Escuchar valores esperados" — recita los montos por método
+// Botón "<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Escuchar valores esperados" — recita los montos por método
 function escucharValoresEsperados(){
   if(typeof hablarValoresEsperados === 'function'){
     hablarValoresEsperados(cierreMetodos, calcSaldoEsperado());
@@ -1143,7 +1143,7 @@ function updCierreDiff(){
   val.className = 'cierre-diff-val';
   if(diff === 0){
     box.classList.add('ok'); lbl.classList.add('ok'); val.classList.add('ok');
-    lbl.textContent = '✓ CUADRE EXACTO';
+    lbl.textContent = 'CUADRE EXACTO';
     val.textContent = gs(0);
   } else if(diff > 0){
     box.classList.add('sobrante'); lbl.classList.add('sobrante'); val.classList.add('sobrante');

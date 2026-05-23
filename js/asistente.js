@@ -4,7 +4,7 @@
 // en sounds.js (hablarGenerico).
 //
 // Flujo:
-//   1. Usuario toca el FAB 🎤 o dice "hey pos"
+//   1. Usuario toca el FAB <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> o dice "hey pos"
 //   2. Se activa SpeechRecognition con lang='es-PY'
 //   3. Al detectar speech, parsea el texto contra patrones conocidos
 //   4. Ejecuta la acción
@@ -128,7 +128,7 @@ function _initAsistente(){
   _recognition.onerror = function(e){
     console.warn('[Asistente] Error:', e.error);
     if(e.error === 'not-allowed'){
-      toast('⚠ Micrófono denegado — activalo en ajustes del navegador');
+      toast('Micrófono denegado — activalo en ajustes del navegador');
     } else if(e.error === 'no-speech'){
       toast('No te escuché, tocá el micrófono y repetí');
     } else if(e.error === 'aborted'){
@@ -149,7 +149,7 @@ function _initAsistente(){
   return _recognition;
 }
 
-// Trigger manual — se llama desde el botón 🎤
+// Trigger manual — se llama desde el botón <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
 // Cada tap inicia UNA sesión de escucha. Si ya está escuchando, cancela.
 function asistenteEscuchar(){
   var rec = _initAsistente();
@@ -451,7 +451,7 @@ function _buscarProductosConAlternativas(texto){
   // 1) Alias aprendido (lookup instantáneo)
   var aliasProd = _asistAliasBuscar(buscado);
   if(aliasProd){
-    if(_ASIST_DEBUG) console.log('[Buscar] ✓ Alias:', aliasProd.name);
+    if(_ASIST_DEBUG) console.log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Alias:', aliasProd.name);
     return { mejor: aliasProd, mejorScore: 1, alternativas: [aliasProd], viaAlias: true };
   }
 
@@ -568,11 +568,11 @@ function _buscarProductosConAlternativas(texto){
   }
 
   if(exacto){
-    if(_ASIST_DEBUG) console.log('[Buscar] ✓ Exacto:', exacto.name);
+    if(_ASIST_DEBUG) console.log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Exacto:', exacto.name);
     return { mejor: exacto, mejorScore: 1, alternativas: [exacto], viaAlias: false };
   }
   if(!resultados.length){
-    if(_ASIST_DEBUG) console.log('[Buscar] ✗ Sin matches');
+    if(_ASIST_DEBUG) console.log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Sin matches');
     return { mejor:null, mejorScore:0, alternativas:[] };
   }
 
@@ -988,7 +988,7 @@ function _asistEjecutarComando(alternativas){
   ];
 
   // Diagnóstico visual: muestra lo que escuchó antes de procesar
-  if(typeof toast === 'function') toast('👂 ' + alts[0]);
+  if(typeof toast === 'function') toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M6 18.5a3.5 3.5 0 1 0 7 0c0-1.57.92-2.52 2.04-3.46"/><path d="M6 8.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5c0 3.42-2.27 5.5-4.07 6.97"/></svg> ' + alts[0]);
 
   for(var a = 0; a < alts.length; a++){
     var textoNorm = _asistLimpiarMuletillas(_asistNormalizar(alts[a]));
@@ -996,7 +996,7 @@ function _asistEjecutarComando(alternativas){
     for(var q = 0; q < intents.length; q++){
       var intentName = intents[q].name || 'intent' + q;
       if(intents[q](textoNorm)){
-        console.log('[Asistente] ✓ Matcheó:', intentName);
+        console.log('[Asistente] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Matcheó:', intentName);
         return;
       }
     }
@@ -1208,7 +1208,7 @@ function _asistTranscripcionCountdown(segs){ /* no-op */ }
 var _asistHablando = false;
 
 function _asistHablar(texto){
-  if(typeof toast === 'function') toast('🤖 ' + texto);
+  if(typeof toast === 'function') toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="11" width="18" height="10" rx="2" ry="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg> ' + texto);
   if(typeof vozMuteGet === 'function' && vozMuteGet()){
     _asistHablando = false;
     _asistBloqueado = false;
@@ -1339,7 +1339,7 @@ function _asistCrearFab(){
   document.body.appendChild(fab);
   // Warm-up del cache de aliases
   try { _asistAliasInit(); } catch(e){}
-  console.log('[Asistente] FAB creado y agregado al body ✓');
+  console.log('[Asistente] FAB creado y agregado al body <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
 }
 
 // Intentar crear el FAB en múltiples momentos para asegurar que se renderiza
