@@ -410,7 +410,11 @@ function navegarTicket(dir){
       if(typeof clienteNombre !== 'undefined') clienteNombre = _nomRestaurar;
       _cartEnCursoNavSnap = null;
     }
-    updUI(); updBtnGuardar(); updTabTicketHeader();
+    updUI();
+    // Forzar render de ambos paneles del cart (ver nota en cargarTicket)
+    if(typeof renderTkt === 'function') renderTkt();
+    if(typeof renderTabletTicket === 'function') renderTabletTicket();
+    updBtnGuardar(); updTabTicketHeader();
     toast(cart && cart.length ? 'Ticket en curso' : 'Listo para nueva venta');
   } else {
     // Cargando pendiente/satelite/presupuesto — recordar posicion en lista
@@ -477,8 +481,10 @@ function cargarVentaCobradaAlCart(item){
   if(typeof setTipoPedido === 'function') setTipoPedido('llevar');
   if(typeof clearMesaActual === 'function') clearMesaActual();
 
-  // Refrescar UI
+  // Refrescar UI — forzar render de ambos paneles del cart
   if(typeof updUI === 'function') updUI();
+  if(typeof renderTkt === 'function') renderTkt();
+  if(typeof renderTabletTicket === 'function') renderTabletTicket();
   if(typeof updBtnGuardar === 'function') updBtnGuardar();
   if(typeof updMesaBtn === 'function') updMesaBtn();
   if(typeof actualizarBotonCobrarLectura === 'function') actualizarBotonCobrarLectura();
@@ -1061,6 +1067,12 @@ async function cargarTicket(i, opts) {
   }
 
   updUI();
+  // Re-render explicito de AMBOS paneles del cart — updUI solo refresca el
+  // panel tablet (renderTabletTicket); el panel mobile (renderTkt) solo se
+  // refresca cuando se abre el tpanel. Al navegar tickets con flechas hay
+  // que forzar ambos para que el detalle del cart muestre los items nuevos.
+  if(typeof renderTkt === 'function') renderTkt();
+  if(typeof renderTabletTicket === 'function') renderTabletTicket();
   updBtnGuardar();
   goTo('scSale');
   const origen = t.esSatelite ? ' (de ' + (t.terminalOrigen || 'satélite') + ')' : '';
@@ -1157,6 +1169,10 @@ function cajaAbrirPedidoSatelite(i, opts) {
   }
 
   if (typeof updUI === 'function') updUI();
+  // Forzar render de ambos paneles del cart (mobile + tablet) — updUI solo
+  // refresca el panel tablet; el panel mobile no se refresca solo.
+  if (typeof renderTkt === 'function') renderTkt();
+  if (typeof renderTabletTicket === 'function') renderTabletTicket();
   if (typeof updBtnGuardar === 'function') updBtnGuardar();
 
   // Ir al POS para que el cajero pueda agregar items antes de cobrar

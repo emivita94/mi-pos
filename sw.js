@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.12-20260523-fix-svg-textcontent';
+const CACHE = 'ampersand-pos-v1.14.13-20260523-fix-nav-rerender';
 
 const ASSETS = [
   '/',
