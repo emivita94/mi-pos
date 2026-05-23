@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.14-20260523-dedup-pendientes-init';
+const CACHE = 'ampersand-pos-v1.14.15-20260523-mesa-liberar-forzado';
 
 const ASSETS = [
   '/',

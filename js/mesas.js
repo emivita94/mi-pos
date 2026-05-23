@@ -108,7 +108,15 @@ function renderMesasScreen(){
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">'+pend.clienteNombre+'</span>'+
         '</div>'
       : '';
-    return '<div class="mesa-tile '+estado+'" onclick="onMesaTap('+m.id+')">' +
+    // Long-press en mesa ocupada → opcion de liberar forzado
+    var lpAttrs = ocupada
+      ? ' oncontextmenu="event.preventDefault();liberarMesaForzado('+m.id+');return false;"'
+        + ' ontouchstart="_mesaLpStart(event,'+m.id+')"'
+        + ' ontouchend="_mesaLpEnd()"'
+        + ' ontouchcancel="_mesaLpEnd()"'
+        + ' ontouchmove="_mesaLpEnd()"'
+      : '';
+    return '<div class="mesa-tile '+estado+'" onclick="onMesaTap('+m.id+')"'+lpAttrs+'>' +
       '<div class="mesa-tile-nombre">'+m.nombre+'</div>'+
       (info ? '<div class="mesa-tile-info">'+info+'</div>' : '')+
       cliBloque+
@@ -121,11 +129,34 @@ function mesaSelSalon(id){
   renderMesasScreen();
 }
 
+// ── Long-press helpers (mobile) ─────────────────────────
+// Apretar y mantener 700ms sobre una mesa ocupada → ofrece liberar
+var _mesaLpTimer = null;
+function _mesaLpStart(ev, mesaId){
+  _mesaLpEnd();
+  _mesaLpTimer = setTimeout(function(){
+    _mesaLpTimer = null;
+    if(navigator.vibrate) try{ navigator.vibrate(40); }catch(e){}
+    liberarMesaForzado(mesaId);
+  }, 700);
+}
+function _mesaLpEnd(){
+  if(_mesaLpTimer){ clearTimeout(_mesaLpTimer); _mesaLpTimer = null; }
+}
+
 // ── Tap en una mesa ───────────────────────────────────
 function onMesaTap(mesaId){
   const mesa = mesasMesas.find(m => m.id === mesaId);
   if(!mesa) return;
   const pend = pendientes.find(p => p.mesa_id === mesaId);
+
+  // GUARDA: si estamos en MODO LECTURA viendo una venta cobrada, NO permitir
+  // asignar mesa — la venta ya esta cerrada y no se puede modificar.
+  // Esto evita que la mesa quede "ocupada" sin pendiente asociable.
+  if(typeof _modoLectura !== 'undefined' && _modoLectura && !pend){
+    toast('Estas viendo una venta cobrada (solo lectura). Salí con NUEVA VENTA antes de asignar mesa.');
+    return;
+  }
 
   if(pend){
     // Mesa OCUPADA → cargar su ticket y volver al POS
@@ -154,6 +185,33 @@ function onMesaTap(mesaId){
     goTo('scSale');
     toast('Mesa '+mesa.nombre+' lista — agregá productos');
   }
+}
+
+// ── Long-press en una mesa OCUPADA → liberar forzado ─────
+// Para casos atascados donde una mesa queda marcada como ocupada pero
+// el pendiente asociado tiene datos basura (caso legacy del bug de
+// vincular mesa estando en modo lectura).
+function liberarMesaForzado(mesaId){
+  const mesa = mesasMesas.find(m => m.id === mesaId);
+  if(!mesa) return;
+  const pend = pendientes.find(p => p.mesa_id === mesaId);
+  if(!pend){
+    // No hay pendiente — la mesa figuraba ocupada por error de cache. Refrescar.
+    if(typeof renderMesasScreen === 'function') renderMesasScreen();
+    toast('Mesa '+mesa.nombre+' ya estaba libre. Pantalla actualizada.');
+    return;
+  }
+  var resumen = '#'+String(pend.nro).padStart(4,'0')+' ('+(pend.cart||[]).length+' items · Gs '+Math.round(pend.total||0).toLocaleString('es-PY')+')';
+  if(!confirm('Liberar mesa '+mesa.nombre+'?\n\nEsto elimina el ticket pendiente '+resumen+'. No se puede deshacer.')) return;
+  // Eliminar el pendiente
+  var idx = pendientes.indexOf(pend);
+  if(idx >= 0){
+    pendientes.splice(idx, 1);
+    if(typeof guardarPendientesLocal === 'function') guardarPendientesLocal();
+  }
+  if(typeof renderMesasScreen === 'function') renderMesasScreen();
+  if(typeof updBtnGuardar === 'function') updBtnGuardar();
+  toast('Mesa '+mesa.nombre+' liberada — ticket '+resumen+' eliminado');
 }
 
 // ── Guardar ticket con mesa asignada ──────────────────
