@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.13-20260523-fix-nav-rerender';
+const CACHE = 'ampersand-pos-v1.14.14-20260523-dedup-pendientes-init';
 
 const ASSETS = [
   '/',

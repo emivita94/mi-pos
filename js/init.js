@@ -187,8 +187,33 @@ async function iniciarApp(){
     if(rp){
       const sp = JSON.parse(rp);
       if(Array.isArray(sp) && sp.length > 0){
-        setPendientes(sp.map(p => ({ ...p, cart: p.cart || p.items || [] })));
-        const mx = sp.reduce((m,p)=>Math.max(m, p.nro||0), 0);
+        // Limpiar duplicados: pendientes con MISMO total + MISMOS items (legacy
+        // del bug viejo donde el cart en curso se convertia en pendiente nuevo
+        // al navegar con flechas). Quedarse con el de MAYOR nro de cada grupo.
+        const _gruposDup = new Map();
+        sp.forEach(p => {
+          const cartArr = p.cart || p.items || [];
+          const key = (p.total||0)+'::'+cartArr.map(i=>i.name+i.qty).join('|');
+          if(!_gruposDup.has(key)) _gruposDup.set(key, []);
+          _gruposDup.get(key).push(p);
+        });
+        let dedup = [];
+        _gruposDup.forEach(group => {
+          if(group.length === 1) dedup.push(group[0]);
+          else {
+            // Sort por nro DESC, dejar el primero (mas nuevo)
+            group.sort((a,b)=>(b.nro||0)-(a.nro||0));
+            dedup.push(group[0]);
+          }
+        });
+        const eliminados = sp.length - dedup.length;
+        if(eliminados > 0){
+          console.log('[init] Limpieza de pendientes duplicados: '+eliminados+' eliminados ('+sp.length+' -> '+dedup.length+')');
+          // Re-persistir el array limpio
+          try { localStorage.setItem('pos_pendientes', JSON.stringify(dedup)); } catch(e){}
+        }
+        setPendientes(dedup.map(p => ({ ...p, cart: p.cart || p.items || [] })));
+        const mx = dedup.reduce((m,p)=>Math.max(m, p.nro||0), 0);
         if(mx >= ticketCounter) setTicketCounter(mx + 1);
             }
     }
