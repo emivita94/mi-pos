@@ -8,6 +8,30 @@
 // ════════════════════════════════════════════════════════════
 
 var TUTORIALES = [
+  // ───────── PRINCIPAL ─────────
+  {
+    id: 'dashboard',
+    cat: 'Principal',
+    titulo: 'Dashboard — leer el resumen del negocio',
+    icono: 'chart',
+    resumen: 'Ventas, ticket promedio, operaciones, distribución de pagos y los productos más vendidos del mes — todo de un vistazo.',
+    paraQueSirve: 'Es la primera pantalla que ves al entrar al admin. Te muestra cómo viene el mes en comparación con el anterior: cuánto vendiste, cuál es tu ticket promedio, cuántas operaciones hiciste, en qué método cobraste más, qué productos se vendieron más, y los gastos/compras del período. Es la foto del negocio.',
+    pasos: [
+      { t:'Ver KPIs principales', d:'Arriba ves <b>3 cards grandes</b>: <b>Ventas</b> del mes (con flecha verde si subió vs mes anterior, roja si bajó), <b>Ticket promedio</b> (cuánto gasta en promedio cada cliente) y <b>Operaciones</b> (cuántos tickets emitiste).' },
+      { t:'Distribución por forma de cobro', d:'Card amplia: porcentaje de <b>Efectivo</b> vs <b>POS/Transferencia</b>. Te dice cómo te paga tu cliente — si la mayoría es efectivo, podés necesitar más caja chica.' },
+      { t:'Compras y gastos del mes', d:'Dos cards: <b>Compras</b> (gasto en mercadería, con las 3 más grandes detalladas) y <b>Gastos</b> (alquileres, sueldos, etc). Si compras > ventas, está mal.' },
+      { t:'Gráfico de últimos 7 días', d:'Barras agrupadas por día: <b>Ventas</b> (azul), <b>Costo</b> (gris), <b>Utilidad</b> (verde). Buscá si hay un día consistentemente más bajo y revisá la causa.' },
+      { t:'Día y hora más activos', d:'Cards a la derecha: en qué día de la semana vendés más, y en qué hora del día. Útil para reforzar personal en esos horarios.' },
+      { t:'Top productos del mes', d:'Lista con los productos más vendidos: cuánto vendiste de cada uno y la barra horizontal proporcional. Si tu top 3 cae, hay que reaccionar.' },
+      { t:'Participación por categoría', d:'Gráfico de torta: % de tus ventas por categoría (Clásicas, Gourmet, Bebidas, etc.). Si una categoría chica crece, puede ser una oportunidad.' }
+    ],
+    tips: [
+      'Mirá el dashboard <b>todos los días al cerrar</b> el local. 2 minutos. Te entrena el ojo para detectar caídas a tiempo.',
+      'Si el <b>ticket promedio</b> baja vs mes anterior, capaz hay que armar combos o promos para subirlo.',
+      'Las <b>flechas verde/roja</b> en los KPIs son la comparación con el MES ANTERIOR completo. No se comparan con la semana anterior.',
+      'Cambiá el rango con los chips <b>Hoy / Esta semana / Este mes</b> arriba a la derecha para ver foto chica o foto grande.'
+    ]
+  },
   // ───────── CATÁLOGO ─────────
   {
     id: 'productos',
@@ -313,8 +337,8 @@ function renderTutoriales(){
   var ico = function(n){ return (typeof NodoIco==='function') ? NodoIco(n,18) : ''; };
   var icoGrande = function(n){ return (typeof NodoIco==='function') ? NodoIco(n,22) : ''; };
 
-  var catIco = { 'Catálogo':'package', 'Inventario':'box', 'Operaciones':'cash', 'Finanzas':'chart' };
-  var catColor = { 'Catálogo':'var(--blue)', 'Inventario':'var(--green)', 'Operaciones':'var(--orange)', 'Finanzas':'var(--green)' };
+  var catIco = { 'Principal':'chart', 'Catálogo':'package', 'Inventario':'box', 'Operaciones':'cash', 'Finanzas':'chart' };
+  var catColor = { 'Principal':'var(--blue)', 'Catálogo':'var(--blue)', 'Inventario':'var(--green)', 'Operaciones':'var(--orange)', 'Finanzas':'var(--green)' };
 
   var html =
     '<div class="ph">'
