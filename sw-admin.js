@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260523-fix-svg-textcontent';
+const CACHE = 'ampersand-admin-v20260523-tutoriales-y-light-fix';
 
 const ASSETS = [
   '/admin-negocio.html',

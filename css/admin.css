@@ -178,6 +178,17 @@ tr:last-child td{border-bottom:none;}
 [data-theme="light"] #sidebar{box-shadow:2px 0 12px rgba(0,0,32,.08);}
 [data-theme="light"] tr:hover td{background:rgba(0,0,40,.025);}
 
+/* Light theme: legibilidad del sidebar/menu — items, separadores y activo */
+[data-theme="light"] .sb-i{color:#3a3a5a;font-weight:600;}
+[data-theme="light"] .sb-i:hover{background:rgba(30,40,80,.06);color:#1a1a2e;}
+[data-theme="light"] .sb-i.on{color:#1b5e20;background:rgba(67,160,71,.18);font-weight:800;}
+[data-theme="light"] .sb-i.on svg{stroke:#2e7d32;}
+[data-theme="light"] .sb-sep{color:#5a6080;font-weight:800;}
+[data-theme="light"] .sb-brand{color:#1b5e20;}
+[data-theme="light"] .sb-av{background:rgba(67,160,71,.15);color:#1b5e20;}
+[data-theme="light"] .bn{color:#5a6080;}
+[data-theme="light"] .bn.on{color:#1b5e20;}
+
 /* Dark mode: hover sutil en filas de tabla */
 [data-theme="dark"] tr:hover td{background:rgba(255,255,255,.025);}
 
