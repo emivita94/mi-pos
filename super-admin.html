@@ -661,7 +661,7 @@ function editL(id){
 function renovar(id){
   const l=allL.find(x=>x.id===id); if(!l) return;
   editId=id; renoMode=true;
-  document.getElementById('mTitle').textContent='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M3 12a9 9 0 0 1 15.5-6.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.5L3 16"/><path d="M3 21v-5h5"/></svg> Renovar licencia';
+  document.getElementById('mTitle').textContent='Renovar licencia';
   document.getElementById('mClave').value=l.clave;
   document.getElementById('mNombre').value=l.nombre_cliente||'';
   document.getElementById('mEmail').value=l.email_cliente||'';

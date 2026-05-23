@@ -707,7 +707,7 @@ async function fpConfirmar(ventaId){
 
     // Cerrar modal y refrescar
     var _facPost=document.getElementById('facPostOv'); if(_facPost)_facPost.remove();
-    toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> Factura '+nroFact+' emitida');
+    toast('Factura '+nroFact+' emitida');
     await renderVentasList();
   } catch(e){
     toast('Error al emitir factura: '+e.message);
@@ -718,7 +718,7 @@ function marcarPresupuesto(idx, esPresupuesto){
   if(!pendientes[idx]) return;
   pendientes[idx].esPresupuesto = !!esPresupuesto;
   try{ localStorage.setItem('pos_pendientes', JSON.stringify(pendientes)); }catch(e){ /* safe: pendientes persist best-effort */ }
-  toast(esPresupuesto ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Ticket marcado como presupuesto' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Ticket marcado como pendiente');
+  toast(esPresupuesto ? 'Ticket marcado como presupuesto' : 'Ticket marcado como pendiente');
   // Si el modal de cierre de turno está abierto, refrescarlo
   const modalAbierto = !!document.getElementById('pendCierreOv');
   if(modalAbierto){

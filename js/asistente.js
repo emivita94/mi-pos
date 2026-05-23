@@ -988,7 +988,7 @@ function _asistEjecutarComando(alternativas){
   ];
 
   // Diagnóstico visual: muestra lo que escuchó antes de procesar
-  if(typeof toast === 'function') toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M6 18.5a3.5 3.5 0 1 0 7 0c0-1.57.92-2.52 2.04-3.46"/><path d="M6 8.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5c0 3.42-2.27 5.5-4.07 6.97"/></svg> ' + alts[0]);
+  if(typeof toast === 'function') toast('' + alts[0]);
 
   for(var a = 0; a < alts.length; a++){
     var textoNorm = _asistLimpiarMuletillas(_asistNormalizar(alts[a]));
@@ -1208,7 +1208,7 @@ function _asistTranscripcionCountdown(segs){ /* no-op */ }
 var _asistHablando = false;
 
 function _asistHablar(texto){
-  if(typeof toast === 'function') toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="11" width="18" height="10" rx="2" ry="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg> ' + texto);
+  if(typeof toast === 'function') toast('' + texto);
   if(typeof vozMuteGet === 'function' && vozMuteGet()){
     _asistHablando = false;
     _asistBloqueado = false;

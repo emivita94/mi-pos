@@ -475,11 +475,11 @@ window.addEventListener('online', () => {
   if(db){
     db.sync_queue.where('sincronizado').equals(0).count().then(n => {
       if(n > 0){
-        toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Conexión restaurada — sincronizando ' + n + ' venta' + (n !== 1 ? 's' : '') + ' pendiente' + (n !== 1 ? 's' : '') + '...');
+        toast('Conexión restaurada — sincronizando ' + n + ' venta' + (n !== 1 ? 's' : '') + ' pendiente' + (n !== 1 ? 's' : '') + '...');
       } else {
-        toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Conexión restaurada');
+        toast('Conexión restaurada');
       }
-    }).catch(()=>{ toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Conexión restaurada'); });
+    }).catch(()=>{ toast('Conexión restaurada'); });
   }
   setTimeout(async () => {
     _syncCheckStuck(); // forzar reset si sync anterior quedó trabada
@@ -492,7 +492,7 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
   console.log('[Sync] Sin conexión');
   updSyncBadge();
-  toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Sin conexión — las ventas se guardan localmente');
+  toast('Sin conexión — las ventas se guardan localmente');
 });
 
 // ══════════════════════════════════════════════════════════
@@ -684,7 +684,7 @@ async function limpiarErroresSync(){
     await db.sync_queue.where('sincronizado').equals(2).delete();
     updSyncBadge();
     renderSyncPanel();
-    toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> ' + n + ' error' + (n !== 1 ? 'es' : '') + ' eliminado' + (n !== 1 ? 's' : ''));
+    toast('' + n + ' error' + (n !== 1 ? 'es' : '') + ' eliminado' + (n !== 1 ? 's' : ''));
   } catch(e){
     toast('Error al limpiar: ' + e.message);
   }

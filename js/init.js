@@ -1103,7 +1103,7 @@ function hideSplash(){
     ]) : Promise.resolve(),
   ]);
 
-  splashStatus('Listo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
+  splashStatus('Listo ');
 
   if(ok) {
     await iniciarApp();

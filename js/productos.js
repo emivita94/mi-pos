@@ -540,7 +540,7 @@ async function quitarImagen(){
       });
       if(db) try { await db.config.delete('img_cache_'+imgAnterior); } catch(e){/* IndexedDB cache cleanup — no afecta funcionalidad */}
       console.log('[Imagen] Eliminada del Storage:', oldPath);
-      toast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Imagen eliminada');
+      toast('Imagen eliminada');
     } catch(e){ console.warn('[Imagen] Error borrando:', e.message); toast('Error al eliminar imagen'); }
   }
   window._artImagenAnterior = null;

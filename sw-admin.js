@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260523-barrido-emojis';
+const CACHE = 'ampersand-admin-v20260523-fix-svg-textcontent';
 
 const ASSETS = [
   '/admin-negocio.html',
