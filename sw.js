@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.19-20260524-ux002-asistente-impresora';
+const CACHE = 'ampersand-pos-v1.14.20-20260524-arch001-esm';
 
 const ASSETS = [
   '/',
@@ -9,6 +9,9 @@ const ASSETS = [
   '/icon-512.png',
   '/css/pos.css',
   '/js/config.js',
+  // ARCH-001: modulo ESM (sustituye a js/nodo-ico.js)
+  '/js/lib/index.mjs',
+  '/js/lib/icons.mjs',
   '/js/state.js',
   '/js/selectors.js',
   '/js/sounds.js',

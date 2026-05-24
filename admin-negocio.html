@@ -222,7 +222,8 @@
 <div class="toast" id="toast"></div>
 
 <script src="js/config.js"></script>
-<script src="js/nodo-ico.js"></script>
+<!-- ARCH-001: modulo ESM (sustituye a js/nodo-ico.js) -->
+<script type="module" src="js/lib/index.mjs"></script>
 <!-- Solo se carga el dashboard up-front; el resto son lazy-loaded por goTo() (PERF-001) -->
 <script src="js/admin-dashboard.js"></script>
 <script>

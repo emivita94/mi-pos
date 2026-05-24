@@ -425,7 +425,8 @@ body{font-family:Barlow,sans-serif;background:var(--bg);color:#fff;min-height:10
 <div class="toast" id="toast"></div>
 
 <script src="js/config.js"></script>
-<script src="js/nodo-ico.js"></script>
+<!-- ARCH-001: modulo ESM (sustituye a js/nodo-ico.js) -->
+<script type="module" src="js/lib/index.mjs"></script>
 <script>
 // SUPA_URL y SUPA_ANON vienen de js/config.js
 const SURL  = SUPA_URL;
