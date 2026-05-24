@@ -1,5 +1,14 @@
 // ── Admin: Gastos, Timbrados ──
 
+// Polyfill defensivo: lib/index.mjs carga async (type="module") y puede no
+// haber seteado window._log/_warn/_err todavía cuando este archivo ejecuta.
+// Fix BUG-07.
+if (typeof window !== 'undefined') {
+  if (typeof window._log  !== 'function') window._log  = function(){};
+  if (typeof window._warn !== 'function') window._warn = function(){ console.warn.apply(console, arguments); };
+  if (typeof window._err  !== 'function') window._err  = function(){ console.error.apply(console, arguments); };
+}
+
 // ═══════════════════════════════════════════════════════════
 // GASTOS FIJOS
 // ═══════════════════════════════════════════════════════════
@@ -151,7 +160,23 @@ async function renderGastos(tab){
   var c=document.getElementById('content');
   c.innerHTML='<div class="loading"><span class="sp"></span>Cargando...</div>';
   if(!_gastosLicId){
-    try{ _gastosLicId=SLI||(await sg('licencias','email_cliente=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id&limit=1'))[0].id; }catch(e){ console.warn('[Gastos] Error obteniendo licencia:', e.message); }
+    try{
+      if(SLI){ _gastosLicId=SLI; }
+      else {
+        var lr=await sg('licencias','email_cliente=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id&limit=1');
+        if(lr && lr[0] && lr[0].id) _gastosLicId=lr[0].id;
+      }
+    }catch(e){ console.warn('[Gastos] Error obteniendo licencia:', e.message); }
+  }
+  // BUG-03 fix: si no se pudo obtener la licencia, mostrar empty state amigable
+  // en vez de seguir y enviar `licencia_id=null` literal a Supabase.
+  if(!_gastosLicId){
+    c.innerHTML='<div style="padding:24px;color:var(--muted);text-align:center">'
+      +'<div style="font-size:14px;margin-bottom:8px">No pudimos cargar tu licencia.</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Esperá unos segundos y reintentá.</div>'
+      +'<button onclick="renderGastos(&apos;'+tab+'&apos;)" class="btn-sv" style="padding:8px 18px">Reintentar</button>'
+      +'</div>';
+    return;
   }
   _plan.licId=_gastosLicId;
   if(!_plan.cats.length) await planCargar().catch(function(e){ console.warn('[Gastos] Error cargando plan:', e.message); });
@@ -335,7 +360,24 @@ async function gastoEliminar(id){
 async function renderBalance(){
   var c=document.getElementById('content');
   c.innerHTML='<div class="loading"><span class="sp"></span>Cargando...</div>';
-  var licId=SLI||(await sg('licencias','email_cliente=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id&limit=1'))[0].id;
+  // BUG-04 fix: el `[0].id` crasheaba con uncaught TypeError cuando SLI era
+  // undefined y la query devolvía []. Wrappear todo en try/catch y validar.
+  var licId;
+  try {
+    if(SLI){ licId=SLI; }
+    else {
+      var lr=await sg('licencias','email_cliente=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id&limit=1');
+      if(lr && lr[0] && lr[0].id) licId=lr[0].id;
+    }
+  } catch(e){ console.warn('[Balance] Error obteniendo licencia:', e.message); }
+  if(!licId){
+    c.innerHTML='<div style="padding:24px;color:var(--muted);text-align:center">'
+      +'<div style="font-size:14px;margin-bottom:8px">No pudimos cargar tu licencia.</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Esperá unos segundos y reintentá.</div>'
+      +'<button onclick="renderBalance()" class="btn-sv" style="padding:8px 18px">Reintentar</button>'
+      +'</div>';
+    return;
+  }
   _plan.licId=licId;
   if(!_plan.cats.length) await planCargar().catch(function(e){ console.warn('[Gastos] Error cargando plan:', e.message); });
 
@@ -781,7 +823,20 @@ async function ivaGetLicId(){
 async function renderIVA(){
   var c=document.getElementById('content');
   c.innerHTML='<div class="loading"><span class="sp"></span>Cargando...</div>';
-  var licId=await ivaGetLicId();
+  // BUG-05 fix: ivaGetLicId() lanza throw cuando no encuentra licencia; sin
+  // este try/catch el render quedaba con spinner infinito.
+  var licId;
+  try {
+    licId = await ivaGetLicId();
+  } catch(e){
+    console.warn('[IVA] Error obteniendo licencia:', e.message);
+    c.innerHTML='<div style="padding:24px;color:var(--muted);text-align:center">'
+      +'<div style="font-size:14px;margin-bottom:8px">No pudimos cargar tu licencia.</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Esperá unos segundos y reintentá.</div>'
+      +'<button onclick="renderIVA()" class="btn-sv" style="padding:8px 18px">Reintentar</button>'
+      +'</div>';
+    return;
+  }
 
   // Cargar mapa de IVA por producto
   try{
