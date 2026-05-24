@@ -1,5 +1,14 @@
 ﻿// ── Admin: Dashboard, Ventas, Terminales, Cajas ──
 
+// Polyfill defensivo: lib/index.mjs carga async (type="module") y puede no
+// haber seteado window._log/_warn/_err todavía cuando este archivo ejecuta.
+// Fix BUG-07.
+if (typeof window !== 'undefined') {
+  if (typeof window._log  !== 'function') window._log  = function(){};
+  if (typeof window._warn !== 'function') window._warn = function(){ console.warn.apply(console, arguments); };
+  if (typeof window._err  !== 'function') window._err  = function(){ console.error.apply(console, arguments); };
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────
 function renderDashboard(){
   var c=document.getElementById('content');
