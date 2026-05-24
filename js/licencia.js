@@ -72,7 +72,9 @@ function licGetDeviceId(){
   cookieSet('pos_device_id', id, 365); // cookie dura 1 año
   sessionStorage.setItem(SK.deviceId, id);
   if(typeof db !== 'undefined' && db){
-    try { db.config.put({key:'device_id', value:id}); } catch(e){ console.warn('[licencia] Error persistiendo device_id en IndexedDB:', e.message); }
+    // BUG-02 fix: el object store `config` tiene keyPath `clave` (español, ver sync.js:31),
+    // antes se usaba {key, value} y el put() fallaba silenciosamente con "key path did not yield a value".
+    try { db.config.put({clave:'device_id', valor:id}); } catch(e){ console.warn('[licencia] Error persistiendo device_id en IndexedDB:', e.message); }
   }
   return id;
 }
@@ -94,8 +96,12 @@ async function licGetDeviceIdAsync(){
   try {
     if(typeof db !== 'undefined' && db){
       const row = await db.config.get('device_id');
-      if(row && row.value){
-        id = row.value;
+      // BUG-02 fix: el object store guarda como {clave, valor}; antes leía .value (inglés)
+      // que nunca existía → siempre devolvía null y se regeneraba un device_id distinto
+      // en cada sesión cuando localStorage estaba limpio.
+      var rowVal = row && (row.valor || row.value);
+      if(rowVal){
+        id = rowVal;
         localStorage.setItem(SK.deviceId, id);
         cookieSet('pos_device_id', id, 365);
         sessionStorage.setItem(SK.deviceId, id);
@@ -114,7 +120,8 @@ async function licGetDeviceIdAsync(){
   localStorage.setItem(SK.deviceId, id);
   sessionStorage.setItem(SK.deviceId, id);
   if(typeof db !== 'undefined' && db){
-    try { db.config.put({key:'device_id', value:id}); } catch(e){ console.warn('[licencia] Error persistiendo device_id en IndexedDB:', e.message); }
+    // BUG-02 fix: keyPath del store `config` es `clave` (ver sync.js:31).
+    try { db.config.put({clave:'device_id', valor:id}); } catch(e){ console.warn('[licencia] Error persistiendo device_id en IndexedDB:', e.message); }
   }
   return id;
 }
@@ -464,6 +471,14 @@ async function doActivar(){
   // Cargar sucursales existentes para sugerir en el dropdown
   cargarSucursalesExistentes(email);
 
+  // BUG-06 fix: scClosed (entre otras) tiene `class="screen active"` por default
+  // en index.html → queda renderizado detrás del overlay scActivado y sus botones
+  // (ej. "ABRIR EL TURNO") aparecen como clickeables en tests de accesibilidad/QA
+  // aunque el usuario humano no los ve por el z-index. Análogo al ocultamiento
+  // que hace licMostrarBloqueo() en línea 221 antes de mostrar scBloqueado.
+  document.querySelectorAll('.screen').forEach(function(s){
+    if(s.id !== 'scActivado'){ s.style.display='none'; s.classList.remove('active'); }
+  });
   document.getElementById('scActivado').style.display='flex';
 }
 
@@ -835,7 +850,8 @@ async function doEntrar(){
   await licGetDeviceIdAsync();
   await guardarConfigTerminalSupabase({negocio, terminal, sucursal, deposito});
   if(typeof db!=='undefined'&&db){
-    try{await db.config.put({key:'terminal_cfg',value:JSON.stringify({negocio,terminal,sucursal,deposito})});}catch(e){ console.warn('[licencia] Error guardando config en IndexedDB:', e.message); }
+    // BUG-02 fix: keyPath del store `config` es `clave` (ver sync.js:31).
+    try{await db.config.put({clave:'terminal_cfg',valor:JSON.stringify({negocio,terminal,sucursal,deposito})});}catch(e){ console.warn('[licencia] Error guardando config en IndexedDB:', e.message); }
   }
   document.getElementById('scActivado').style.display='none';
   await iniciarApp();
