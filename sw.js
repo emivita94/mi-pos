@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.22-20260524-arch001c-log';
+const CACHE = 'ampersand-pos-v1.14.23-20260524-arch001d-format';
 
 const ASSETS = [
   '/',
@@ -14,6 +14,7 @@ const ASSETS = [
   '/js/lib/icons.mjs',
   '/js/lib/escape.mjs',
   '/js/lib/log.mjs',
+  '/js/lib/format.mjs',
   '/js/state.js',
   '/js/sounds.js',
   '/js/asistente.js',

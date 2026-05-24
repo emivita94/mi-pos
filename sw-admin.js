@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260524-arch001c-log';
+const CACHE = 'ampersand-admin-v20260524-arch001d-format';
 
 const ASSETS = [
   '/admin-negocio.html',
@@ -12,6 +12,7 @@ const ASSETS = [
   '/js/lib/icons.mjs',
   '/js/lib/escape.mjs',
   '/js/lib/log.mjs',
+  '/js/lib/format.mjs',
   '/js/admin-dashboard.js',
   // Lazy-loaded (PERF-001): siguen pre-cacheados para offline pero no se cargan en el initial parse
   '/js/admin-productos.js',

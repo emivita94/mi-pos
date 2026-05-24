@@ -124,4 +124,35 @@ test.describe('ARCH-001: ES Modules', () => {
     expect(fns.warn).toBe(true);
     expect(fns.err).toBe(true);
   });
+
+  test('lib/format.mjs exporta gs (formato guaranies)', async ({ request }) => {
+    const res = await request.get('/js/lib/format.mjs');
+    expect(res.ok()).toBe(true);
+    const body = await res.text();
+    expect(body).toMatch(/export\s+function\s+gs/);
+    expect(body).toMatch(/es-PY/);
+  });
+
+  test('ui.js ya NO define gs (vive en lib/format.mjs)', async ({ request }) => {
+    const res = await request.get('/js/ui.js');
+    const body = await res.text();
+    expect(body).not.toMatch(/function\s+gs\s*\(/);
+  });
+
+  test('Tras cargar POS, window.gs formatea bien guaranies', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(() => window.__nodoLibLoaded === true, { timeout: 8000 });
+    const result = await page.evaluate(() => ({
+      isFn: typeof window.gs === 'function',
+      a: window.gs(15000),
+      b: window.gs(0),
+      c: window.gs(null),
+      d: window.gs(1500000),
+    }));
+    expect(result.isFn).toBe(true);
+    expect(result.a).toMatch(/^₲15[.,]000$/);
+    expect(result.b).toBe('₲0');
+    expect(result.c).toBe('₲0');
+    expect(result.d).toMatch(/^₲1[.,]500[.,]000$/);
+  });
 });

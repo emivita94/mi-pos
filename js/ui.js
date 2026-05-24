@@ -17,14 +17,7 @@
 
 // ── FORMATO DE MONEDA ────────────────────────────────────────
 
-/**
- * Formatea un número como precio en guaraníes (sin decimales).
- *   gs(15000) → "₲15.000"
- *   gs(0)     → "₲0"
- */
-function gs(n) {
-  return '₲' + Math.round(n || 0).toLocaleString('es-PY');
-}
+// gs() vive en js/lib/format.mjs (ARCH-001d). Expuesto como window.gs.
 
 // ── TOAST ────────────────────────────────────────────────────
 
