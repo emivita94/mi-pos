@@ -481,15 +481,12 @@ async function cargarSucursalesExistentes(email){
 
   try {
     // Obtener licencia_id del email
+    // NOTA: la tabla `licencias` NO tiene la columna `nombre_negocio`; el nombre del
+    // negocio se pre-llena más abajo desde la tabla `activaciones` (fallback) que sí lo tiene.
     var licRows = await supaGet('licencias',
-      'email_cliente=ilike.' + encodeURIComponent(email) + '&activa=eq.true&select=id,nombre_negocio&limit=1');
+      'email_cliente=ilike.' + encodeURIComponent(email) + '&activa=eq.true&select=id&limit=1');
     var licId = licRows && licRows[0] ? licRows[0].id : null;
-
-    // Pre-llenar negocio si está disponible y el campo está vacío
     var negInput = document.getElementById('activadoNegocio');
-    if(negInput && !negInput.value && licRows && licRows[0] && licRows[0].nombre_negocio){
-      negInput.value = licRows[0].nombre_negocio;
-    }
 
     var sucursales = [];
     if(licId){
