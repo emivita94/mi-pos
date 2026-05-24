@@ -54,9 +54,44 @@ test.describe('ARCH-001: ES Modules', () => {
   test('index.html ya NO referencia nodo-ico.js (script src directo)', async ({ request }) => {
     const res = await request.get('/index.html');
     const html = await res.text();
-    // Solo deben quedar referencias en comentarios HTML (sustituye a...) — nunca como <script src>
     expect(html).not.toMatch(/<script\s+src=["'][^"']*nodo-ico\.js/);
-    // En cambio, debe haber el modulo ESM
     expect(html).toMatch(/<script\s+type=["']module["']\s+src=["'][^"']*lib\/index\.mjs/);
+  });
+
+  test('lib/escape.mjs exporta escapeHtml y esc', async ({ request }) => {
+    const res = await request.get('/js/lib/escape.mjs');
+    expect(res.ok()).toBe(true);
+    const body = await res.text();
+    expect(body).toMatch(/export\s+function\s+escapeHtml/);
+    expect(body).toMatch(/export\s+const\s+esc\s*=\s*escapeHtml/);
+  });
+
+  test('selectors.js viejo ya NO existe (404) — era codigo muerto', async ({ request }) => {
+    const res = await request.get('/js/selectors.js');
+    expect(res.status()).toBe(404);
+  });
+
+  test('state.js ya NO define escapeHtml (vive en lib/escape.mjs)', async ({ request }) => {
+    const res = await request.get('/js/state.js');
+    const body = await res.text();
+    // No debe definir la funcion (puede mencionarla en comentarios)
+    expect(body).not.toMatch(/function\s+escapeHtml\s*\(/);
+    expect(body).not.toMatch(/var\s+esc\s*=\s*escapeHtml/);
+  });
+
+  test('Tras cargar POS, window.esc proviene del modulo ESM (mismo escape)', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(() => window.__nodoLibLoaded === true, { timeout: 8000 });
+
+    const result = await page.evaluate(() => {
+      return {
+        isFn: typeof window.esc === 'function',
+        isAlias: window.esc === window.escapeHtml,
+        escaped: window.esc('<script>alert(1)</script>'),
+      };
+    });
+    expect(result.isFn).toBe(true);
+    expect(result.isAlias).toBe(true);
+    expect(result.escaped).toBe('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 });

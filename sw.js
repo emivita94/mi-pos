@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.20-20260524-arch001-esm';
+const CACHE = 'ampersand-pos-v1.14.21-20260524-arch001b-esm';
 
 const ASSETS = [
   '/',
@@ -9,11 +9,11 @@ const ASSETS = [
   '/icon-512.png',
   '/css/pos.css',
   '/js/config.js',
-  // ARCH-001: modulo ESM (sustituye a js/nodo-ico.js)
+  // ARCH-001: modulo ESM (sustituye a js/nodo-ico.js y al esc() inline de state.js)
   '/js/lib/index.mjs',
   '/js/lib/icons.mjs',
+  '/js/lib/escape.mjs',
   '/js/state.js',
-  '/js/selectors.js',
   '/js/sounds.js',
   '/js/asistente.js',
   '/js/ui.js',

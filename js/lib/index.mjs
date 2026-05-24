@@ -16,11 +16,14 @@
 // ════════════════════════════════════════════════════════════
 
 import { NodoIco, PATHS as NODO_ICO_PATHS } from './icons.mjs';
+import { escapeHtml, esc } from './escape.mjs';
 
 // ── Compat layer: re-exponer a window ───────────────────────
-// El codigo legacy llama `NodoIco('foo')` esperando que sea global.
+// El codigo legacy llama `NodoIco('foo')`, `esc(x)` esperando globals.
 window.NodoIco = NodoIco;
 window.__NODO_ICO_PATHS = NODO_ICO_PATHS;
+window.escapeHtml = escapeHtml;
+window.esc = esc;
 
 // Flag para que el codigo legacy pueda detectar que el lib ESM cargo
 window.__nodoLibLoaded = true;

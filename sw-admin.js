@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-admin-v20260524-arch001-esm';
+const CACHE = 'ampersand-admin-v20260524-arch001b-esm';
 
 const ASSETS = [
   '/admin-negocio.html',
@@ -7,9 +7,10 @@ const ASSETS = [
   '/icon-192.png',
   '/css/admin.css',
   '/js/config.js',
-  // ARCH-001: modulo ESM (sustituye a js/nodo-ico.js)
+  // ARCH-001: modulos ESM (sustituyen a js/nodo-ico.js y esc inline)
   '/js/lib/index.mjs',
   '/js/lib/icons.mjs',
+  '/js/lib/escape.mjs',
   '/js/admin-dashboard.js',
   // Lazy-loaded (PERF-001): siguen pre-cacheados para offline pero no se cargan en el initial parse
   '/js/admin-productos.js',

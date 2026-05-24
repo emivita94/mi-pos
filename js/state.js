@@ -20,21 +20,10 @@ function _err(){
 }
 
 // ── HELPERS DE SEGURIDAD ──
-// escapeHtml: convierte caracteres especiales para insercion segura en innerHTML.
-// USAR SIEMPRE para datos que vienen del usuario o del backend
-// (nombres de cliente, observaciones, motivos, nombres de productos cargados
-// por el cliente, etc.). Sin esto un cliente con nombre "<script>" inyecta XSS.
-function escapeHtml(s){
-  if(s === null || s === undefined) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-// Alias mas corto para uso intensivo
-var esc = escapeHtml;
+// escapeHtml / esc viven en js/lib/escape.mjs (ARCH-001).
+// El modulo ESM lib/index.mjs los expone como window.escapeHtml y window.esc
+// antes de DOMContentLoaded, asi que TODA llamada dentro de handlers (que es
+// donde se usan) los encuentra disponibles.
 
 // ── CART / TICKET ──
 var cart = [];

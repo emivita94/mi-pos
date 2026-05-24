@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-superadmin-v20260524-arch001-esm';
+const CACHE = 'ampersand-superadmin-v20260524-arch001b-esm';
 
 const ASSETS = [
   '/super-admin.html',
@@ -6,9 +6,10 @@ const ASSETS = [
   '/icon.png',
   '/icon-192.png',
   '/js/config.js',
-  // ARCH-001: modulo ESM (sustituye a js/nodo-ico.js)
+  // ARCH-001: modulos ESM (sustituyen a js/nodo-ico.js y esc inline)
   '/js/lib/index.mjs',
   '/js/lib/icons.mjs',
+  '/js/lib/escape.mjs',
 ];
 
 self.addEventListener('install', e => {
