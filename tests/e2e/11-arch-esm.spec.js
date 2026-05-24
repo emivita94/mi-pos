@@ -94,4 +94,34 @@ test.describe('ARCH-001: ES Modules', () => {
     expect(result.isAlias).toBe(true);
     expect(result.escaped).toBe('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
+
+  test('lib/log.mjs exporta _log, _warn, _err', async ({ request }) => {
+    const res = await request.get('/js/lib/log.mjs');
+    expect(res.ok()).toBe(true);
+    const body = await res.text();
+    expect(body).toMatch(/export\s+function\s+_log/);
+    expect(body).toMatch(/export\s+function\s+_warn/);
+    expect(body).toMatch(/export\s+function\s+_err/);
+  });
+
+  test('state.js ya NO define _log/_warn/_err (vive en lib/log.mjs)', async ({ request }) => {
+    const res = await request.get('/js/state.js');
+    const body = await res.text();
+    expect(body).not.toMatch(/function\s+_log\s*\(/);
+    expect(body).not.toMatch(/function\s+_warn\s*\(/);
+    expect(body).not.toMatch(/function\s+_err\s*\(/);
+  });
+
+  test('Tras cargar POS, window._log/_warn/_err vienen del modulo ESM', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(() => window.__nodoLibLoaded === true, { timeout: 8000 });
+    const fns = await page.evaluate(() => ({
+      log: typeof window._log === 'function',
+      warn: typeof window._warn === 'function',
+      err: typeof window._err === 'function',
+    }));
+    expect(fns.log).toBe(true);
+    expect(fns.warn).toBe(true);
+    expect(fns.err).toBe(true);
+  });
 });

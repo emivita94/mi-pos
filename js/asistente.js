@@ -1343,7 +1343,7 @@ function _asistCrearFab(){
 }
 
 // Intentar crear el FAB en múltiples momentos para asegurar que se renderiza
-_log('[Asistente] Script cargado, estado DOM:', document.readyState);
+// (eliminado _log top-level — corre antes de que lib/log.mjs cargue)
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', _asistCrearFab);
 } else {

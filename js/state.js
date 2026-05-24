@@ -2,28 +2,11 @@
 // Todas las variables compartidas entre archivos viven aquí.
 // Usar getters/setters para mutaciones controladas.
 
-// ── DEBUG / LOGGING ──
-// _log: wrapper de console.log que solo escribe si window.DEBUG === true.
-// USAR _log en vez de console.log para evitar leakear info en produccion.
-// Para activar logs en una sesion: en DevTools console escribir
-//   window.DEBUG = true
-// y refrescar. Los errores criticos siguen yendo a console.error/warn directamente.
-window.DEBUG = window.DEBUG || (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-function _log(){
-  if(window.DEBUG && console && console.log) console.log.apply(console, arguments);
-}
-function _warn(){
-  if(console && console.warn) console.warn.apply(console, arguments);
-}
-function _err(){
-  if(console && console.error) console.error.apply(console, arguments);
-}
-
-// ── HELPERS DE SEGURIDAD ──
-// escapeHtml / esc viven en js/lib/escape.mjs (ARCH-001).
-// El modulo ESM lib/index.mjs los expone como window.escapeHtml y window.esc
-// antes de DOMContentLoaded, asi que TODA llamada dentro de handlers (que es
-// donde se usan) los encuentra disponibles.
+// ── HELPERS MIGRADOS A js/lib/ (ARCH-001) ──
+// _log/_warn/_err viven en lib/log.mjs    → expuestos como window._log/_warn/_err
+// escapeHtml / esc  viven en lib/escape.mjs → expuestos como window.escapeHtml/esc
+// El modulo ESM lib/index.mjs los carga y los re-expone antes de DOMContentLoaded,
+// asi que TODA llamada dentro de handlers (que es donde se usan) los encuentra.
 
 // ── CART / TICKET ──
 var cart = [];

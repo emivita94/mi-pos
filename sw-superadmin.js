@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-superadmin-v20260524-arch001b-esm';
+const CACHE = 'ampersand-superadmin-v20260524-arch001c-log';
 
 const ASSETS = [
   '/super-admin.html',
@@ -10,6 +10,7 @@ const ASSETS = [
   '/js/lib/index.mjs',
   '/js/lib/icons.mjs',
   '/js/lib/escape.mjs',
+  '/js/lib/log.mjs',
 ];
 
 self.addEventListener('install', e => {
