@@ -2,6 +2,19 @@
 // Un solo lugar para credenciales y helpers de Supabase.
 // Todos los HTML importan este archivo en vez de declarar sus propias constantes.
 
+// ── Polyfill defensivo de _log/_warn/_err ──
+// lib/index.mjs (que es la fuente real de estos helpers) carga como
+// <script type="module"> y es defer/async, por lo que puede no estar listo
+// cuando otros scripts sync (config → state → sounds → sync → cobro → ...) ejecutan.
+// Sin este polyfill, el primer uso de _log() tira ReferenceError y rompe la
+// inicialización (ej. sync.js abriendo IndexedDB). Cuando lib/index.mjs termine
+// de cargar va a sobrescribir estos no-ops con la implementación real.
+if (typeof window !== 'undefined') {
+  if (typeof window._log  !== 'function') window._log  = function(){};
+  if (typeof window._warn !== 'function') window._warn = function(){ console.warn.apply(console, arguments); };
+  if (typeof window._err  !== 'function') window._err  = function(){ console.error.apply(console, arguments); };
+}
+
 var SUPA_URL  = 'https://kmreiniqgcvqgdtzvmel.supabase.co';
 var SUPA_ANON = 'sb_publishable_j6btNHo1o3tSprmYUJITPw_8AsYgcvJ';
 

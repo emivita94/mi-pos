@@ -470,6 +470,47 @@ var rucTimer             = null;
 var timbradoSeleccionado = null;
 var timbradoSession      = null;
 
+// ── BUG-09 fix: banner persistente cuando la terminal NO tiene timbrado asignado ──
+// Antes solo había console.warn → el usuario se enteraba recién al ir a facturar.
+// Ahora aparece un banner fijo arriba de la pantalla con CTA "Configurar →".
+// El banner se oculta automáticamente cuando una llamada posterior detecta timbrado OK.
+function mostrarBannerSinTimbrado(terminalName) {
+  // En modo satelite el dispositivo no factura, no aplica.
+  if (typeof MODO_TERMINAL !== 'undefined' && MODO_TERMINAL === 'satelite') return;
+  if (document.getElementById('bannerSinTimbrado')) return; // idempotente
+  var b = document.createElement('div');
+  b.id = 'bannerSinTimbrado';
+  b.setAttribute('role', 'alert');
+  b.style.cssText = [
+    'position:fixed','top:0','left:0','right:0','z-index:9998',
+    'background:#3a2814','color:#ffd47a','border-bottom:2px solid #d29922',
+    'padding:11px 18px','display:flex','align-items:center','justify-content:center',
+    'gap:14px','font-family:Barlow,sans-serif','font-size:13px','font-weight:600',
+    'box-shadow:0 2px 8px rgba(0,0,0,0.4)','flex-wrap:wrap','text-align:center'
+  ].join(';');
+  b.innerHTML = ''
+    + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">'
+      + '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
+      + '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+    + '</svg>'
+    + '<span><strong>Esta terminal' + (terminalName ? ' (' + terminalName + ')' : '') + ' no tiene timbrado asignado.</strong> '
+    + 'No vas a poder facturar hasta configurarlo.</span>'
+    + '<a href="admin-negocio.html#admin" target="_blank" rel="noopener" '
+      + 'style="background:#d29922;color:#1a1106;padding:6px 14px;border-radius:5px;'
+      + 'text-decoration:none;font-weight:800;font-size:12px;white-space:nowrap">Configurar &rarr;</a>';
+  document.body.appendChild(b);
+  // Compensar el banner: empujar el contenido para que no quede tapado.
+  document.body.style.paddingTop = (b.offsetHeight || 44) + 'px';
+}
+
+function ocultarBannerSinTimbrado() {
+  var b = document.getElementById('bannerSinTimbrado');
+  if (b) {
+    b.remove();
+    document.body.style.paddingTop = '';
+  }
+}
+
 /**
  * Carga el timbrado activo para esta sesión desde Supabase
  * y lo guarda en localStorage como fallback offline.
@@ -497,14 +538,24 @@ async function cargarTimbradoSesion() {
       localStorage.setItem('pos_timbrados', JSON.stringify(tims));
       localStorage.setItem('pos_timbrados_mapa', JSON.stringify({ [terminal]: { timIdx: 0, asigIdx: 0 } }));
       timbradoSession = d;
+      ocultarBannerSinTimbrado(); // BUG-09 fix
       _log('[Timbrado] <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 16 9"/></svg> Cargado:', d.nro, '| Próx.:', getNroFactura(d));
     } else {
       console.warn('[Timbrado] Sin asignación para terminal:', terminal, d);
       timbradoSession = getTimbradoActivo();
+      // BUG-09 fix: si tampoco hay un timbrado activo en cache local, avisar al usuario.
+      if (!timbradoSession || !timbradoSession.nro) {
+        mostrarBannerSinTimbrado(terminal);
+      } else {
+        ocultarBannerSinTimbrado();
+      }
     }
   } catch (e) {
     console.warn('[Timbrado] Error RPC:', e.message);
     timbradoSession = getTimbradoActivo();
+    // En error de red NO mostramos el banner — puede ser un blip transitorio y
+    // tenemos el cache local como fallback. Solo se muestra cuando confirmamos
+    // que el server respondió "sin asignación".
   }
 }
 
