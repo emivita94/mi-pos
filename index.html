@@ -1022,7 +1022,8 @@
     <div class="art-section-title">Imagen</div>
     <div style="padding:0 14px 14px;">
       <div id="artImgPreview" style="display:none;position:relative;margin-bottom:10px;">
-        <img id="artImgPreviewImg" src="" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;display:block;">
+        <!-- BUG-11 fix: sin src="" para evitar broken image; alt="" porque es preview decorativo controlado por JS -->
+        <img id="artImgPreviewImg" alt="" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;display:block;">
         <button onclick="quitarImagen()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:28px;height:28px;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div id="artImgUpload" style="border:2px dashed #2a2a2a;border-radius:10px;padding:20px;text-align:center;cursor:pointer;" onclick="document.getElementById('artImgInput').click()">
@@ -1102,7 +1103,8 @@
     RECORTÁ LA IMAGEN
   </div>
   <div id="cropWrapper">
-    <img id="cropImg" src="" draggable="false">
+    <!-- BUG-11 fix: sin src="" para evitar broken image; alt="" porque es preview decorativo para crop -->
+    <img id="cropImg" alt="" draggable="false">
     <div id="cropFrame"></div>
   </div>
   <div id="cropZoomRow">

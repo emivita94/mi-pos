@@ -423,7 +423,9 @@ function showApp(){
   document.getElementById('sbEmail').textContent=SE||'—';
   document.getElementById('sbAv').textContent=(SE||'?')[0].toUpperCase();
   document.getElementById('sbUser').textContent=SE||'—';
-  setTimeout(testConexion,1000);
+  // BUG side-effect fix: testConexion vive en admin-finanzas.js que se carga
+  // dinámicamente — puede no estar disponible al momento del login.
+  setTimeout(function(){ if(typeof testConexion === 'function') testConexion(); }, 1000);
   goTo('dashboard');
 }
 
