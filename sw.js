@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.17-20260524-usb-print-zip';
+const CACHE = 'ampersand-pos-v1.14.18-20260524-sec002-xss-escape';
 
 const ASSETS = [
   '/',

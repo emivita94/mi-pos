@@ -181,7 +181,7 @@ async function cargarDescuentosConfig(){
             DESCUENTOS.length = 0;
             parsed.forEach(d=>DESCUENTOS.push(d));
             localStorage.setItem('pos_descuentos', JSON.stringify(DESCUENTOS));
-            console.log('[Desc] Cargados desde Supabase:', DESCUENTOS.length);
+            _log('[Desc] Cargados desde Supabase:', DESCUENTOS.length);
             return;
           }
         }
@@ -197,7 +197,7 @@ async function cargarDescuentosConfig(){
       if(Array.isArray(parsed)){
         DESCUENTOS.length = 0;
         parsed.forEach(d=>DESCUENTOS.push(d));
-        console.log('[Desc] Cargados desde localStorage:', DESCUENTOS.length);
+        _log('[Desc] Cargados desde localStorage:', DESCUENTOS.length);
       }
     }
   } catch(e){ console.warn('[Desc] Error cargando descuentos:', e.message); }
@@ -444,7 +444,7 @@ async function cropConfirmar(){
         });
         // Limpiar cache local de la imagen anterior
         if(db) try { await db.config.delete('img_cache_'+imgAnterior); } catch(e){/* IndexedDB cache cleanup — no afecta funcionalidad */}
-        console.log('[Imagen] Anterior eliminada:', oldPath);
+        _log('[Imagen] Anterior eliminada:', oldPath);
       } catch(ed){ console.warn('[Imagen] Error borrando anterior:', ed.message); }
     }
     window._artImagenAnterior = null;
@@ -472,10 +472,10 @@ async function cropConfirmar(){
     if(db){
       try {
         await db.config.put({ clave:'img_cache_'+publicUrl, valor: previewUrl });
-        console.log('[Imagen] Cacheada en IndexedDB');
+        _log('[Imagen] Cacheada en IndexedDB');
       } catch(e){/* IndexedDB cache write — no afecta funcionalidad */}
     }
-    console.log('[Imagen] Subida OK:', publicUrl);
+    _log('[Imagen] Subida OK:', publicUrl);
     toast('Imagen guardada');
   } catch(e){
     console.warn('[Imagen] Error Storage:', e.message);
@@ -539,7 +539,7 @@ async function quitarImagen(){
         headers: { 'apikey': SUPA_ANON, 'Authorization': 'Bearer '+SUPA_ANON }
       });
       if(db) try { await db.config.delete('img_cache_'+imgAnterior); } catch(e){/* IndexedDB cache cleanup — no afecta funcionalidad */}
-      console.log('[Imagen] Eliminada del Storage:', oldPath);
+      _log('[Imagen] Eliminada del Storage:', oldPath);
       toast('Imagen eliminada');
     } catch(e){ console.warn('[Imagen] Error borrando:', e.message); toast('Error al eliminar imagen'); }
   }
@@ -669,7 +669,7 @@ async function reactivarArticulo(prodIdx){
       await supaPatch('pos_productos',
         'id=eq.'+p.id+'&licencia_email=eq.'+encodeURIComponent(email),
         {activo:true}, true);
-      console.log('[Producto] Reactivado OK:', p.name);
+      _log('[Producto] Reactivado OK:', p.name);
     } catch(e){ console.warn('[Producto] Sin conexión:', e.message); toast('Error al reactivar producto en la nube'); }
   }
 
@@ -853,7 +853,7 @@ async function eliminarArticulo(){
       await supaPatch('pos_productos',
         'id=eq.'+prod.id+'&licencia_email=eq.'+encodeURIComponent(email),
         {activo:false}, true);
-      console.log('[Producto] Desactivado OK:', prod.name);
+      _log('[Producto] Desactivado OK:', prod.name);
     } catch(e){ console.warn('[Producto] Sin conexión:', e.message); toast('Error al desactivar producto en la nube'); }
   }
 
@@ -1242,7 +1242,7 @@ async function cargarModificadores(){
       opciones: rOpc.filter(o => o.modificador_id === m.id),
       productos: rProd.filter(p => p.modificador_id === m.id).map(p => p.producto_id),
     }));
-    console.log('[Modif] Cargados:', modificadores.length);
+    _log('[Modif] Cargados:', modificadores.length);
   } catch(e){ console.warn('[Modif] Error cargando:', e.message); }
 }
 
@@ -1836,7 +1836,7 @@ async function supaLoadProductos(){
 
     var maxId = Math.max.apply(null, PRODS.filter(function(p){return !p.itemLibre;}).map(function(p){return p.id;}).concat([0]));
     nextProdId = maxId + 1;
-    console.log('[Supabase] Productos cargados:', PRODS.length - 1);
+    _log('[Supabase] Productos cargados:', PRODS.length - 1);
 
     // Merge: agrega al array las categorías derivadas de productos que
     // aún no existen en CATEGORIAS (para cubrir el caso de pos_categorias
@@ -1870,7 +1870,7 @@ async function supaLoadProductos(){
           }
         } catch(ei){/* imagen cache — no crítico */}
       }
-      if(prodsConImg.length) console.log('[Imagen] Cache offline:', prodsConImg.length, 'imágenes');
+      if(prodsConImg.length) _log('[Imagen] Cache offline:', prodsConImg.length, 'imágenes');
     }
 
     // Persistir en IndexedDB para uso offline
@@ -1898,7 +1898,7 @@ async function supaLoadProductos(){
           };
         });
         await db.productos.bulkPut(rows);
-        console.log('[DB] Productos cacheados offline:', rows.length);
+        _log('[DB] Productos cacheados offline:', rows.length);
       } catch(ed){ console.warn('[DB] Cache productos:', ed.message); }
     }
   } catch(e){
@@ -1931,19 +1931,19 @@ function derivarCategoriasDeProductos(){
     CATEGORIAS.push({ id: maxId + 1 + i, nombre: nom, color: COLORES[i % COLORES.length] });
   });
   if(nombres.length){
-    console.log('[Fallback] Categorías derivadas agregadas:', nombres.length, '→', nombres.join(', '));
+    _log('[Fallback] Categorías derivadas agregadas:', nombres.length, '→', nombres.join(', '));
   }
 }
 
 async function supaLoadCategorias(){
-  if(USAR_DEMO){ console.log('[supaLoadCategorias] Modo demo, skip'); return; }
+  if(USAR_DEMO){ _log('[supaLoadCategorias] Modo demo, skip'); return; }
   var email = localStorage.getItem(SK.email);
   if(!email){ console.warn('[supaLoadCategorias] Sin email en localStorage (SK.email='+SK.email+')'); return; }
   try {
     var data = await supaGet('pos_categorias',
       'licencia_email=eq.'+encodeURIComponent(email)+'&order=nombre.asc&select=*'
     );
-    console.log('[supaLoadCategorias] Supabase devolvió', (data||[]).length, 'categorías para email:', email);
+    _log('[supaLoadCategorias] Supabase devolvió', (data||[]).length, 'categorías para email:', email);
     if(!data || !data.length){
       console.warn('[supaLoadCategorias] No hay categorías en Supabase para este email');
       return;
@@ -1953,7 +1953,7 @@ async function supaLoadCategorias(){
     newCats.forEach(function(c){ CATEGORIAS.push(c); });
     var maxId = Math.max.apply(null, CATEGORIAS.map(function(c){return c.id;}).concat([0]));
     nextCatId = maxId + 1;
-    console.log('[Supabase] Categorías cargadas:', CATEGORIAS.length);
+    _log('[Supabase] Categorías cargadas:', CATEGORIAS.length);
 
     if(db){
       try {
@@ -1966,7 +1966,7 @@ async function supaLoadCategorias(){
           };
         });
         await db.categorias.bulkPut(rows);
-        console.log('[DB] Categorías cacheadas offline:', rows.length);
+        _log('[DB] Categorías cacheadas offline:', rows.length);
       } catch(ed){ console.warn('[DB] Cache categorías:', ed.message); }
     }
   } catch(e){

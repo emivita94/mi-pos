@@ -22,7 +22,7 @@ async function mesasCargar(){
         const mesRow = await db.mesas_cache.get('mesas');
         if(salRow) mesasSalones = JSON.parse(salRow.valor);
         if(mesRow) mesasMesas   = JSON.parse(mesRow.valor);
-        if(mesasSalones.length) console.log('[Mesas] Cargadas desde cache offline:', mesasSalones.length, 'salones');
+        if(mesasSalones.length) _log('[Mesas] Cargadas desde cache offline:', mesasSalones.length, 'salones');
       }catch(e){ console.warn('[Mesas] Error cache offline:', e.message); }
     }
     return;
@@ -41,7 +41,7 @@ async function mesasCargar(){
       try{
         await db.mesas_cache.put({ clave:'salones', valor: JSON.stringify(mesasSalones) });
         await db.mesas_cache.put({ clave:'mesas',   valor: JSON.stringify(mesasMesas)   });
-        console.log('[Mesas] Cacheadas en IndexedDB:', mesasSalones.length, 'salones,', mesasMesas.length, 'mesas');
+        _log('[Mesas] Cacheadas en IndexedDB:', mesasSalones.length, 'salones,', mesasMesas.length, 'mesas');
       }catch(e){ console.warn('[Mesas] Error cacheando:', e.message); }
     }
   }catch(e){ console.warn('[Mesas] Error cargando:', e.message); toast('Error al cargar mesas'); }
@@ -105,7 +105,7 @@ function renderMesasScreen(){
     const cliBloque = (ocupada && pend.clienteNombre)
       ? '<div class="mesa-tile-cliente" style="font-size:10px;font-weight:700;color:var(--text);opacity:.85;margin-top:2px;display:flex;align-items:center;gap:3px;justify-content:center;line-height:1.1;">'+
           '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
-          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">'+pend.clienteNombre+'</span>'+
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">'+esc(pend.clienteNombre)+'</span>'+
         '</div>'
       : '';
     // Long-press en mesa ocupada → opcion de liberar forzado

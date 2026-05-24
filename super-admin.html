@@ -224,14 +224,14 @@ body{font-family:Barlow,sans-serif;background:var(--bg);color:#fff;min-height:10
     <div style="font-size:24px;font-weight:800;color:var(--green);margin-bottom:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> POS Admin</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:24px;">Panel de Super Administrador</div>
     <div style="margin-bottom:12px;">
-      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;">USUARIO</label>
-      <input id="loginUser" type="text" value="admin" style="width:100%;background:#1e1e1e;border:1.5px solid #2a2a2a;border-radius:8px;color:#fff;font-family:inherit;font-size:15px;padding:11px 14px;outline:none;box-sizing:border-box;">
+      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;">EMAIL</label>
+      <input id="loginUser" type="email" autocomplete="username" placeholder="tu-email@dominio.com" style="width:100%;background:#1e1e1e;border:1.5px solid #2a2a2a;border-radius:8px;color:#fff;font-family:inherit;font-size:15px;padding:11px 14px;outline:none;box-sizing:border-box;">
     </div>
     <div style="margin-bottom:16px;">
       <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;">CONTRASEÑA</label>
-      <input id="loginPass" type="password" style="width:100%;background:#1e1e1e;border:1.5px solid #2a2a2a;border-radius:8px;color:#fff;font-family:inherit;font-size:15px;padding:11px 14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doLogin()">
+      <input id="loginPass" type="password" autocomplete="current-password" style="width:100%;background:#1e1e1e;border:1.5px solid #2a2a2a;border-radius:8px;color:#fff;font-family:inherit;font-size:15px;padding:11px 14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button onclick="doLogin()" style="width:100%;background:var(--green);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:14px;font-weight:800;padding:13px;cursor:pointer;letter-spacing:.5px;">INGRESAR</button>
+    <button id="loginBtn" onclick="doLogin()" style="width:100%;background:var(--green);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:14px;font-weight:800;padding:13px;cursor:pointer;letter-spacing:.5px;">INGRESAR</button>
     <div id="loginErr" style="display:none;color:var(--red);font-size:12px;text-align:center;margin-top:8px;"></div>
   </div>
 </div>
@@ -430,7 +430,74 @@ body{font-family:Barlow,sans-serif;background:var(--bg);color:#fff;min-height:10
 // SUPA_URL y SUPA_ANON vienen de js/config.js
 const SURL  = SUPA_URL;
 const SKEY  = SUPA_ANON;
-const PASS  = 'admin2025';
+
+// ── AUTH: Supabase Auth + validacion contra tabla super_admins ───────────
+// Sin password hardcodeado. La sesion vive en supabase-js (refresh tokens).
+// El localStorage 'sa' viejo se ignora.
+let SA_TOKEN = null;     // access_token de Supabase Auth (JWT)
+let SA_USER  = null;     // { email, id }
+
+async function sbAuthRequest(path, opts){
+  // Fetch helper que llama a la REST de auth o data con el token actual
+  const headers = Object.assign({
+    'apikey': SKEY,
+    'Content-Type': 'application/json'
+  }, (opts && opts.headers) || {});
+  if(SA_TOKEN) headers['Authorization'] = 'Bearer ' + SA_TOKEN;
+  const r = await fetch(SURL + path, Object.assign({}, opts, { headers }));
+  return r;
+}
+
+async function saSignIn(email, password){
+  const r = await fetch(SURL + '/auth/v1/token?grant_type=password', {
+    method:'POST',
+    headers:{ 'apikey': SKEY, 'Content-Type':'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if(!r.ok){
+    const err = await r.json().catch(()=>({}));
+    return { ok:false, error: err.error_description || err.msg || 'Credenciales incorrectas' };
+  }
+  const d = await r.json();
+  return { ok:true, access_token: d.access_token, refresh_token: d.refresh_token, user: d.user };
+}
+
+async function saValidarSuperAdmin(email){
+  // Llamar a la RPC is_super_admin() — true si el JWT pertenece a un super_admin activo
+  const r = await sbAuthRequest('/rest/v1/rpc/is_super_admin', { method:'POST', body:'{}' });
+  if(!r.ok) return false;
+  const d = await r.json();
+  return d === true;
+}
+
+function _saGuardarSesion(token, refresh, user){
+  SA_TOKEN = token;
+  SA_USER  = user;
+  try {
+    localStorage.setItem('sa_session', JSON.stringify({
+      access_token: token,
+      refresh_token: refresh,
+      user: { email: user.email, id: user.id }
+    }));
+  } catch(e){}
+}
+
+function _saLimpiarSesion(){
+  SA_TOKEN = null; SA_USER = null;
+  try {
+    localStorage.removeItem('sa_session');
+    localStorage.removeItem('sa'); // limpiar legacy del bug viejo
+  } catch(e){}
+}
+
+function _saMostrarApp(){
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('app').style.display='block';
+}
+function _saMostrarLogin(){
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginWrap').style.display='flex';
+}
 
 function toggleSB(){
   var sb = document.getElementById('sidebar');
@@ -439,32 +506,71 @@ function toggleSB(){
   ov.style.display = isOpen ? 'block' : 'none';
 }
 
-function doLogin(){
-  var u = document.getElementById('loginUser').value.trim();
-  var p = document.getElementById('loginPass').value;
-  var e = document.getElementById('loginErr');
-  if(u==='admin' && p===PASS){
-    localStorage.setItem('sa','1');
-    document.getElementById('loginWrap').style.display='none';
-    document.getElementById('app').style.display='block';
-    goTo('lic');
-  } else {
-    e.textContent='Usuario o contraseña incorrectos';
-    e.style.display='block';
+async function doLogin(){
+  const email = document.getElementById('loginUser').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  const btn   = document.getElementById('loginBtn');
+  errEl.style.display = 'none';
+  if(!email || !pass){
+    errEl.textContent = 'Email y contraseña son obligatorios';
+    errEl.style.display = 'block'; return;
+  }
+  if(btn){ btn.disabled = true; btn.textContent = 'INGRESANDO...'; }
+  try {
+    const r = await saSignIn(email, pass);
+    if(!r.ok){
+      errEl.textContent = r.error || 'Credenciales incorrectas';
+      errEl.style.display = 'block';
+      return;
+    }
+    _saGuardarSesion(r.access_token, r.refresh_token, r.user);
+    const esSuperAdmin = await saValidarSuperAdmin(r.user.email);
+    if(!esSuperAdmin){
+      _saLimpiarSesion();
+      errEl.textContent = 'Tu usuario no esta autorizado como super-admin';
+      errEl.style.display = 'block';
+      return;
+    }
+    _saMostrarApp();
+    if(typeof goTo === 'function') goTo('lic');
+    else if(typeof loadL === 'function') loadL();
+  } catch(e){
+    errEl.textContent = 'Error: ' + (e.message || 'No se pudo conectar');
+    errEl.style.display = 'block';
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'INGRESAR'; }
   }
 }
 
 function logout(){
-  localStorage.removeItem('sa');
-  document.getElementById('app').style.display='none';
-  document.getElementById('loginWrap').style.display='flex';
+  _saLimpiarSesion();
+  _saMostrarLogin();
 }
 
-// Auto-login
-if(localStorage.getItem('sa')){
-  document.getElementById('loginWrap').style.display='none';
-  document.getElementById('app').style.display='block';
-}
+// Auto-login: si hay sesion guardada, validar y entrar
+(async function _saAutoLogin(){
+  try {
+    const raw = localStorage.getItem('sa_session');
+    if(!raw){
+      // Limpiar legacy del bug viejo (localStorage.setItem('sa','1'))
+      if(localStorage.getItem('sa')) localStorage.removeItem('sa');
+      return;
+    }
+    const s = JSON.parse(raw);
+    SA_TOKEN = s.access_token;
+    SA_USER  = s.user;
+    // Validar que sigue siendo super_admin (token vigente + en tabla)
+    const ok = await saValidarSuperAdmin(s.user.email);
+    if(!ok){
+      _saLimpiarSesion();
+      return;
+    }
+    _saMostrarApp();
+  } catch(e){
+    _saLimpiarSesion();
+  }
+})();
 
 
 
@@ -483,11 +589,20 @@ function toast(m,d=2200){
 }
 
 // ── SUPABASE ─────────────────────────────────────────────
+// Helper: usa JWT del super_admin si esta logueado (asi las RLS lo identifican).
+// Si no, cae al anon key (solo deberia pasar antes del login).
+function _saHeaders(extra){
+  const token = SA_TOKEN || SKEY;
+  return Object.assign({
+    'apikey': SKEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }, extra || {});
+}
 async function sg(t,q){
   try{
-    const r=await fetch(SURL+'/rest/v1/'+t+(q?'?'+q:''),{
-      headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Accept':'application/json'}
-    });
+    const r=await fetch(SURL+'/rest/v1/'+t+(q?'?'+q:''),{ headers: _saHeaders() });
     if(!r.ok){ const e=await r.text(); throw new Error('HTTP '+r.status+': '+e.substring(0,80)); }
     const d=await r.json();
     return Array.isArray(d)?d:[];
@@ -498,43 +613,31 @@ async function sg(t,q){
   }
 }
 async function spost(t,b){
-  const r=await fetch(SURL+'/rest/v1/'+t,{method:'POST',
-    headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'},
-    body:JSON.stringify(b)});
+  const r=await fetch(SURL+'/rest/v1/'+t,{
+    method:'POST',
+    headers: _saHeaders({ 'Prefer':'return=representation' }),
+    body: JSON.stringify(b)
+  });
   if(!r.ok)throw new Error(await r.text());
   return await r.json();
 }
 async function spatch(t,id,b){
-  const r=await fetch(SURL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',
-    headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json'},
-    body:JSON.stringify(b)});
+  const r=await fetch(SURL+'/rest/v1/'+t+'?id=eq.'+id,{
+    method:'PATCH', headers: _saHeaders(), body: JSON.stringify(b)
+  });
   if(!r.ok)throw new Error(await r.text());
 }
 async function srpc(fn,p){
-  const r=await fetch(SURL+'/rest/v1/rpc/'+fn,{method:'POST',
-    headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json'},
-    body:JSON.stringify(p)});
+  const r=await fetch(SURL+'/rest/v1/rpc/'+fn,{
+    method:'POST', headers: _saHeaders(), body: JSON.stringify(p)
+  });
   if(!r.ok)throw new Error(await r.text());
   return await r.json();
 }
 
-// ── LOGIN ────────────────────────────────────────────────
-function login(){
-  const u=document.getElementById('saU').value.trim();
-  const p=document.getElementById('saP').value;
-  const e=document.getElementById('lErr');
-  if(u==='admin'&&p===PASS){
-    localStorage.setItem('sa','1');
-    document.getElementById('loginWrap').style.display='none';
-    document.getElementById('app').style.display='block';
-    loadL();
-  } else { e.textContent='Usuario o contraseña incorrectos'; e.style.display='block'; }
-}
-function logout(){
-  localStorage.removeItem('sa');
-  document.getElementById('app').style.display='none';
-  document.getElementById('loginWrap').style.display='flex';
-}
+// ── LOGIN: la unica implementacion vive arriba (doLogin/logout con Supabase Auth)
+// Aliases por compatibilidad con codigo viejo que llamaba login()/logout()
+const login = doLogin;
 
 // ── NAV ──────────────────────────────────────────────────
 
@@ -1446,12 +1549,12 @@ const DEMO=[
   {id:4,clave:'FULL-2025-ZZZZ',nombre_cliente:'Cadena Full',email_cliente:'full@test.com',plan_id:3,fecha_vence:'2027-12-31',activa:true,rubro:'supermercado',tipo_pago:'anual',monto:400000,planes:{nombre:'Completo'},created_at:new Date(Date.now()-86400000*120).toISOString()},
 ];
 
-// ── AUTO LOGIN ────────────────────────────────────────────
-if(localStorage.getItem('sa')){
-  document.getElementById('loginWrap').style.display='none';
-  document.getElementById('app').style.display='block';
-  loadL();
-}
+// AUTO LOGIN ahora lo maneja _saAutoLogin() arriba (Supabase Auth).
+// Si hay sesion valida ya muestra la app; sino, queda en login.
+// Cargamos la lista de licencias cuando hay sesion:
+(function _saMaybeLoadL(){
+  if(SA_TOKEN && typeof loadL === 'function') loadL();
+})();
 
 // ═══════════════════════════════════════════════════════
 // CONTRIBUYENTES RUC
@@ -1769,8 +1872,9 @@ async function renderRuc(){
 }
 
 
-// Init
-if(localStorage.getItem('sa')) goTo('lic');
+// Init: si hay sesion valida (Supabase Auth), navegar a Licencias.
+// _saAutoLogin() arriba ya se ocupa de mostrar la app si la sesion es valida.
+if(SA_TOKEN) goTo('lic');
 </script>
 <script>
 if('serviceWorker' in navigator){

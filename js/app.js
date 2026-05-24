@@ -35,7 +35,7 @@ async function sincronizarConfigNegocio(){
           Object.entries(val).forEach(([k,v])=>{
             if(v && !localStorage.getItem(k)) localStorage.setItem(k,v);
           });
-          console.log('[Config] Negocio (sync Supabase):', configData.negocio, '| RUC:', configData.ruc);
+          _log('[Config] Negocio (sync Supabase):', configData.negocio, '| RUC:', configData.ruc);
         }
       } catch(e){ console.warn('[Config] Error parsing', row.clave, e.message); }
     });
@@ -575,7 +575,7 @@ async function obtenerFechaServidor(){
         const latencia = Math.round((t1 - t0) / 2);
         _serverOffset = (serverMs + latencia) - t1;
         _serverOffsetOk = true;
-        console.log('[FechaServidor] Offset calculado:',
+        _log('[FechaServidor] Offset calculado:',
           (_serverOffset >= 0 ? '+' : '') + _serverOffset + 'ms respecto al dispositivo',
           '| Latencia:', latencia + 'ms'
         );
@@ -606,7 +606,7 @@ function supaInsertTurno(estado, efectivoInicial){
   };
   supaPost('pos_turno', data).then(rows=>{
     if(rows&&rows[0]) turnoData.supaId = rows[0].id;
-    console.log('[Turno] Guardado en Supabase id:', rows&&rows[0]&&rows[0].id);
+    _log('[Turno] Guardado en Supabase id:', rows&&rows[0]&&rows[0].id);
   }).catch(e=>console.warn('[Turno] Error Supabase:', e.message));
 }
 function diag(msg){ /* diag disabled */ }
@@ -659,7 +659,7 @@ function openCat(){
   var _numCats = (typeof CATEGORIAS !== 'undefined' && Array.isArray(CATEGORIAS)) ? CATEGORIAS.length : -1;
   var _email   = localStorage.getItem('lic_email') || '(no guardado)';
   var _online  = navigator.onLine;
-  console.log('[openCat] CATEGORIAS.length =', _numCats, 'PRODS.length =', (typeof PRODS !== 'undefined' ? PRODS.length : -1), 'email =', _email, 'online =', _online);
+  _log('[openCat] CATEGORIAS.length =', _numCats, 'PRODS.length =', (typeof PRODS !== 'undefined' ? PRODS.length : -1), 'email =', _email, 'online =', _online);
 
   if(_numCats > 0){
     CATEGORIAS.forEach(c => { html += catItem(c.nombre, c.color||null); });
@@ -1395,7 +1395,7 @@ async function confirmarCierre(){
           cantidad_ventas: _cantVentas,
           resumen_pagos:   JSON.stringify(_metodosTotales),
         }, true);
-      console.log('[Cierre] Turno cerrado en Supabase OK');
+      _log('[Cierre] Turno cerrado en Supabase OK');
     } catch(e){ console.warn('[Cierre] Error Supabase:', e.message); }
 
     // ── Cancelar pedidos satelite abiertos al cerrar turno ─
@@ -1411,7 +1411,7 @@ async function confirmarCierre(){
           { estado: 'cancelado', updated_at: new Date().toISOString() },
           true
         );
-        console.log('[Cierre] Pedidos satelite abiertos cancelados');
+        _log('[Cierre] Pedidos satelite abiertos cancelados');
       }
     } catch(e){ console.warn('[Cierre] Error cancelando pedidos satelite:', e.message); }
   }
@@ -1708,7 +1708,7 @@ async function _guardarConfigSupabase(){
       }),
     };
     await supaPost('pos_config', payload, 'licencia_email,clave', true);
-    console.log('[Config] Guardado en Supabase <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
+    _log('[Config] Guardado en Supabase <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
     return true;
   } catch(e){
     console.warn('[Config] Error guardando en Supabase:', e.message);
@@ -1883,7 +1883,7 @@ function cerrarSesion(){
   if(db){
     try{
       db.turno.clear();
-      console.log('[Sesion] IndexedDB turno limpiado');
+      _log('[Sesion] IndexedDB turno limpiado');
     } catch(e){ console.warn('[Sesion] Error limpiando IndexedDB:', e.message); }
   }
 

@@ -660,7 +660,7 @@ function verVentaCobradaModal(item){
           (nroFact ? '<span style="font-size:11px;color:var(--muted);font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 1 1V2H4z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="14" y2="15"/></svg> '+nroFact+'</span>' : '')+
         '</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-top:4px;">'+fechaStr+'</div>'+
-        (nomCli ? '<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text);font-weight:700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+nomCli+'</div>' : '')+
+        (nomCli ? '<div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text);font-weight:700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+esc(nomCli)+'</div>' : '')+
       '</div>'+
       '<div style="padding:16px 20px;">'+
         '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:8px;">Artículos</div>'+
@@ -939,7 +939,7 @@ function renderPendientes() {
     var cliBadge = t.clienteNombre
       ? '<div style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--text);font-weight:700;margin-top:2px;">'+
           '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
-          '<span>'+t.clienteNombre+'</span>'+
+          '<span>'+esc(t.clienteNombre)+'</span>'+
         '</div>'
       : '';
     return '<div class="pend-item" style="display:flex;align-items:center;gap:0;' +
@@ -1456,7 +1456,7 @@ function renderTabletTicket(){
     hdrCliVacio.innerHTML =
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="opacity:.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'+
       '<span style="opacity:.6;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Cliente:</span>'+
-      '<span>'+_nomCliTab+'</span>';
+      '<span>'+esc(_nomCliTab)+'</span>';
     tl.appendChild(hdrCliVacio);
   }
 

@@ -193,7 +193,7 @@ async function sateliteEnviarPedido(){
             supabasePedidoId = inserted[0].id;
           }
         } catch(ep){ console.warn('[Satélite] No se pudo leer UUID del response'); }
-        console.log('[Satélite] Pedido #' + nroOrden + ' CREADO (POST). ID:', supabasePedidoId, '| Tipo:', tipoFinal);
+        _log('[Satélite] Pedido #' + nroOrden + ' CREADO (POST). ID:', supabasePedidoId, '| Tipo:', tipoFinal);
       }
     } catch(e){
       console.warn('[Satélite] Sin conexión al enviar pedido:', e.message);
@@ -202,7 +202,7 @@ async function sateliteEnviarPedido(){
 
   // Marcar los items NUEVOS como enviados (los que ya estaban enviados no se tocan)
   itemsNuevos.forEach(function(i){ i.enviado = true; });
-  console.log('[Satelite]', itemsNuevos.length, 'items nuevos marcados enviados (sin imprimir comanda)');
+  _log('[Satelite]', itemsNuevos.length, 'items nuevos marcados enviados (sin imprimir comanda)');
 
   // ── Guardar pendiente NUEVO en pendientes[] (nunca reemplaza al previo) ──
   // Cada envío genera su propio pendiente local con su supabasePedidoId.
@@ -271,7 +271,7 @@ function imprimirComandaPreCobro(){
     if(ticketIdx >= 0){
       pendientes[ticketIdx].cart = JSON.parse(JSON.stringify(cart));
       try { localStorage.setItem('pos_pendientes', JSON.stringify(pendientes)); } catch(e){ console.warn('[Comanda] Error guardando pendientes:', e.message); }
-      console.log('[Comanda] Estado enviado guardado en ticket #'+currentTicketNro);
+      _log('[Comanda] Estado enviado guardado en ticket #'+currentTicketNro);
     }
   }
   updBtnComandaCobro();
@@ -316,7 +316,7 @@ function marcarPedidoSateliteCobrado(pedidoId){
   supaPatch('pos_pedidos', 'id=eq.' + encodeURIComponent(pedidoId) + '&licencia_email=eq.' + encodeURIComponent(_email || ''),
     { estado: 'cobrado', updated_at: new Date().toISOString() }, true)
   .then(function(){
-    console.log('[CajaSync] Pedido satélite marcado cobrado:', pedidoId);
+    _log('[CajaSync] Pedido satélite marcado cobrado:', pedidoId);
   })
   .catch(function(e){ console.warn('[CajaSync] Error marcando cobrado:', e.message); });
 
@@ -445,7 +445,7 @@ async function cajaSyncPedidosSatelite(){
       }
     }
 
-    console.log('[CajaSync] Satelite pendientes:', satelites.length, '| Total:', pendientes.length);
+    _log('[CajaSync] Satelite pendientes:', satelites.length, '| Total:', pendientes.length);
   } catch(e){ console.warn('[CajaSync] Error:', e.message); }
 }
 
@@ -477,7 +477,7 @@ function posSuscribirRealtime(){
     _realtimeWS = new WebSocket(wsUrl);
 
     _realtimeWS.onopen = function(){
-      console.log('[Realtime] Conectado a Supabase');
+      _log('[Realtime] Conectado a Supabase');
       // Suscribirse a INSERTs en pos_pedidos filtrados por licencia_email
       var email = localStorage.getItem('lic_email');
       if(!email) return;
@@ -525,7 +525,7 @@ function posSuscribirRealtime(){
         if(data.event === 'postgres_changes' && data.payload && data.payload.data){
           // Pedido insertado o updateado — trigger sync inmediato según modo
           var eventType = data.payload.data.type;
-          console.log('[Realtime] Cambio en pos_pedidos:', eventType, '| modo:', MODO_TERMINAL);
+          _log('[Realtime] Cambio en pos_pedidos:', eventType, '| modo:', MODO_TERMINAL);
           if(MODO_TERMINAL === 'caja'){
             setTimeout(cajaSyncPedidosSatelite, 100);
           } else if(MODO_TERMINAL === 'satelite'){
@@ -541,7 +541,7 @@ function posSuscribirRealtime(){
     };
 
     _realtimeWS.onclose = function(){
-      console.log('[Realtime] Desconectado — reintentando en 5s');
+      _log('[Realtime] Desconectado — reintentando en 5s');
       if(_realtimeWS && _realtimeWS._hb) clearInterval(_realtimeWS._hb);
       _realtimeWS = null;
       // Reintentar conexion tras 5s
@@ -605,7 +605,7 @@ async function sateliteSyncPedidosPendientes(){
       if(!p._syncInProgress){
         var fechaMs = p.fecha instanceof Date ? p.fecha.getTime() : (new Date(p.fecha||0)).getTime();
         if(fechaMs && ahora - fechaMs > DOS_HORAS){
-          console.log('[SateliteSync] Pedido #'+p.nro+' sin UUID tras 2h — removiendo fantasma');
+          _log('[SateliteSync] Pedido #'+p.nro+' sin UUID tras 2h — removiendo fantasma');
           return false;
         }
       }
@@ -617,7 +617,7 @@ async function sateliteSyncPedidosPendientes(){
       guardarPendientesLocal();
       updBtnGuardar();
       if(typeof renderMesasScreen === 'function') renderMesasScreen();
-      console.log('[SateliteSync] Removidos', antes - sobrevivientes.length, 'pedidos (cobrados/cancelados)');
+      _log('[SateliteSync] Removidos', antes - sobrevivientes.length, 'pedidos (cobrados/cancelados)');
     }
 
     // Reintentar pedidos locales que no llegaron a Supabase (offline al enviar)
@@ -659,7 +659,7 @@ async function sateliteSyncPedidosPendientes(){
             pendientes[idx2].supaSync = true;
             pendientes[idx2].supabasePedidoId = retryId;
           }
-          console.log('[SateliteRetry] Pedido #'+p.nro+' subido. ID:', retryId);
+          _log('[SateliteRetry] Pedido #'+p.nro+' subido. ID:', retryId);
         }
       } catch(e2){ console.warn('[SateliteRetry] Error reintentando pedido #'+p.nro+':', e2.message); }
       finally { if(idx2 >= 0) pendientes[idx2]._syncInProgress = false; }
@@ -720,7 +720,7 @@ async function leerModoDesdeActivaciones(){
   if(!navigator.onLine || USAR_DEMO){
     const modoGuardado = localStorage.getItem('pos_modo_terminal') || 'caja';
     MODO_TERMINAL = modoGuardado;
-    console.log('[Modo] Offline — usando modo guardado:', MODO_TERMINAL);
+    _log('[Modo] Offline — usando modo guardado:', MODO_TERMINAL);
     return MODO_TERMINAL;
   }
 
@@ -770,7 +770,7 @@ async function leerModoDesdeActivaciones(){
       cookieSet('ali', String(activ.licencia_id), 365);
     }
 
-    console.log('[Modo] Terminal:', activ.nombre_terminal,
+    _log('[Modo] Terminal:', activ.nombre_terminal,
                 '| Sucursal:', activ.sucursal,
                 '| Modo:', modoServidor.toUpperCase(),
                 '| Licencia ID:', activ.licencia_id);
@@ -788,7 +788,7 @@ async function leerModoDesdeActivaciones(){
 function sateliteInicializarUI(){
   if(MODO_TERMINAL !== 'satelite') return; // no-op en modo caja
 
-  console.log('[Satélite] Inicializando UI modo satélite...');
+  _log('[Satélite] Inicializando UI modo satélite...');
 
   // ── 1. Botón COBRAR móvil (scSale, action-bar) ───────────────────────────
   const btnCobrarMob = document.querySelector('#scSale .btn-cobrar');
@@ -855,7 +855,7 @@ function sateliteInicializarUI(){
     }
   });
 
-  console.log('[Satélite] UI adaptada: COBRAR → ENVIAR PEDIDO, badge visible, turno oculto');
+  _log('[Satélite] UI adaptada: COBRAR → ENVIAR PEDIDO, badge visible, turno oculto');
 }
 
 // sateliteConfigurarModo — cambia el modo del terminal y recarga la UI.
@@ -887,7 +887,7 @@ async function sateliteConfigurarModo(modo){
         'email=eq.' + encodeURIComponent(email)
           + '&nombre_terminal=eq.' + encodeURIComponent(terminal),
         { modo }, true);
-      console.log('[Satélite] Modo ' + modo + ' guardado en Supabase para terminal:', terminal);
+      _log('[Satélite] Modo ' + modo + ' guardado en Supabase para terminal:', terminal);
     } catch(e){
       console.warn('[Satélite] No se pudo guardar modo en Supabase:', e.message);
     }
@@ -919,7 +919,7 @@ async function sateliteVerificarCajaActiva(){
         + '&select=id,terminal,fecha_apertura');
     var hayTurno = Array.isArray(rows) && rows.length > 0;
     if(hayTurno){
-      console.log('[Satelite] Caja activa — turno de:', rows[0].terminal);
+      _log('[Satelite] Caja activa — turno de:', rows[0].terminal);
     } else {
       console.warn('[Satelite] Sin turno abierto para licencia:', email);
     }

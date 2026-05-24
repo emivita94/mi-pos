@@ -252,12 +252,12 @@ async function loadDashData(f){
     var hastaTZ = hastaNextDay+'T03:59:59';
 
     // Datos del período
-    console.log('[Dash] Query ventas → email:', SE, '| desde:', desdeTZ, '| hasta:', hastaTZ);
+    _log('[Dash] Query ventas → email:', SE, '| desde:', desdeTZ, '| hasta:', hastaTZ);
     var v=await sg('pos_ventas',
       'licencia_email=ilike.'+encodeURIComponent(SE)+
       '&anulada=is.false'+
       '&fecha=gte.'+desdeTZ+'&fecha=lte.'+hastaTZ+'&order=fecha.desc&limit=500');
-    console.log('[Dash] Resultados:', v.length, 'ventas, primera:', v[0]||'—');
+    _log('[Dash] Resultados:', v.length, 'ventas, primera:', v[0]||'—');
     var tot=v.reduce(function(s,x){return s+(x.total||0);},0);
     var cnt=v.length;
     var totEf=v.filter(function(x){return (x.metodo_pago||'').toUpperCase()==='EFECTIVO';})

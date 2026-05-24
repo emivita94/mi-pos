@@ -63,7 +63,7 @@ async function avanzarNroFactura(timbrado){
         if(window._timbradoCache) window._timbradoCache.nro_actual = d.nro_actual;
         const c2 = JSON.parse(localStorage.getItem('pos_timbrado_activo')||'null');
         if(c2){ c2.nro_actual = d.nro_actual; localStorage.setItem('pos_timbrado_activo',JSON.stringify(c2)); }
-        console.log('[Correlativo] +1 en Supabase → nro_actual:',d.nro_actual);
+        _log('[Correlativo] +1 en Supabase → nro_actual:',d.nro_actual);
       }
     } catch(e){ console.warn('[Correlativo]',e.message); }
   }
@@ -92,7 +92,7 @@ function turnoRestaurar(){
     if(data.ventas) data.ventas.forEach(v=>{ if(v.fecha) v.fecha = new Date(v.fecha); });
     if(data.egresos) data.egresos.forEach(e=>{ if(e.fecha) e.fecha = new Date(e.fecha); });
     Object.assign(turnoData, data);
-    console.log('[Turno] Restaurado — '+turnoData.ventas.length+' ventas, abierto: '+turnoData.fechaApertura);
+    _log('[Turno] Restaurado — '+turnoData.ventas.length+' ventas, abierto: '+turnoData.fechaApertura);
     return true;
   } catch(e){
     console.warn('[Turno] Error restaurando:', e.message);
@@ -187,7 +187,7 @@ function supaInsertVenta(data){
   }
 
   supaPost('pos_ventas', venta, null, true).then(async () => {
-    console.log('[Venta] Guardada en Supabase OK');
+    _log('[Venta] Guardada en Supabase OK');
     // Si la venta tenía un pedido satélite vinculado, marcarlo como cobrado
     if(data._supabasePedidoId){
       marcarPedidoSateliteCobrado(data._supabasePedidoId);
@@ -283,7 +283,7 @@ async function stockDescontarVenta(items, comprobante){
         p_referencia:  comprobante || ('VENTA-'+Date.now()),
         p_terminal:    localStorage.getItem('pos_terminal')||'Terminal'
       });
-      console.log('[Stock] Descontado atómico — '+itemsInv.length+' prods | depósito:', depId);
+      _log('[Stock] Descontado atómico — '+itemsInv.length+' prods | depósito:', depId);
     } catch(_rpcErr) {
       // Fallback: upsert clásico por producto (no atómico)
       console.warn('[Stock] RPC no disponible, usando fallback:', _rpcErr.message||_rpcErr);
@@ -298,7 +298,7 @@ async function stockDescontarVenta(items, comprobante){
             }, 'deposito_id,producto_id', true);
         } catch(e){ console.warn('[Stock] upsert error prod', it.id, ':', e.message); }
       }
-      console.log('[Stock] Descontado fallback — '+itemsInv.length+' prods | depósito:', depId);
+      _log('[Stock] Descontado fallback — '+itemsInv.length+' prods | depósito:', depId);
     }
   }catch(e){
     console.warn('[Stock] Error descontando:', e.message);
@@ -374,7 +374,7 @@ async function stockRevertirVenta(items, comprobante){
           }, 'deposito_id,producto_id', true);
       } catch(e){ console.warn('[Stock] upsert revert prod', it.id, ':', e.message); }
     }
-    console.log('[Stock] Revertido — '+itemsInv.length+' productos | depósito:', depId);
+    _log('[Stock] Revertido — '+itemsInv.length+' productos | depósito:', depId);
   }catch(e){
     console.warn('[Stock] Error revirtiendo stock:', e.message);
   }

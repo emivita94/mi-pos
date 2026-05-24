@@ -2537,7 +2537,7 @@ async function imprimirBluetooth(device, htmlContent, size){
       try{
         const svc=await server.getPrimaryService(s.svc);
         char=await svc.getCharacteristic(s.chr);
-        console.log('[BT] Servicio:', s.svc);
+        _log('[BT] Servicio:', s.svc);
         break;
       }catch(e){ lastErr=e.message; }
     }
@@ -2546,13 +2546,13 @@ async function imprimirBluetooth(device, htmlContent, size){
     if(!char){
       try{
         const svcs=await server.getPrimaryServices();
-        console.log('[BT] Servicios:', svcs.map(s=>s.uuid));
+        _log('[BT] Servicios:', svcs.map(s=>s.uuid));
         for(const svc of svcs){
           const chars=await svc.getCharacteristics();
           for(const c of chars){
             if(c.properties.write||c.properties.writeWithoutResponse){
               char=c;
-              console.log('[BT] Char:', c.uuid);
+              _log('[BT] Char:', c.uuid);
               break;
             }
           }
@@ -2581,7 +2581,7 @@ async function imprimirBluetooth(device, htmlContent, size){
     // Tickets largos necesitan más tiempo entre chunks
     const delayMs = data.length > 1000 ? 60 : 40;
 
-    console.log(`[BT] Enviando ${data.length} bytes en chunks de ${chunkSize} con ${delayMs}ms delay`);
+    _log(`[BT] Enviando ${data.length} bytes en chunks de ${chunkSize} con ${delayMs}ms delay`);
 
     for(let i = 0; i < data.length; i += chunkSize){
       const chunk = data.slice(i, i + chunkSize);

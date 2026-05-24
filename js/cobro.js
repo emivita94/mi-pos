@@ -497,7 +497,7 @@ async function cargarTimbradoSesion() {
       localStorage.setItem('pos_timbrados', JSON.stringify(tims));
       localStorage.setItem('pos_timbrados_mapa', JSON.stringify({ [terminal]: { timIdx: 0, asigIdx: 0 } }));
       timbradoSession = d;
-      console.log('[Timbrado] <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 16 9"/></svg> Cargado:', d.nro, '| Próx.:', getNroFactura(d));
+      _log('[Timbrado] <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 16 9"/></svg> Cargado:', d.nro, '| Próx.:', getNroFactura(d));
     } else {
       console.warn('[Timbrado] Sin asignación para terminal:', terminal, d);
       timbradoSession = getTimbradoActivo();

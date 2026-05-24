@@ -26,9 +26,9 @@ async function solicitarWakeLock(){
       _wakeLock.addEventListener('release', function(){
         _wakeLock = null;
         _wakeLockActivo = false;
-        console.log('[WakeLock] liberado — watchdog re-adquirirá');
+        _log('[WakeLock] liberado — watchdog re-adquirirá');
       });
-      console.log('[WakeLock] API nativa activada');
+      _log('[WakeLock] API nativa activada');
       return;
     } catch(e){
       console.warn('[WakeLock] request falló:', e.name, e.message);
@@ -208,7 +208,7 @@ async function iniciarApp(){
         });
         const eliminados = sp.length - dedup.length;
         if(eliminados > 0){
-          console.log('[init] Limpieza de pendientes duplicados: '+eliminados+' eliminados ('+sp.length+' -> '+dedup.length+')');
+          _log('[init] Limpieza de pendientes duplicados: '+eliminados+' eliminados ('+sp.length+' -> '+dedup.length+')');
           // Re-persistir el array limpio
           try { localStorage.setItem('pos_pendientes', JSON.stringify(dedup)); } catch(e){}
         }
@@ -233,7 +233,7 @@ async function iniciarApp(){
         if(t){
           turnoData.dbId = t.id;
           turnoGuardar();
-          console.log('[Turno] dbId recuperado desde IndexedDB:', t.id);
+          _log('[Turno] dbId recuperado desde IndexedDB:', t.id);
         }
       } catch(e){ console.warn('[Turno] Error recuperando dbId:', e.message); }
     }
@@ -388,7 +388,7 @@ async function iniciarApp(){
         if(!dd||!dd[0]) return;
         localStorage.setItem('pos_deposito_id', String(dd[0].id));
         cookieSet('pos_dep_id', String(dd[0].id), 365);
-        console.log('[App] Depósito restaurado:', dd[0].id);
+        _log('[App] Depósito restaurado:', dd[0].id);
         toast('Depósito listo (ID '+dd[0].id+')');
       }catch(e){ console.warn('[App] Error recuperando depósito:', e.message); }
     }, 4000);
@@ -464,7 +464,7 @@ async function guardarConfigTerminalSupabase(cfg){
         }),
         licencia_email: localStorage.getItem(SK.email)
       }, 'licencia_email,clave', true);
-    console.log('[Terminal] Config guardada — device:', deviceId.slice(0,12));
+    _log('[Terminal] Config guardada — device:', deviceId.slice(0,12));
   }catch(e){console.warn('[Terminal] Error guardando:', e.message);}
 }
 
@@ -483,7 +483,7 @@ async function recuperarConfigTerminalSupabase(){
       if(data && data[0]){
         const cfg = JSON.parse(data[0].valor);
         if(!cfg.deviceId || cfg.deviceId === deviceId){
-          console.log('[Terminal] Config recuperada por deviceId');
+          _log('[Terminal] Config recuperada por deviceId');
           return cfg;
         }
       }
@@ -498,7 +498,7 @@ async function recuperarConfigTerminalSupabase(){
       const cfg = JSON.parse(data2[0].valor);
       // Si tiene config válida, restaurar y guardar el device_id que estaba en esa config
       if(cfg.terminal && cfg.sucursal){
-        console.log('[Terminal] Config recuperada por email (fallback) — terminal:', cfg.terminal);
+        _log('[Terminal] Config recuperada por email (fallback) — terminal:', cfg.terminal);
         // Restaurar el device_id guardado en esa config para mantener consistencia
         if(cfg.deviceId && !localStorage.getItem(SK.deviceId)){
           localStorage.setItem(SK.deviceId, cfg.deviceId);

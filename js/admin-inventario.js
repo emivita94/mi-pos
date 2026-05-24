@@ -820,7 +820,7 @@ async function togHistRow(compId){
           var c=it.cantidad||0;
           var marcado=it.producto_id===_inv.prodActivo.id?'font-weight:800;color:var(--text)':'';
           return '<tr style="border-top:1px solid var(--border)">'
-            +'<td style="padding:5px 8px;font-size:12px;'+marcado+'">'+it.nombre_producto+'</td>'
+            +'<td style="padding:5px 8px;font-size:12px;'+marcado+'">'+esc(it.nombre_producto)+'</td>'
             +'<td style="padding:5px 8px;font-size:12px;text-align:center;color:var(--muted)">'+(it.cantidad_antes!=null?it.cantidad_antes:'\u2014')+'</td>'
             +'<td style="padding:5px 8px;font-size:13px;text-align:center;font-weight:800;color:'+(c>0?'var(--green)':'var(--red)')+'">'+(c>0?'+':'')+c+'</td>'
             +'<td style="padding:5px 8px;font-size:12px;text-align:center;font-weight:700">'+(it.cantidad_despues!=null?it.cantidad_despues:'\u2014')+'</td>'
@@ -1360,11 +1360,11 @@ function extRenderTabla(rows, saldoAntOverride){
       +'<td style="font-size:12px;white-space:nowrap">'+fechaStr+'</td>'
       +'<td style="font-size:12px;white-space:nowrap;color:var(--muted)">'+horaStr+'</td>'
       +'<td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:'+tc.bg+';color:'+tc.col+'">'+tc.lbl+'</span>'
-        +(r.terminal?'<div style="font-size:10px;color:var(--muted)">'+r.terminal+'</div>':'')
+        +(r.terminal?'<div style="font-size:10px;color:var(--muted)">'+esc(r.terminal)+'</div>':'')
       +'</td>'
-      +'<td style="font-size:12px;font-weight:600">'+r.referencia+'</td>'
-      +'<td style="font-size:12px;color:var(--muted)">'+r.sucNom+'</td>'
-      +'<td style="font-size:12px;color:var(--muted)">'+r.depNom+'</td>'
+      +'<td style="font-size:12px;font-weight:600">'+esc(r.referencia)+'</td>'
+      +'<td style="font-size:12px;color:var(--muted)">'+esc(r.sucNom)+'</td>'
+      +'<td style="font-size:12px;color:var(--muted)">'+esc(r.depNom)+'</td>'
       +'<td style="text-align:right;font-weight:700;color:var(--green)">'+(r.entrada>0?'+'+r.entrada:'')+'</td>'
       +'<td style="text-align:right;font-weight:700;color:var(--red)">' +(r.salida >0?'-'+r.salida :'')+'</td>'
       +'<td style="text-align:right;font-weight:800;font-size:14px;color:'+saldoCol+'">'+r.saldo+'</td>'
@@ -2098,7 +2098,7 @@ async function movFiltrarLista(tiposStr){
         +'<td style="font-size:12px;color:var(--muted)">'+dep+'</td>'
         +'<td style="text-align:center;font-weight:700">'+(itemsCount[c.id]||0)+'</td>'
         +totCell
-        +'<td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(c.observacion||'')+'</td>'
+        +'<td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.observacion||'')+'</td>'
         +'<td style="text-align:center">'
           +(anulado
             ?'<span class="tag tag-r">ANULADO</span>'
@@ -2106,7 +2106,7 @@ async function movFiltrarLista(tiposStr){
         +'</td>'
         +'<td style="text-align:center;white-space:nowrap;display:flex;gap:5px;justify-content:center">'
           +'<button onclick="movVerDetalle('+c.id+')" style="background:var(--b2);border:1px solid var(--blue);border-radius:6px;color:var(--blue);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer">Ver</button>'
-          +(canAnular?'<button onclick="movConfirmarAnulacion('+c.id+',\''+c.referencia+'\')" style="background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer">Anular</button>':'')
+          +(canAnular?'<button onclick="movConfirmarAnulacion('+c.id+',&quot;'+esc(c.referencia||'').replace(/&quot;/g,'').replace(/"/g,'')+'&quot;)" style="background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer">Anular</button>':'')
         +'</td>'
       +'</tr>';
     }).join('');
@@ -2166,7 +2166,7 @@ async function movVerDetalle(compId){
           +'<div class="cj-dr"><span style="color:var(--muted)">Usuario</span><span>'+(c.usuario||'—')+'</span></div>'
         +'</div>'
       +'</div>'
-      +(c.observacion?'<div style="background:var(--card2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2)">'+c.observacion+'</div>':'')
+      +(c.observacion?'<div style="background:var(--card2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2)">'+esc(c.observacion)+'</div>':'')
       +'<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;align-items:center">'
         +'<span style="font-size:12px;color:var(--muted)">'+items.length+' productos</span>'
         +(totEnt?'<span style="font-size:12px;font-weight:700;color:var(--green)">+'+totEnt+' uds entrada</span>':'')
@@ -2187,7 +2187,7 @@ async function movVerDetalle(compId){
         var cant=i.cantidad||0;
         var subt = (parseFloat(i.cantidad)||0) * (parseFloat(i.costo_unitario)||0);
         return '<tr style="border-bottom:1px solid var(--border)">'
-          +'<td style="padding:9px 12px;font-size:13px;font-weight:600">'+i.nombre_producto+'</td>'
+          +'<td style="padding:9px 12px;font-size:13px;font-weight:600">'+esc(i.nombre_producto)+'</td>'
           +'<td style="padding:9px 12px;text-align:center;color:var(--muted)">'+(i.cantidad_antes!=null?i.cantidad_antes:'—')+'</td>'
           +'<td style="padding:9px 12px;text-align:center;font-weight:800;font-size:14px;color:'+(cant>0?'var(--green)':'var(--red)')+'">'+(cant>0?'+':'')+cant+'</td>'
           +'<td style="padding:9px 12px;text-align:center;font-weight:700">'+(i.cantidad_despues!=null?i.cantidad_despues:'—')+'</td>'
@@ -2776,8 +2776,8 @@ function cntFiltrar(q){
     return '<tr style="background:'+(contado&&dif!==0?'rgba(239,83,80,.04)':'')+'">'
       +'<td><div style="display:flex;align-items:center;gap:8px">'
         +'<div style="width:26px;height:26px;border-radius:6px;background:'+item._color+';flex-shrink:0"></div>'
-        +'<div><div style="font-weight:600">'+item.nombre_producto+'</div>'
-          +(item._codigo?'<div style="font-size:11px;color:var(--muted)">'+item._codigo+'</div>':'')
+        +'<div><div style="font-weight:600">'+esc(item.nombre_producto)+'</div>'
+          +(item._codigo?'<div style="font-size:11px;color:var(--muted)">'+esc(item._codigo)+'</div>':'')
         +'</div></div></td>'
       +'<td style="text-align:center;font-size:16px;font-weight:700">'+item.stock_sistema+'</td>'
       +'<td style="text-align:center">'
@@ -3058,7 +3058,7 @@ async function cntVerDetalle(conteoId){
           +'<div class="cj-dr"><span style="color:var(--muted)">Estado</span><span style="font-weight:700">'+(ct.estado||'').toUpperCase()+'</span></div>'
           +'<div class="cj-dr"><span style="color:var(--muted)">Productos</span><span>'+contados.length+'/'+items.length+' contados</span></div>'
           +'<div class="cj-dr"><span style="color:var(--muted)">Con diferencia</span><span style="color:'+(conDif.length>0?'var(--red)':'var(--green)')+'">'+conDif.length+'</span></div>'
-          +(ct.observacion?'<div class="cj-dr"><span style="color:var(--muted)">Obs.</span><span style="font-size:12px">'+ct.observacion+'</span></div>':'')
+          +(ct.observacion?'<div class="cj-dr"><span style="color:var(--muted)">Obs.</span><span style="font-size:12px">'+esc(ct.observacion)+'</span></div>':'')
         +'</div>'
       +'</div>'
       // Solo mostrar productos con diferencia o todos
@@ -3073,7 +3073,7 @@ async function cntVerDetalle(conteoId){
         var dif=i.diferencia;
         var difCol=dif>0?'var(--green)':dif<0?'var(--red)':'var(--muted)';
         return '<tr style="border-bottom:1px solid var(--border);background:'+(dif&&dif!==0?'rgba(239,83,80,.03)':'')+'">'
-          +'<td style="padding:9px 12px;font-size:13px;font-weight:600">'+i.nombre_producto+'</td>'
+          +'<td style="padding:9px 12px;font-size:13px;font-weight:600">'+esc(i.nombre_producto)+'</td>'
           +'<td style="padding:9px 12px;text-align:center;font-weight:700">'+i.stock_sistema+'</td>'
           +'<td style="padding:9px 12px;text-align:center;font-weight:700">'+(i.stock_fisico!==null?i.stock_fisico:'—')+'</td>'
           +'<td style="padding:9px 12px;text-align:center;font-weight:800;color:'+(i.stock_fisico!==null?difCol:'var(--muted)')+'">'

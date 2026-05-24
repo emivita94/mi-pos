@@ -42,7 +42,7 @@ async function initDB(){
       mesas_cache: 'clave',
     });
     await db.open();
-    console.log('[DB] IndexedDB inicializado OK');
+    _log('[DB] IndexedDB inicializado OK');
     await dbLoadConfig();
     await dbLoadProductos();
     return db;
@@ -80,7 +80,7 @@ async function dbLoadConfig(){
       configData.ruc       = ruc       || configData.ruc;
     }
     if(terminal) configData.terminal = terminal;
-    console.log('[DB] Config cargada');
+    _log('[DB] Config cargada');
   } catch(e){ console.warn('[DB] Config no disponible aún:', e.message); }
 }
 
@@ -154,7 +154,7 @@ async function dbLoadProductos(){
         descValor:      p.desc_valor != null ? p.desc_valor : null,
       });
     });
-    console.log('[DB] Productos cargados:', PRODS.length);
+    _log('[DB] Productos cargados:', PRODS.length);
     // Asegurar que ítem libre siempre esté presente
     if(!PRODS.find(p=>p.itemLibre)){
       PRODS.push({id:99,name:'ÍTEM LIBRE',price:0,color:'#37474f',cat:'Otros',
@@ -191,7 +191,7 @@ async function dbLoadCategorias(){
     cats.forEach(c => CATEGORIAS.push({ id:c.id, nombre:c.nombre, color:c.color }));
     CATEGORIAS_DEFAULT.length = 0;
     CATEGORIAS.forEach(c => CATEGORIAS_DEFAULT.push(c.nombre));
-    console.log('[DB] Categorias cargadas:', CATEGORIAS.length);
+    _log('[DB] Categorias cargadas:', CATEGORIAS.length);
   } catch(e){ console.warn('[DB] Categorias no disponibles aún:', e.message); }
 }
 
@@ -327,7 +327,7 @@ async function _conReintento(fn){
       return await fn();
     } catch(err){
       if(_esErrorReintentar(err) && intentos < delays.length){
-        console.log('[Sync] Error de red/timeout, reintento ' + (intentos+1) + '/' + delays.length + ' en ' + (delays[intentos]/1000) + 's...');
+        _log('[Sync] Error de red/timeout, reintento ' + (intentos+1) + '/' + delays.length + ' en ' + (delays[intentos]/1000) + 's...');
         await new Promise(function(r){ setTimeout(r, delays[intentos]); });
         intentos++;
       } else {
@@ -353,7 +353,7 @@ async function syncConSupabase(){
 
     if(pendientes.length === 0){ syncEnProceso=false; return; }
 
-    console.log('[Sync] Enviando', pendientes.length, 'registros...');
+    _log('[Sync] Enviando', pendientes.length, 'registros...');
     let exitos = 0, fallos = 0;
 
     for(const item of pendientes){
@@ -395,7 +395,7 @@ async function syncConSupabase(){
               }
             } catch(e){ console.warn('[Sync] Error actualizando turno_id en item pendiente:', e.message); }
           }
-          console.log('[Sync] turno_id actualizado en ventas pendientes: local', localTurnoId, '→ supa', supaId);
+          _log('[Sync] turno_id actualizado en ventas pendientes: local', localTurnoId, '→ supa', supaId);
         }
       } catch(e){
         console.warn('[Sync] Error en item', item.id, e.message);
@@ -404,11 +404,11 @@ async function syncConSupabase(){
 
         if(esErrorRed){
           // Sin internet → dejar en 0 para reintentar
-          console.log('[Sync] Error de red, se reintentará cuando vuelva internet');
+          _log('[Sync] Error de red, se reintentará cuando vuelva internet');
           if(!navigator.onLine) break;
         } else if(esDuplicado){
           // Ya existe en Supabase → marcar como sincronizado (no es un error real)
-          console.log('[Sync] Item ya existe en Supabase, marcando como sincronizado');
+          _log('[Sync] Item ya existe en Supabase, marcando como sincronizado');
           await db.sync_queue.update(item.id, { sincronizado: 1, error_msg: null });
           exitos++;
         } else {
@@ -418,7 +418,7 @@ async function syncConSupabase(){
         }
       }
     }
-    console.log('[Sync] Completado — OK:', exitos, '| Errores:', fallos);
+    _log('[Sync] Completado — OK:', exitos, '| Errores:', fallos);
     // Guardar timestamp de última sync exitosa
     if(exitos > 0){
       const ahora = new Date().toLocaleString('es-PY');
@@ -469,7 +469,7 @@ setInterval(syncVentasPendientes, 5 * 60 * 1000);
 setInterval(updSyncBadge, 30 * 1000);
 
 window.addEventListener('online', () => {
-  console.log('[Sync] Conexion detectada, sincronizando...');
+  _log('[Sync] Conexion detectada, sincronizando...');
   updSyncBadge();
   // Avisar al usuario que volvió internet y hay pendientes
   if(db){
@@ -490,7 +490,7 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
-  console.log('[Sync] Sin conexión');
+  _log('[Sync] Sin conexión');
   updSyncBadge();
   toast('Sin conexión — las ventas se guardan localmente');
 });
@@ -699,6 +699,6 @@ async function limpiarSyncQueue(){
       .where('sincronizado').equals(1)
       .and(item => item.timestamp < hace24h)
       .delete();
-    console.log('[Sync] Cola limpiada');
+    _log('[Sync] Cola limpiada');
   } catch(e){ console.warn('[Sync] Error limpiando cola:', e.message); }
 }

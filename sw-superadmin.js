@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-superadmin-v20260408-refactor';
+const CACHE = 'ampersand-superadmin-v20260524-sec001-auth-real';
 
 const ASSETS = [
   '/super-admin.html',

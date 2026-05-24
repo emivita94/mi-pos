@@ -132,9 +132,9 @@ async function licActivar(email,clave){
     return {ok:true,token,email,plan:licData.plan,vence:licData.vence};
   }
   try {
-    console.log('[Licencia] Activando con Supabase...', claveUp);
+    _log('[Licencia] Activando con Supabase...', claveUp);
     const data=await supaRPC('activar_licencia',{p_clave:claveUp,p_email:email,p_device_id:licGetDeviceId()});
-    console.log('[Licencia] Respuesta Supabase:', data);
+    _log('[Licencia] Respuesta Supabase:', data);
     if(!data.ok) return {ok:false,error:data.error||'Error al activar'};
     return {ok:true,token:data.token,email,plan:data.plan,vence:data.vence};
   } catch(e){
@@ -265,7 +265,7 @@ async function licInit(){
           const cfg = await recuperarConfigTerminalSupabase();
           if(cfg){
             aplicarConfigTerminal(cfg);
-            console.log('[licInit] Terminal recuperada:', cfg.terminal, '/', cfg.sucursal);
+            _log('[licInit] Terminal recuperada:', cfg.terminal, '/', cfg.sucursal);
           }
         }catch(e){ console.warn('[licInit] No se pudo recuperar config:', e.message); }
       }
@@ -278,7 +278,7 @@ async function licInit(){
   // ── CASO 2: localStorage perdido — intentar auto-recuperar ───────────────
   // El device_id puede sobrevivir en cookie o IndexedDB aunque se borre
   // el localStorage. Si lo encontramos, consultamos Supabase.
-  console.log('[licInit] localStorage sin activación — buscando device_id en otras capas...');
+  _log('[licInit] localStorage sin activación — buscando device_id en otras capas...');
 
   // Mostrar pantalla de carga mientras intentamos recuperar
   licMostrarRecuperando();
@@ -289,7 +289,7 @@ async function licInit(){
     try{
       // Intentar recuperar el device_id desde cookie o IndexedDB
       const deviceId = await licGetDeviceIdAsync();
-      console.log('[licInit] device_id encontrado:', deviceId ? deviceId.substring(0,12)+'...' : 'ninguno');
+      _log('[licInit] device_id encontrado:', deviceId ? deviceId.substring(0,12)+'...' : 'ninguno');
 
       if(deviceId){
         // Consultar activaciones por device_id directamente
@@ -303,8 +303,8 @@ async function licInit(){
           const activ = Array.isArray(rows) && rows[0] ? rows[0] : null;
 
           if(activ && activ.email){
-            console.log('[licInit] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Dispositivo reconocido en Supabase — restaurando sesión...');
-            console.log('[licInit]   Email:', activ.email, '| Terminal:', activ.nombre_terminal, '| Modo:', activ.modo);
+            _log('[licInit] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Dispositivo reconocido en Supabase — restaurando sesión...');
+            _log('[licInit]   Email:', activ.email, '| Terminal:', activ.nombre_terminal, '| Modo:', activ.modo);
 
             // Restaurar datos de licencia en localStorage
             // El token lo regeneramos desde Supabase o usamos un placeholder seguro
@@ -344,7 +344,7 @@ async function licInit(){
               }catch(e){ console.warn('[licInit] Error recuperando config terminal:', e.message); }
 
               recuperado = true;
-              console.log('[licInit] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Sesión restaurada automáticamente — sin re-registro');
+              _log('[licInit] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Sesión restaurada automáticamente — sin re-registro');
             } else {
               console.warn('[licInit] Supabase dice que la licencia no está activa para este device');
             }
@@ -377,7 +377,7 @@ async function licInit(){
   }
 
   // No se pudo recuperar — mostrar pantalla de activación
-  console.log('[licInit] No se pudo recuperar sesión — mostrando pantalla de activación');
+  _log('[licInit] No se pudo recuperar sesión — mostrando pantalla de activación');
   document.getElementById('scActivacion').style.display = 'flex';
   return false;
 }
@@ -448,7 +448,7 @@ async function doActivar(){
         var cfg = JSON.parse(cfgRows[0].valor);
         if(cfg && cfg.terminal && cfg.sucursal){
           aplicarConfigTerminal(cfg);
-          console.log('[Activar] Terminal restaurada por device_id exacto:', cfg.terminal, '/', cfg.sucursal);
+          _log('[Activar] Terminal restaurada por device_id exacto:', cfg.terminal, '/', cfg.sucursal);
           document.getElementById('scActivado').style.display='none';
           await iniciarApp();
           return;
@@ -539,7 +539,7 @@ async function cargarSucursalesExistentes(email){
       sel.value = '';
     }
 
-    console.log('[Setup] Sucursales cargadas:', sucursales.length);
+    _log('[Setup] Sucursales cargadas:', sucursales.length);
   } catch(e){
     console.warn('[Setup] Error cargando sucursales:', e.message);
     // En caso de error, dejar opción de escribir manualmente
@@ -647,7 +647,7 @@ async function _cargarDepositosSel(sucursalId, sucursalNombre){
     sel.value = String(depositos[0].id);
     onDepositoSelChange(sel);
 
-    console.log('[Setup] Depósitos cargados:', depositos.length);
+    _log('[Setup] Depósitos cargados:', depositos.length);
   } else {
     // Sin depósitos: solo opción nueva
     sel.innerHTML = '<option value="__nuevo__"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo depósito</option>';
@@ -828,7 +828,7 @@ async function doEntrar(){
               cookieSet('pos_dep_id', String(result.deposito_id), 365);
               if(db) await dbSaveConfig('deposito_id', String(result.deposito_id));
             }
-            console.log('[Setup] Sucursal ID:', result.sucursal_id, '| Depósito ID:', result.deposito_id);
+            _log('[Setup] Sucursal ID:', result.sucursal_id, '| Depósito ID:', result.deposito_id);
           }
         }
       }

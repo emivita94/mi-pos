@@ -1400,9 +1400,9 @@ async function renderRepCompras(fdKey){
 
 async function testConexion(){
   try {
-    await sg('licencias','limit=1'); console.log('[Supabase] Conectividad OK');
-    await sg('timbrados','limit=1'); console.log('[Supabase] timbrados OK');
-    await sg('timbrado_terminales','limit=1'); console.log('[Supabase] timbrado_terminales OK');
+    await sg('licencias','limit=1'); _log('[Supabase] Conectividad OK');
+    await sg('timbrados','limit=1'); _log('[Supabase] timbrados OK');
+    await sg('timbrado_terminales','limit=1'); _log('[Supabase] timbrado_terminales OK');
   }catch(e){console.warn('[Supabase] Error:', e.message);}
 }
 
@@ -1428,7 +1428,7 @@ async function cargarTimbradosDesdeSupabase(){
     timbrados.forEach(function(t,ti){(t.asignaciones||[]).forEach(function(a,ai){mapa[a.terminal]={timIdx:ti,asigIdx:ai};});});
     localStorage.setItem(TIM_KEY,JSON.stringify(timbrados));
     localStorage.setItem('pos_timbrados_mapa',JSON.stringify(mapa));
-    console.log('[Carga] OK:',timbrados.length,'timbrados,',timbrados.reduce(function(s,t){return s+(t.asignaciones||[]).length;},0),'terminales');
+    _log('[Carga] OK:',timbrados.length,'timbrados,',timbrados.reduce(function(s,t){return s+(t.asignaciones||[]).length;},0),'terminales');
   }catch(e){
     toast('Error al cargar timbrados'); console.warn('[Carga] Error:',e.message);
     try{timbrados=JSON.parse(localStorage.getItem(TIM_KEY)||'[]');}catch(e2){timbrados=[];}
@@ -1515,7 +1515,7 @@ async function abrirModalAsignar(timIdx){
   var terminales=[];
   try{
     var rows=await sg('activaciones','email=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id,device_id,nombre_terminal,sucursal,updated_at');
-    console.log('[Modal] activaciones:', rows.length, rows);
+    _log('[Modal] activaciones:', rows.length, rows);
     terminales=rows.filter(function(r){return r.nombre_terminal||r.device_id;})
                    .map(function(r){return {nombre:r.nombre_terminal||r.device_id,sucursal:r.sucursal||''};});
   }catch(e){console.warn('[Modal] Error activaciones:', e.message);}
@@ -1597,7 +1597,7 @@ async function agregarAsig(){
 
   try{
     var t=timbrados[timIdx];
-    console.log('[Asignar] Timbrado:',t.nro,'_db_id:',t._db_id);
+    _log('[Asignar] Timbrado:',t.nro,'_db_id:',t._db_id);
 
     // PASO 1: guardar timbrado en BD para obtener ID
     var r1=await supaPost('timbrados',{
@@ -1609,7 +1609,7 @@ async function agregarAsig(){
     var dbId=Array.isArray(r1)?(r1[0]&&r1[0].id):(r1&&r1.id);
     if(!dbId) throw new Error('Sin ID del timbrado. Respuesta: '+JSON.stringify(r1));
     t._db_id=dbId;
-    console.log('[Asignar] PASO 1 OK — timbrado_id:',dbId);
+    _log('[Asignar] PASO 1 OK — timbrado_id:',dbId);
 
     // PASO 2: guardar terminal
     var r2=await supaPost('timbrado_terminales',{
@@ -1619,7 +1619,7 @@ async function agregarAsig(){
     },'licencia_email,terminal');
     var terId=Array.isArray(r2)?(r2[0]&&r2[0].id):(r2&&r2.id);
     if(!terId) throw new Error('Sin ID de terminal. Respuesta: '+JSON.stringify(r2));
-    console.log('[Asignar] PASO 2 OK — terminal_id:',terId);
+    _log('[Asignar] PASO 2 OK — terminal_id:',terId);
 
     toast('Terminal "'+terminal+'" asignada correctamente');
     await cargarTimbradosDesdeSupabase();
@@ -1680,7 +1680,7 @@ async function guardarTim(){
     var result=await supaPost('timbrados',data,'licencia_email,nro');
     var saved=Array.isArray(result)?result[0]:result;
     if(!saved||!saved.id) throw new Error('Sin ID: '+JSON.stringify(result));
-    console.log('[guardarTim] OK ID:',saved.id);
+    _log('[guardarTim] OK ID:',saved.id);
     closeMTim();
     await refreshTimListaFromServer();
     toast(timEditIdx!==null?'Timbrado actualizado':'Timbrado guardado');

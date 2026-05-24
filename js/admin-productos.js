@@ -272,7 +272,7 @@ async function sincronizarCategorias(nombresCateg){
     });
     // Deduplicar
     nuevas=nuevas.filter(function(n,i,arr){return arr.indexOf(n)===i;});
-    if(!nuevas.length){console.log('[Import] Sin categorías nuevas');return;}
+    if(!nuevas.length){_log('[Import] Sin categorías nuevas');return;}
 
     var colores=['#e53935','#8e24aa','#1e88e5','#00897b','#f57c00','#6d4c41','#546e7a','#43a047','#c0ca33','#fdd835'];
     var ahora=new Date().toISOString();
@@ -286,7 +286,7 @@ async function sincronizarCategorias(nombresCateg){
       };
     });
     await supaPost('pos_categorias', payload, 'id');
-    console.log('[Import] Categorías creadas:', nuevas);
+    _log('[Import] Categorías creadas:', nuevas);
     toast('Categorías creadas: '+nuevas.join(', '));
   }catch(e){
     console.warn('[Import] Error sincronizando categorías:', e.message);
@@ -339,7 +339,7 @@ async function impConfirmar(){
             updated_at:ahora
           };
         });
-        console.log('[Import] payload[0]:', JSON.stringify(payload[0]));
+        _log('[Import] payload[0]:', JSON.stringify(payload[0]));
         await supaPost('pos_productos',payload,'id');
         ok+=inserts.length;
       }

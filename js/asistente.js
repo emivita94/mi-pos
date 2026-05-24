@@ -80,13 +80,13 @@ function _initAsistente(){
     _asistEscuchando = true;
     _asistMostrarOndas(true);
     _asistYaProcesó = false;
-    console.log('[Asistente] Escuchando (rápido)...');
+    _log('[Asistente] Escuchando (rápido)...');
   };
 
   _recognition.onresult = function(e){
     // Si el asistente está hablando o bloqueado, ignorar
     if(_asistHablando || _asistBloqueado){
-      console.log('[Asistente] Resultado ignorado (bloqueado/hablando)');
+      _log('[Asistente] Resultado ignorado (bloqueado/hablando)');
       return;
     }
     if(_asistYaProcesó) return;
@@ -102,7 +102,7 @@ function _initAsistente(){
     _asistYaProcesó = true;
     var alternativas = [];
     for(var k = 0; k < finalRes.length; k++) alternativas.push(finalRes[k].transcript);
-    console.log('[Asistente] Escuché:', alternativas);
+    _log('[Asistente] Escuché:', alternativas);
 
     var textoCrudo = _asistNormalizar(alternativas[0] || '');
     if(!textoCrudo){
@@ -143,7 +143,7 @@ function _initAsistente(){
   _recognition.onend = function(){
     _asistEscuchando = false;
     _asistMostrarOndas(false);
-    console.log('[Asistente] Sesión terminada');
+    _log('[Asistente] Sesión terminada');
   };
 
   return _recognition;
@@ -446,12 +446,12 @@ function _buscarProductosConAlternativas(texto){
   if(!buscado) return { mejor:null, mejorScore:0, alternativas:[] };
 
   // Log de diagnóstico
-  if(_ASIST_DEBUG) console.log('[Buscar] Buscando:', JSON.stringify(buscado));
+  if(_ASIST_DEBUG) _log('[Buscar] Buscando:', JSON.stringify(buscado));
 
   // 1) Alias aprendido (lookup instantáneo)
   var aliasProd = _asistAliasBuscar(buscado);
   if(aliasProd){
-    if(_ASIST_DEBUG) console.log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Alias:', aliasProd.name);
+    if(_ASIST_DEBUG) _log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Alias:', aliasProd.name);
     return { mejor: aliasProd, mejorScore: 1, alternativas: [aliasProd], viaAlias: true };
   }
 
@@ -568,20 +568,20 @@ function _buscarProductosConAlternativas(texto){
   }
 
   if(exacto){
-    if(_ASIST_DEBUG) console.log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Exacto:', exacto.name);
+    if(_ASIST_DEBUG) _log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Exacto:', exacto.name);
     return { mejor: exacto, mejorScore: 1, alternativas: [exacto], viaAlias: false };
   }
   if(!resultados.length){
-    if(_ASIST_DEBUG) console.log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Sin matches');
+    if(_ASIST_DEBUG) _log('[Buscar] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Sin matches');
     return { mejor:null, mejorScore:0, alternativas:[] };
   }
 
   resultados.sort(function(a,b){ return b.score - a.score; });
 
   if(_ASIST_DEBUG){
-    console.log('[Buscar] Top 5:');
+    _log('[Buscar] Top 5:');
     for(var rr = 0; rr < Math.min(5, resultados.length); rr++){
-      console.log('  ' + resultados[rr].score.toFixed(2) + ' ' +
+      _log('  ' + resultados[rr].score.toFixed(2) + ' ' +
                   resultados[rr].p.name + ' [' + resultados[rr].motivo + ']');
     }
   }
@@ -992,11 +992,11 @@ function _asistEjecutarComando(alternativas){
 
   for(var a = 0; a < alts.length; a++){
     var textoNorm = _asistLimpiarMuletillas(_asistNormalizar(alts[a]));
-    console.log('[Asistente] Probando alt', a, ':', JSON.stringify(textoNorm));
+    _log('[Asistente] Probando alt', a, ':', JSON.stringify(textoNorm));
     for(var q = 0; q < intents.length; q++){
       var intentName = intents[q].name || 'intent' + q;
       if(intents[q](textoNorm)){
-        console.log('[Asistente] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Matcheó:', intentName);
+        _log('[Asistente] <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Matcheó:', intentName);
         return;
       }
     }
@@ -1130,7 +1130,7 @@ function _asistAliasInit(){
       if(limpieza.length){
         _asistDb.aliases.bulkDelete(limpieza).catch(function(){});
       }
-      console.log('[Asistente/Alias] Cargados:', Object.keys(_asistAliasCache).length);
+      _log('[Asistente/Alias] Cargados:', Object.keys(_asistAliasCache).length);
     }).catch(function(err){
       console.warn('[Asistente/Alias] Error abriendo DB, fallback memoria:', err);
       _asistAliasMem = true;
@@ -1159,7 +1159,7 @@ function _asistAliasGuardar(texto, producto){
   if(alias === _asistNormalizar(producto.name)) return;
   var existente = _asistAliasCache[alias];
   _asistAliasCache[alias] = producto.id;
-  console.log('[Asistente/Alias] Guardando:', alias, '→', producto.name);
+  _log('[Asistente/Alias] Guardando:', alias, '→', producto.name);
 
   if(_asistAliasMem || !_asistDb){
     return; // solo en cache
@@ -1297,12 +1297,12 @@ function _asistCrearFab(){
     return;
   }
   if(document.getElementById('asistFab')){
-    console.log('[Asistente] FAB ya existe');
+    _log('[Asistente] FAB ya existe');
     return;
   }
   // Solo crear si está habilitado en config
   if(!asistenteHabilitadoGet()){
-    console.log('[Asistente] Deshabilitado por config');
+    _log('[Asistente] Deshabilitado por config');
     return;
   }
   var fab = document.createElement('button');
@@ -1339,11 +1339,11 @@ function _asistCrearFab(){
   document.body.appendChild(fab);
   // Warm-up del cache de aliases
   try { _asistAliasInit(); } catch(e){}
-  console.log('[Asistente] FAB creado y agregado al body <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
+  _log('[Asistente] FAB creado y agregado al body <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>');
 }
 
 // Intentar crear el FAB en múltiples momentos para asegurar que se renderiza
-console.log('[Asistente] Script cargado, estado DOM:', document.readyState);
+_log('[Asistente] Script cargado, estado DOM:', document.readyState);
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', _asistCrearFab);
 } else {

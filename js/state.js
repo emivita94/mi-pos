@@ -2,6 +2,40 @@
 // Todas las variables compartidas entre archivos viven aquí.
 // Usar getters/setters para mutaciones controladas.
 
+// ── DEBUG / LOGGING ──
+// _log: wrapper de console.log que solo escribe si window.DEBUG === true.
+// USAR _log en vez de console.log para evitar leakear info en produccion.
+// Para activar logs en una sesion: en DevTools console escribir
+//   window.DEBUG = true
+// y refrescar. Los errores criticos siguen yendo a console.error/warn directamente.
+window.DEBUG = window.DEBUG || (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+function _log(){
+  if(window.DEBUG && console && console.log) console.log.apply(console, arguments);
+}
+function _warn(){
+  if(console && console.warn) console.warn.apply(console, arguments);
+}
+function _err(){
+  if(console && console.error) console.error.apply(console, arguments);
+}
+
+// ── HELPERS DE SEGURIDAD ──
+// escapeHtml: convierte caracteres especiales para insercion segura en innerHTML.
+// USAR SIEMPRE para datos que vienen del usuario o del backend
+// (nombres de cliente, observaciones, motivos, nombres de productos cargados
+// por el cliente, etc.). Sin esto un cliente con nombre "<script>" inyecta XSS.
+function escapeHtml(s){
+  if(s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+// Alias mas corto para uso intensivo
+var esc = escapeHtml;
+
 // ── CART / TICKET ──
 var cart = [];
 var ticketDescuento = 0;
