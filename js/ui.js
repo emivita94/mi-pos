@@ -47,7 +47,14 @@ function toast(m) {
  * @param {string} id — ID del elemento <div class="screen">
  */
 function goTo(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  // Regresión de BUG-06 fix: el ocultamiento defensivo de scActivado seteaba
+  // style.display='none' inline en todas las .screen; ese inline style queda
+  // persistente porque goTo() solo togglea classList. Limpiar el inline acá
+  // garantiza que .screen.active{display:flex} del CSS vuelva a aplicarse.
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.removeProperty('display');
+  });
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
 
@@ -69,7 +76,10 @@ window.addEventListener('popstate', function(e) {
   const screen = e.state && e.state.screen;
   if (screen) {
     // Navegar a la pantalla anterior sin pushear al historial
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+      s.style.removeProperty('display');
+    });
     const el = document.getElementById(screen);
     if (el) el.classList.add('active');
   } else {
