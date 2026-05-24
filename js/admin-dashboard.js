@@ -9,6 +9,32 @@ if (typeof window !== 'undefined') {
   if (typeof window._err  !== 'function') window._err  = function(){ console.error.apply(console, arguments); };
 }
 
+// BUG-12 fix: las pantallas del admin usan <div class="pt"> como page title
+// (heredado de un design system propio que evita h1/h2 por estilos). Esto
+// rompe accesibilidad (lectores de pantalla pierden la jerarquía) y SEO.
+// Como el contenido se renderiza dinámicamente con innerHTML, un selector
+// estático no alcanza — un MutationObserver upgrada cada .pt nuevo a
+// role="heading" aria-level="1" sin tocar ningún archivo más.
+(function upgradePtToHeading(){
+  function upgrade(){
+    document.querySelectorAll('.pt:not([role])').forEach(function(el){
+      el.setAttribute('role', 'heading');
+      el.setAttribute('aria-level', '1');
+    });
+    // El dashboard usa su propio sistema con .dsh-title en vez de .pt — también lo cubrimos.
+    document.querySelectorAll('.dsh-title:not([role])').forEach(function(el){
+      el.setAttribute('role', 'heading');
+      el.setAttribute('aria-level', '1');
+    });
+  }
+  function start(){
+    upgrade(); // procesa los que ya están al cargar
+    new MutationObserver(upgrade).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start);
+})();
+
 // ── DASHBOARD ─────────────────────────────────────────────
 function renderDashboard(){
   var c=document.getElementById('content');
@@ -643,9 +669,15 @@ async function _renderComprasGastos(fd){
   var $$=function(id){return document.getElementById(id);};
 
   // Obtener licencia_id
+  // BUG-08 fix: si la query devuelve [], `[0].id` tiraba TypeError uncaught
+  // dentro del catch — dejando licId undefined Y rompiendo el resto del render
+  // (cards quedaban en "Cargando..." infinito).
   var licId=SLI;
   if(!licId){
-    try{ licId=(await sg('licencias','email_cliente=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id&limit=1'))[0].id; SLI=licId; }catch(e){ console.warn('[Dash] Error obteniendo licencia:', e.message); }
+    try{
+      var lr=await sg('licencias','email_cliente=ilike.'+encodeURIComponent(SE)+'&activa=eq.true&select=id&limit=1');
+      if(lr && lr[0] && lr[0].id){ licId=lr[0].id; SLI=licId; }
+    }catch(e){ console.warn('[Dash] Error obteniendo licencia:', e.message); }
   }
 
   var _card=function(tot,cnt,rows,tipo){

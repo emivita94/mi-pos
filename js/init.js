@@ -11,12 +11,22 @@
 //   Ajustes → Batería → Uso en segundo plano → Apps sin dormir → Agregar Chrome/PWA
 var _wakeLock = null;
 var _wakeLockActivo = false;
+var _wakeLockDenegado = false; // BUG-10 fix: caché de denegación (NotAllowedError)
+var _wakeLockSecureWarned = false;
 
 async function solicitarWakeLock(){
   if(_wakeLockActivo) return;
+  // BUG-10 fix: si ya fue denegado (NotAllowedError, decisión del browser/permiso),
+  // no reintentar — antes se pedía en cada click/touch/visibilitychange y spammeaba
+  // el log con el mismo warning. Si el usuario quiere reintentar, debe refrescar.
+  if(_wakeLockDenegado) return;
 
   if(!window.isSecureContext){
-    console.warn('[WakeLock] NO secure context — la app debe abrirse por HTTPS');
+    if(!_wakeLockSecureWarned){
+      console.warn('[WakeLock] NO secure context — la app debe abrirse por HTTPS');
+      _wakeLockSecureWarned = true;
+    }
+    return;
   }
 
   if('wakeLock' in navigator){
@@ -31,7 +41,10 @@ async function solicitarWakeLock(){
       _log('[WakeLock] API nativa activada');
       return;
     } catch(e){
-      console.warn('[WakeLock] request falló:', e.name, e.message);
+      // NotAllowedError, SecurityError → no es transitorio, cachear y no reintentar.
+      // Cualquier otro error (raro) también lo cacheamos por las dudas.
+      _wakeLockDenegado = true;
+      console.warn('[WakeLock] request falló (no se reintentará en esta sesión):', e.name, e.message);
     }
   }
 }
