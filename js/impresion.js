@@ -1574,6 +1574,110 @@ function usarImpresoraPC(tipo){
   toast('\u2713 Configurada PC/USB para '+tipo);
 }
 
+// \u2500\u2500 ASISTENTE DE CONFIGURACION DE IMPRESORAS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// Detecta el dispositivo del usuario y recomienda la mejor opcion
+// (APK Bluetooth, BT Web, USB Local, PC/USB).
+function asistenteImpresora(tipo){
+  var apkBT     = typeof isAndroidAPK === 'function' && isAndroidAPK();
+  var btWeb     = !!(navigator.bluetooth && typeof navigator.bluetooth.requestDevice === 'function');
+  var standalone= window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  var ua        = (navigator.userAgent || '').toLowerCase();
+  var esMobile  = /android|iphone|ipad|ipod|mobile/i.test(ua);
+  var esWindows = /windows/i.test(ua);
+  var esMac     = /macintosh|mac os/i.test(ua);
+
+  // Decidir recomendacion principal
+  var reco = null;
+  if(apkBT){
+    reco = {
+      id: 'apkbt',
+      titulo: 'BT Print Server (APK NODO)',
+      desc: 'Detectamos que estas usando la app NODO instalada. La mejor opcion es Bluetooth via el servidor interno de la app \u2014 sin configuracion adicional.',
+      accion: 'Apret\u00e1 BLUETOOTH abajo. El sistema se encarga del resto.',
+      btn: 'bluetooth'
+    };
+  } else if(esWindows){
+    reco = {
+      id: 'usblocal',
+      titulo: 'USB Local (recomendado para Windows)',
+      desc: 'Estas en Windows. La mejor opcion es instalar un peque\u00f1o agente local (1 sola vez, gratis) que conecta el navegador con tu impresora termica USB. Funciona con cualquier driver, incluso Generic / Text Only.',
+      accion: 'Apret\u00e1 USB LOCAL abajo. Si no esta instalado, te aparece un boton para descargarlo (instalacion automatica).',
+      btn: 'usblocal'
+    };
+  } else if(esMobile && btWeb){
+    reco = {
+      id: 'btweb',
+      titulo: 'Bluetooth Web',
+      desc: 'Estas en mobile con Bluetooth disponible. Pare\u00e1 tu impresora termica BT con el celular y elegila desde el navegador.',
+      accion: 'Apret\u00e1 BLUETOOTH abajo y eleg\u00ed la impresora de la lista.',
+      btn: 'bluetooth'
+    };
+  } else if(esMac){
+    reco = {
+      id: 'pc-mac',
+      titulo: 'PC / USB',
+      desc: 'Estas en Mac. Conect\u00e1 tu impresora USB y configurala en Preferencias del Sistema \u2192 Impresoras. Despues eligi "PC/USB" abajo. (El agente USB Local solo esta disponible para Windows por ahora.)',
+      accion: 'Apret\u00e1 PC/USB abajo. Cuando imprimas, eligi tu impresora del dialogo de Chrome.',
+      btn: 'pc'
+    };
+  } else {
+    reco = {
+      id: 'fallback',
+      titulo: 'PC / USB',
+      desc: 'Conect\u00e1 tu impresora termica USB y asegurate que este instalada en tu sistema. Eligi "PC/USB" abajo.',
+      accion: 'Apret\u00e1 PC/USB abajo.',
+      btn: 'pc'
+    };
+  }
+
+  var existing = document.getElementById('modalAsistenteImp');
+  if(existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = 'modalAsistenteImp';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+
+  var diag = '<div style="background:var(--card2);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:1.6">'
+    +'<div style="font-weight:700;color:var(--text);margin-bottom:5px">Detectamos:</div>'
+    +'<div>'+(esWindows?'\u2022 Windows':esMac?'\u2022 macOS':esMobile?'\u2022 Mobile':'\u2022 Otro')+'</div>'
+    +'<div>'+(apkBT?'\u2022 App NODO con Bluetooth nativo':btWeb?'\u2022 Bluetooth Web disponible':'\u2022 Sin Bluetooth nativo')+'</div>'
+    +'<div>'+(standalone?'\u2022 App instalada (PWA)':'\u2022 Navegador normal')+'</div>'
+    +'</div>';
+
+  ov.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;padding:24px;color:var(--text);max-height:90vh;overflow-y:auto">'
+      +'<div style="font-size:18px;font-weight:800;margin-bottom:6px">\u00bfQue impresora tenes?</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:16px">Asistente automatico de configuracion</div>'
+      + diag
+      +'<div style="background:var(--g2);border-left:3px solid var(--green);border-radius:8px;padding:14px 16px;margin-bottom:14px">'
+        +'<div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:800;color:var(--green);margin-bottom:6px">Te recomendamos</div>'
+        +'<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">'+esc(reco.titulo)+'</div>'
+        +'<div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:10px">'+esc(reco.desc)+'</div>'
+        +'<div style="font-size:12px;color:var(--muted);line-height:1.5"><b>Que hacer:</b> '+esc(reco.accion)+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+        +'<button onclick="_asistenteAplicar(\''+tipo+'\',\''+reco.btn+'\')" style="flex:1;background:var(--green);border:none;border-radius:8px;color:#fff;font:800 13px Barlow,sans-serif;padding:12px;cursor:pointer">Continuar</button>'
+        +'<button onclick="document.getElementById(\'modalAsistenteImp\').remove()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font:600 12px Barlow,sans-serif;padding:12px 18px;cursor:pointer">Cancelar</button>'
+      +'</div>'
+      +'<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center">'
+        +'\u00bfSabes lo que necesitas? Apret\u00e1 directo el boton correspondiente (BLUETOOTH / PC USB / USB LOCAL).'
+      +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+}
+
+function _asistenteAplicar(tipo, btn){
+  var modal = document.getElementById('modalAsistenteImp');
+  if(modal) modal.remove();
+  if(btn === 'bluetooth' && typeof conectarBluetooth === 'function'){
+    conectarBluetooth(tipo);
+  } else if(btn === 'usblocal' && typeof usarImpresoraUSBLocal === 'function'){
+    usarImpresoraUSBLocal(tipo);
+  } else if(btn === 'pc' && typeof usarImpresoraPC === 'function'){
+    usarImpresoraPC(tipo);
+  }
+}
+
 
 // ── BT Print Server — funciones de UI ──────────────────────────────
 async function btpsConectar(){

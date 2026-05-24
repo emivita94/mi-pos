@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.18-20260524-sec002-xss-escape';
+const CACHE = 'ampersand-pos-v1.14.19-20260524-ux002-asistente-impresora';
 
 const ASSETS = [
   '/',

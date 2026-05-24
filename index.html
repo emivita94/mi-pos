@@ -204,6 +204,18 @@
   </header>
   <div style="flex:1;overflow-y:auto;">
 
+    <!-- Asistente: ¿qué impresora tengo? -->
+    <div style="margin:12px;padding:14px 16px;background:linear-gradient(135deg,rgba(46,160,84,.18),rgba(46,160,84,.04));border:1px solid rgba(46,160,84,.4);border-radius:12px;display:flex;align-items:center;gap:12px;">
+      <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(46,160,84,.18);display:flex;align-items:center;justify-content:center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2ea054" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:800;color:var(--text);">¿No sabés cuál usar?</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Te decimos cuál conviene según tu dispositivo.</div>
+      </div>
+      <button onclick="asistenteImpresora('ticket')" style="background:#2ea054;border:none;border-radius:8px;color:#fff;font-weight:800;font-size:12px;padding:10px 14px;cursor:pointer;white-space:nowrap;">RECOMIÉNDAME</button>
+    </div>
+
     <!-- BT Print Server -->
     <div style="padding:12px 12px 0;font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-weight:700;">
       BT Print Server <span id="btpsBadge" style="font-size:16px;">○</span>
