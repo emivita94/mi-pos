@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.23-20260524-arch001d-format';
+const CACHE = 'ampersand-pos-v1.14.24-20260526-revert-bug09';
 
 const ASSETS = [
   '/',
