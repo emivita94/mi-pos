@@ -470,7 +470,12 @@ function renderTkt(){
           i.name+
           (i.obs?'<div style="font-size:11px;color:#888;font-weight:400;text-transform:none;margin-top:2px;">'+i.obs+'</div>':'')+
         `</div>`+
-        `<div class="tictrl"><button class="qbtn" onclick="chgQty(${i.lineId},-1)">−</button><span class="qnum">${i.qty}</span><button class="qbtn" onclick="chgQty(${i.lineId},1)">+</button></div>`+
+        `<div class="tictrl">`+
+          `<button class="qbtn" onclick="abrirObsRapida(${i.lineId})" title="${i.obs?'Editar observación':'Agregar observación'}" style="color:${i.obs?'var(--orange)':'var(--muted)'};">`+
+            `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`+
+          `</button>`+
+          `<button class="qbtn" onclick="chgQty(${i.lineId},-1)">−</button><span class="qnum">${i.qty}</span><button class="qbtn" onclick="chgQty(${i.lineId},1)">+</button>`+
+        `</div>`+
         `<div class="tiprice">${gs(i.price*i.qty)}</div>`+
       `</div>`
   ).join('');
@@ -885,6 +890,55 @@ function detChgQty(lineId, delta){
 }
 function toggleDetObs(lineId){ const box=document.getElementById('detObs_'+lineId); if(!box)return; box.classList.toggle('open'); if(box.classList.contains('open'))box.querySelector('input').focus(); }
 function saveDetObs(lineId, val){ const item=cart.find(l=>l.lineId===lineId); if(item)item.obs=val; const btn=document.querySelector('#detItem_'+lineId+' .det-obs-toggle'); if(btn)btn.lastChild.textContent=val?' Obs: '+val.substring(0,20):' Observación'; }
+
+// ── OBS RÁPIDA: modal mínimo para escribir/editar la obs de un item del cart
+// sin tener que abrir la pantalla scDetalle. Lo dispara el botón lápiz que
+// aparece al lado de los +/- en cada item del cart (tablet + mobile).
+function abrirObsRapida(lineId){
+  const item = cart.find(l => l.lineId === lineId);
+  if(!item){ if(typeof toast==='function') toast('Producto no encontrado'); return; }
+
+  // Crear overlay (lo borramos al cerrar — no contamina el DOM)
+  let ov = document.getElementById('obsRapidaOv');
+  if(ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'obsRapidaOv';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  ov.innerHTML =
+    '<div style="background:var(--bg-card,#1f1f1f);color:var(--text,#fff);border:1px solid var(--border,#333);border-radius:10px;width:100%;max-width:420px;padding:18px 18px 14px;box-shadow:0 12px 40px rgba(0,0,0,.5);">'+
+      '<div style="font-size:11px;color:var(--muted,#999);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px;">Observación</div>'+
+      '<div style="font-size:15px;font-weight:800;margin-bottom:14px;line-height:1.25;">'+esc(item.name)+'</div>'+
+      '<input id="obsRapidaInput" type="text" maxlength="60" placeholder="Ej: sin cebolla, bien cocido…" '+
+        'value="'+esc(item.obs||'')+'" '+
+        'style="width:100%;box-sizing:border-box;padding:11px 12px;font-size:15px;border-radius:6px;border:1.5px solid var(--border2,#555);background:var(--bg,#111);color:var(--text,#fff);outline:none;font-family:inherit;">'+
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">'+
+        '<button id="obsRapidaCancel" style="padding:9px 18px;font-size:13px;font-weight:700;border:1.5px solid var(--border2,#555);background:transparent;color:var(--text,#fff);border-radius:6px;cursor:pointer;font-family:inherit;">CANCELAR</button>'+
+        '<button id="obsRapidaOk" style="padding:9px 22px;font-size:13px;font-weight:800;border:none;background:var(--green,#4caf50);color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;letter-spacing:.3px;">GUARDAR</button>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+  const input  = document.getElementById('obsRapidaInput');
+  const close  = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const guardar = () => {
+    item.obs = input.value.trim();
+    close();
+    if(typeof renderTkt === 'function') renderTkt();
+    if(typeof renderTabletTicket === 'function') renderTabletTicket();
+    if(typeof updUI === 'function') updUI();
+    if(item.obs && typeof toast === 'function') toast('Obs guardada: ' + item.obs.substring(0,30));
+  };
+  const onKey = e => {
+    if(e.key === 'Escape') close();
+    if(e.key === 'Enter')  guardar();
+  };
+  document.getElementById('obsRapidaOk').onclick     = guardar;
+  document.getElementById('obsRapidaCancel').onclick = close;
+  ov.onclick = e => { if(e.target === ov) close(); };
+  document.addEventListener('keydown', onKey);
+  setTimeout(() => { input.focus(); input.select(); }, 50);
+}
 function toggleDetDesc(lineId){ const el=document.getElementById('detDesc_'+lineId); if(!el)return; const open=el.style.display==='block'; el.style.display=open?'none':'block'; if(!open)setTimeout(function(){var _i=el.querySelector('input');if(_i)_i.focus();},50); }
 function saveDetDesc(lineId, val){
   const item=cart.find(i=>i.lineId===lineId); if(!item)return;

@@ -1480,12 +1480,17 @@ function renderTabletTicket(){
         '<div class="tab-tiprice" style="color:var(--orange);font-weight:800">'+gs(i.price)+'</div>';
     } else {
       div.style.cursor = 'pointer';
-      div.title = 'Toc\u00e1 para abrir detalle (observaciones, descuentos)';
+      div.title = 'Toc\u00e1 para abrir detalle (descuento por producto)';
       div.onclick = goDetalle;
+      var _obsBtnColor = i.obs ? 'var(--orange)' : 'var(--muted)';
+      var _obsTitle    = i.obs ? 'Editar observaci\u00f3n' : 'Agregar observaci\u00f3n';
       div.innerHTML=
         '<div style="width:7px;height:7px;border-radius:50%;background:'+i.color+';flex-shrink:0"></div>'+
         '<div class="tab-tiname">'+i.name+(i.obs?'<div class="tab-tiobs">'+i.obs+'</div>':'')+'</div>'+
         '<div class="tab-tictrl">'+
+          '<button class="tab-qbtn" onclick="event.stopPropagation();abrirObsRapida('+i.lineId+')" title="'+_obsTitle+'" style="color:'+_obsBtnColor+';">'+
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'+
+          '</button>'+
           '<button class="tab-qbtn" onclick="event.stopPropagation();chgQty('+i.lineId+',-1)">\u2212</button>'+
           '<span class="tab-qnum">'+i.qty+'</span>'+
           '<button class="tab-qbtn" onclick="event.stopPropagation();chgQty('+i.lineId+',1)">+</button>'+
