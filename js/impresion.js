@@ -73,13 +73,19 @@ function htmlToPreview(html, size){
     .join('\n');
 }
 
-// Imprimir comanda del último recibo — solo ítems no enviados
+// Imprimir comanda del último recibo — solo ítems no enviados.
+// Caso especial: si TODOS están enviados (cliente ya imprimió comanda pre-cobro)
+// pero después modificó algo (obs, cantidad), preguntar si quiere reimprimir
+// la comanda completa para que la cocina vea los cambios.
 function imprimirComandaActual(){
   if(!ultimoReciboData) return;
-  // Filtrar ítems no enviados usando el cart actual (que tiene el estado real)
-  const itemsNoEnviados = (ultimoReciboData.items || []).filter(i => !i.enviado);
+  const itemsTodos     = (ultimoReciboData.items || []).filter(i => !i.esDescuento);
+  const itemsNoEnviados = itemsTodos.filter(i => !i.enviado);
+
   if(!itemsNoEnviados.length){
-    toast('Todo ya fue enviado a cocina');
+    if(!itemsTodos.length) return;
+    if(!confirm('Esta comanda ya se imprimió antes.\n\n¿Querés reimprimirla completa? (sirve si cargaste obs o cambiaste cantidad después)')) return;
+    imprimirComanda({...ultimoReciboData, items: itemsTodos});
     return;
   }
   // Marcar como enviados en ultimoReciboData
@@ -592,7 +598,7 @@ function generarHTMLComanda(data, size){
                 || data.cliente
                 || '';
   if(cliente) lineas += '<p class="c b s" style="margin-top:2px;word-break:break-word;">Cliente: '+cliente+'</p>';
-  if(data.obs) lineas += '<p class="c b s;word-break:break-word;">OBS: '+data.obs+'</p>';
+  if(data.obs) lineas += '<p class="c b s" style="word-break:break-word;">OBS: '+data.obs+'</p>';
 
   lineas += '<p class="hr"></p>';
 
@@ -850,13 +856,23 @@ function imprimirTicketActual(){
   const size = getPaperSize('ticket');
   const ahora = new Date();
 
+  // Recuperar obs general del pendiente actual (cargada en scGuardar). Si
+  // no hay ticket guardado, no hay obs general. La obs por producto va en
+  // cart[i].obs y se preserva con el JSON.stringify de items.
+  let obsGeneral = '';
+  if(currentTicketNro !== null && typeof pendientes !== 'undefined'){
+    const _idxObs = pendientes.findIndex(p => p.nro === currentTicketNro);
+    if(_idxObs >= 0) obsGeneral = pendientes[_idxObs].obs || '';
+    if(obsGeneral === 'Auto-guardado') obsGeneral = '';
+  }
+
   const data = {
     items:     JSON.parse(JSON.stringify(cart)),
     total:     calcTotal(),
     metodo:    '',
     fecha:     ahora,
     nroTicket: currentTicketNro || ticketCounter,
-    obs:       '',
+    obs:       obsGeneral,
     factura:   null,
     descTicket: ticketDescuento || 0,
   };

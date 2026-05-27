@@ -938,6 +938,14 @@ async function confirmarPago() {
   mesaLimpiarAlPagar();
   resetFactura();
 
+  // Obs general del ticket — leer del pendiente activo (cargada en scGuardar)
+  let _obsGeneral = '';
+  if(currentTicketNro !== null && typeof pendientes !== 'undefined'){
+    const _idxObs = pendientes.findIndex(p => p.nro === currentTicketNro);
+    if(_idxObs >= 0) _obsGeneral = pendientes[_idxObs].obs || '';
+    if(_obsGeneral === 'Auto-guardado') _obsGeneral = '';
+  }
+
   generarRecibo({
     items:       itemsVenta,
     total:       totalVenta,
@@ -955,6 +963,7 @@ async function confirmarPago() {
     factura:     facturaData,
     divPagos:    divPagosCopia,
     clienteNombre: clienteNombreCopy,
+    obs:         _obsGeneral,
   });
   } finally {
     confirmarPago._running = false;

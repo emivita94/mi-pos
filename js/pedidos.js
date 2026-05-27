@@ -254,6 +254,13 @@ function imprimirComandaPreCobro(){
   const itemsPendientes = cart.filter(i => !i.enviado);
   if(!itemsPendientes.length){ toast('Todo ya fue enviado a cocina'); return; }
   const d = new Date();
+  // Obs general del pendiente (la que se carga en scGuardar)
+  let _obsGeneralPC = '';
+  if(typeof currentTicketNro !== 'undefined' && currentTicketNro !== null && typeof pendientes !== 'undefined'){
+    const _idxPC = pendientes.findIndex(p => p.nro === currentTicketNro);
+    if(_idxPC >= 0) _obsGeneralPC = pendientes[_idxPC].obs || '';
+    if(_obsGeneralPC === 'Auto-guardado') _obsGeneralPC = '';
+  }
   imprimirComanda({
     items: itemsPendientes,
     fecha: d,
@@ -261,7 +268,8 @@ function imprimirComandaPreCobro(){
     tipoPedido: tipoPedido||'llevar',
     mesa: mesaActual ? mesaActual.nombre : null,
     factura: null,
-    clienteNombre: (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : ''
+    clienteNombre: (typeof clienteNombre !== 'undefined' && clienteNombre) ? clienteNombre : '',
+    obs: _obsGeneralPC
   });
   // Marcar como enviados en memoria
   cart.forEach(i => { i.enviado = true; });
@@ -280,12 +288,21 @@ function imprimirComandaPreCobro(){
 }
 
 // Imprimir comanda del último recibo — solo ítems no enviados
+// Caso especial: si TODOS están enviados (cliente ya imprimió comanda pre-cobro)
+// pero después modificó algo (obs, cantidad), preguntar si quiere reimprimir
+// la comanda completa para que la cocina vea los cambios.
 function imprimirComandaActual(){
   if(!ultimoReciboData) return;
-  // Filtrar ítems no enviados usando el cart actual (que tiene el estado real)
-  const itemsNoEnviados = (ultimoReciboData.items || []).filter(i => !i.enviado);
+  const itemsTodos     = (ultimoReciboData.items || []).filter(i => !i.esDescuento);
+  const itemsNoEnviados = itemsTodos.filter(i => !i.enviado);
+
   if(!itemsNoEnviados.length){
-    toast('Todo ya fue enviado a cocina');
+    if(!itemsTodos.length) return;
+    // Todo ya fue enviado — preguntar si quiere reimprimir la comanda completa.
+    // Útil cuando se cargó una observación o cambió cantidad DESPUÉS de imprimir
+    // la primera comanda pre-cobro.
+    if(!confirm('Esta comanda ya se imprimió antes.\n\n¿Querés reimprimirla completa? (sirve si cargaste obs o cambiaste cantidad después)')) return;
+    imprimirComanda({...ultimoReciboData, items: itemsTodos});
     return;
   }
   // Marcar como enviados en ultimoReciboData

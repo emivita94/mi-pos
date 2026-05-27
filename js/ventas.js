@@ -1479,13 +1479,16 @@ function renderTabletTicket(){
         '</div>'+
         '<div class="tab-tiprice" style="color:var(--orange);font-weight:800">'+gs(i.price)+'</div>';
     } else {
+      div.style.cursor = 'pointer';
+      div.title = 'Toc\u00e1 para abrir detalle (observaciones, descuentos)';
+      div.onclick = goDetalle;
       div.innerHTML=
         '<div style="width:7px;height:7px;border-radius:50%;background:'+i.color+';flex-shrink:0"></div>'+
         '<div class="tab-tiname">'+i.name+(i.obs?'<div class="tab-tiobs">'+i.obs+'</div>':'')+'</div>'+
         '<div class="tab-tictrl">'+
-          '<button class="tab-qbtn" onclick="chgQty('+i.lineId+',-1)">\u2212</button>'+
+          '<button class="tab-qbtn" onclick="event.stopPropagation();chgQty('+i.lineId+',-1)">\u2212</button>'+
           '<span class="tab-qnum">'+i.qty+'</span>'+
-          '<button class="tab-qbtn" onclick="chgQty('+i.lineId+',1)">+</button>'+
+          '<button class="tab-qbtn" onclick="event.stopPropagation();chgQty('+i.lineId+',1)">+</button>'+
         '</div>'+
         '<div class="tab-tiprice">'+gs(i.price*i.qty)+'</div>';
     }
