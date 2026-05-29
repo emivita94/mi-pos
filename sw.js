@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.27-20260527-obs-rapida';
+const CACHE = 'ampersand-pos-v1.14.28-20260529-autoupdate';
 
 const ASSETS = [
   '/',
@@ -58,9 +58,11 @@ self.addEventListener('fetch', e => {
   if (url.hostname.includes('googleapis.com')) return;
   if (url.hostname.includes('cdnjs.cloudflare.com')) return;
 
-  // Network First
+  // Network First — {cache:'no-store'} fuerza al SW a ir SIEMPRE al servidor
+  // (ignora la caché HTTP del navegador). Así nunca sirve una versión vieja
+  // mientras haya red; la Cache Storage queda solo como fallback offline.
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then(res => {
         if (res.ok && res.status === 200) {
           const clone = res.clone();

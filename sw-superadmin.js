@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-superadmin-v20260524-arch001d-format';
+const CACHE = 'ampersand-superadmin-v20260529-autoupdate';
 
 const ASSETS = [
   '/super-admin.html',
@@ -43,8 +43,10 @@ self.addEventListener('fetch', e => {
       !url.hostname.includes('pages.dev') &&
       !url.hostname.includes('localhost')) return;
 
+  // {cache:'no-store'}: el SW va siempre al servidor, nunca a la caché HTTP
+  // del navegador. La Cache Storage queda solo como fallback offline.
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then(res => {
         if (res.ok && res.status === 200) {
           const clone = res.clone();

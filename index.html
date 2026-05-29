@@ -1933,6 +1933,40 @@
 
 <script>
 if('serviceWorker' in navigator){
+  // ── AUTO-UPDATE ───────────────────────────────────────────────────────
+  // Objetivo: que el usuario NUNCA tenga que borrar caché ni refrescar a mano
+  // para ver una versión nueva. Cuando hay versión nueva, recargamos solos.
+  // Único cuidado: NO recargar en medio de una venta (perdería el carrito en
+  // memoria). Si hay venta abierta, esperamos a que se cierre.
+  var _swPending = false;   // hay versión nueva lista
+  var _swReloaded = false;  // ya recargamos (anti-loop)
+  // Si ya había un SW controlando al cargar, cualquier cambio de controller
+  // futuro es un UPDATE. Si no había (primera instalación), el primer
+  // controllerchange es solo la toma de control inicial → no recargar.
+  var _hadController = !!navigator.serviceWorker.controller;
+
+  function _ventaEnCurso(){
+    try { return (typeof cart !== 'undefined' && cart && cart.length > 0); }
+    catch(e){ return false; }
+  }
+  function _swAplicarSiSeguro(){
+    if(!_swPending || _swReloaded) return;
+    if(_ventaEnCurso()){
+      if(typeof toast === 'function') toast('Actualización lista — se aplica al cerrar la venta');
+      return;
+    }
+    _swReloaded = true;
+    location.reload();
+  }
+  // Cuando el SW nuevo toma el control (clients.claim) → aplicar.
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if(!_hadController){ _hadController = true; return; } // instalación inicial
+    _swPending = true;
+    _swAplicarSiSeguro();
+  });
+  // Reintentar cuando el carrito se vacía o se vuelve a la pestaña.
+  setInterval(_swAplicarSiSeguro, 10 * 1000);
+
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('/sw.js')
       .then(function(reg){
@@ -1944,19 +1978,16 @@ if('serviceWorker' in navigator){
           reg.update().catch(function(){});
         }, 5 * 60 * 1000);
 
-        // Cuando se detecta un SW nuevo descargado, esperar a que termine
-        // de instalarse y avisar al usuario (toast) que recargue.
+        // Cuando se detecta un SW nuevo instalado, marcar que hay versión
+        // nueva. El sw.js hace skipWaiting()+clients.claim(), así que disparará
+        // controllerchange; igual marcamos acá por las dudas.
         reg.addEventListener('updatefound', function(){
           var nuevo = reg.installing;
           if(!nuevo) return;
           nuevo.addEventListener('statechange', function(){
             if(nuevo.state === 'installed' && navigator.serviceWorker.controller){
-              // Hay version nueva esperando
-              if(typeof toast === 'function'){
-                toast('Nueva version disponible — refrescá la pestaña');
-              } else {
-                console.log('[SW] Nueva version disponible');
-              }
+              _swPending = true;
+              _swAplicarSiSeguro();
             }
           });
         });
@@ -1965,12 +1996,15 @@ if('serviceWorker' in navigator){
         console.warn('[SW] Error:', err);
       });
 
-    // Si la pestana vuelve a estar visible, verificar update tambien
+    // Si la pestana vuelve a estar visible, verificar update y aplicar si toca
     document.addEventListener('visibilitychange', function(){
-      if(document.visibilityState === 'visible' && navigator.serviceWorker.controller){
-        navigator.serviceWorker.getRegistration().then(function(reg){
-          if(reg) reg.update().catch(function(){});
-        });
+      if(document.visibilityState === 'visible'){
+        _swAplicarSiSeguro();
+        if(navigator.serviceWorker.controller){
+          navigator.serviceWorker.getRegistration().then(function(reg){
+            if(reg) reg.update().catch(function(){});
+          });
+        }
       }
     });
   });
