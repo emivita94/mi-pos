@@ -360,23 +360,50 @@ async function doLogin(){
 
   try{
     var lic = null;
+    var emailMismatch = false; // la clave existe pero el email no es el dueño
+
+    // La CLAVE es el secreto que identifica la licencia. Buscamos por clave y
+    // verificamos que el email sea el dueño (email_cliente). Esto blinda el
+    // login: no se puede entrar a una licencia ajena solo por tener la clave,
+    // y siempre obtenemos el licencia_id real (SLI nunca queda null).
     var rows = await sg('licencias',
-      'email_cliente=ilike.'+encodeURIComponent(email)+'&clave=eq.'+encodeURIComponent(clave)+'&activa=eq.true&select=id,plan_id,fecha_vence'
+      'clave=eq.'+encodeURIComponent(clave)+'&activa=eq.true&select=id,plan_id,fecha_vence,email_cliente&limit=1'
     );
     if(rows && rows.length > 0){
-      lic = { id: rows[0]['id'], plan: rows[0]['plan_id']||'Pro', vence: rows[0]['fecha_vence']||'—' };
+      var L = rows[0];
+      var dueno = (L.email_cliente||'').toLowerCase().trim();
+      if(dueno && dueno !== email){
+        emailMismatch = true; // clave válida pero de otro dueño
+      } else {
+        lic = { id: L.id, plan: L.plan_id||'Pro', vence: L.fecha_vence||'—' };
+      }
     }
 
-    // Si no encontramos nada, intentar con la RPC como fallback
-    if(!lic){
+    // Fallback RPC SOLO si no existe ninguna licencia con esa clave (caso raro:
+    // licencia que aún no tiene fila consultable). Igual exigimos dueño correcto.
+    if(!lic && !emailMismatch){
       try{
         var d = await srpc('activar_licencia',{p_clave:clave,p_email:email,p_device_id:'admin_web_'+Date.now()});
         if(d && d.ok){
-          lic = { plan: d.plan||'Pro', vence: d.vence||'—' };
+          // Resolver el id real para no dejar SLI en null y re-verificar dueño.
+          var lr2 = await sg('licencias','clave=eq.'+encodeURIComponent(clave)+'&select=id,plan_id,fecha_vence,email_cliente&limit=1');
+          if(lr2 && lr2.length){
+            var L2 = lr2[0]; var dueno2 = (L2.email_cliente||'').toLowerCase().trim();
+            if(dueno2 && dueno2 !== email){ emailMismatch = true; }
+            else { lic = { id: L2.id, plan: L2.plan_id||d.plan||'Pro', vence: L2.fecha_vence||d.vence||'—' }; }
+          } else {
+            lic = { plan: d.plan||'Pro', vence: d.vence||'—' };
+          }
         }
       }catch(e2){ console.warn('[Login] RPC fallback failed:', e2.message); }
     }
 
+    if(emailMismatch){
+      err.textContent='Ese email no corresponde a esta licencia.';
+      err.style.display='block';
+      if(btn){btn.disabled=false;btn.textContent='INGRESAR';}
+      return;
+    }
     if(!lic){
       err.textContent='Email o código de licencia incorrecto';
       err.style.display='block';
@@ -408,10 +435,13 @@ async function doLogin(){
 }
 
 function doLogout(){
-  ['ae','ap','av'].forEach(function(k){localStorage.removeItem(k);});
+  // Limpiar TODO el estado de sesión, incluido 'ali' (licencia_id) y 'an'
+  // (negocio). Antes 'ali' quedaba pegado y podía dejar al usuario apuntando
+  // a una licencia vieja/equivocada tras re-loguear.
+  ['ae','ap','av','ali','an'].forEach(function(k){localStorage.removeItem(k);});
+  SE=null; SP=null; SV=null; SLI=null;
   document.getElementById('app').style.display='none';
   document.getElementById('loginWrap').style.display='flex';
-  SE=null;
 }
 
 function showApp(){
