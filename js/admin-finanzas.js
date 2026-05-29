@@ -1373,7 +1373,20 @@ async function renderRepCompras(fdKey){
       '&fecha=lte.'+addDay(fh0)+'T03:59:59'+
       '&order=fecha.desc&limit=500');
 
-    var totGeneral = rows.reduce(function(s,x){ return s+(x.total||x.monto||0); }, 0);
+    // El monto de cada compra se guarda en `total_monto` (no `total` ni `monto`).
+    // Para compras viejas con total_monto NULL, lo calculamos desde los items.
+    var faltantes = rows.filter(function(c){ var v=parseFloat(c.total_monto); return !v||isNaN(v); }).map(function(c){ return c.id; });
+    if(faltantes.length){
+      try{
+        var itemsFb = await sg('stock_comprobante_items',
+          'comprobante_id=in.('+faltantes.join(',')+')&select=comprobante_id,cantidad,costo_unitario&limit=5000');
+        var totFb={};
+        itemsFb.forEach(function(i){ var subt=(parseFloat(i.cantidad)||0)*(parseFloat(i.costo_unitario)||0); totFb[i.comprobante_id]=(totFb[i.comprobante_id]||0)+Math.abs(subt); });
+        rows.forEach(function(c){ if((!c.total_monto||isNaN(parseFloat(c.total_monto)))&&totFb[c.id]) c.total_monto=totFb[c.id]; });
+      }catch(eFb){ console.warn('[RepCompras] Items fallback error:', eFb.message); }
+    }
+
+    var totGeneral = rows.reduce(function(s,x){ return s+(parseFloat(x.total_monto)||x.total||x.monto||0); }, 0);
 
     var pdfBtn = document.getElementById('repCompPdfBtn');
     if(pdfBtn){
@@ -1392,7 +1405,7 @@ async function renderRepCompras(fdKey){
           rows: rows.map(function(r){
             var fch = r.fecha ? (function(){ var d=new Date(r.fecha); return p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+d.getFullYear(); })() : '--';
             var desc = r.proveedor||r.concepto||r.descripcion||'—';
-            var monto = r.total||r.monto||0;
+            var monto = parseFloat(r.total_monto)||r.total||r.monto||0;
             var tipo = (r.tipo||'compra').replace('_',' ');
             return '<tr>'+
               '<td style="color:#666;font-size:11px;white-space:nowrap;">'+fch+'</td>'+

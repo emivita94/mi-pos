@@ -940,13 +940,14 @@ function renderVentas(){
           '<thead><tr>'+
             '<th>Fecha / Hora</th>'+
             '<th>Terminal</th>'+
+            '<th>Cliente</th>'+
             '<th>Tipo</th>'+
             '<th>Metodo</th>'+
             '<th style="text-align:right;">Total</th>'+
             '<th style="text-align:center;width:90px;">Estado</th>'+
             '<th style="width:32px;"></th>'+
           '</tr></thead>'+
-          '<tbody id="vBody"><tr><td colspan="7" class="loading"><span class="sp"></span></td></tr></tbody>'+
+          '<tbody id="vBody"><tr><td colspan="8" class="loading"><span class="sp"></span></td></tr></tbody>'+
         '</table>'+
       '</div>'+
     '</div>'+
@@ -971,7 +972,7 @@ function setFV(f,b){
 
 async function loadVData(f){
   var body=document.getElementById('vBody');
-  if(body) body.innerHTML='<tr><td colspan="6" class="loading"><span class="sp"></span></td></tr>';
+  if(body) body.innerHTML='<tr><td colspan="8" class="loading"><span class="sp"></span></td></tr>';
 
   var desde, hasta;
   if(f==='custom'||f===undefined){
@@ -1006,7 +1007,7 @@ async function loadVData(f){
     renderVT(allVP);
   }catch(e){
     if(document.getElementById('vBody'))
-      document.getElementById('vBody').innerHTML='<tr><td colspan="6" class="loading">Error cargando</td></tr>';
+      document.getElementById('vBody').innerHTML='<tr><td colspan="8" class="loading">Error cargando</td></tr>';
   }
 }
 
@@ -1045,6 +1046,13 @@ function renderVT(v){
     try{ if(x.factura){ var fac=typeof x.factura==='string'?JSON.parse(x.factura):x.factura; if(fac&&fac.nro_factura) tieneF=true; } }catch(e){ console.warn('[Ventas] Error parseando factura:', e.message); }
     return tieneF?'<span class="vh-bdg vh-bdg-fact">FACTURA</span>':'<span class="vh-bdg vh-bdg-tick">TICKET</span>';
   };
+  // Helper: nombre del cliente — prioriza el nombre rápido del ticket
+  // (cliente_nombre) y cae al de la factura (factura.nombre).
+  var cliName=function(x){
+    if(x.cliente_nombre && String(x.cliente_nombre).trim()) return String(x.cliente_nombre).trim();
+    try{ var f=typeof x.factura==='string'?JSON.parse(x.factura):x.factura; if(f&&f.nombre) return String(f.nombre).trim(); }catch(e){}
+    return '';
+  };
   // Helper: split fecha/hora
   var splitDT=function(f){
     if(!f) return {d:'--',h:''};
@@ -1060,14 +1068,14 @@ function renderVT(v){
     try{ items=typeof x.items==='string'?JSON.parse(x.items):(x.items||[]); }catch(e){ console.warn('[Ventas] Error parseando items:', e.message); }
     var factura=null;
     try{ factura=x.factura?(typeof x.factura==='string'?JSON.parse(x.factura):x.factura):null; }catch(e){ console.warn('[Ventas] Error parseando factura detalle:', e.message); }
-    return '<tr id="det_'+x.id+'" style="display:none;"><td colspan="7" style="padding:0;background:var(--card2);">'+
+    return '<tr id="det_'+x.id+'" style="display:none;"><td colspan="8" style="padding:0;background:var(--card2);">'+
       '<div style="padding:14px;border-top:2px solid var(--green);">'+
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px;">'+
       '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;">Terminal</div><div style="font-weight:700;">'+(x.terminal||'—')+'</div></div>'+
       '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;">Método</div><div style="font-weight:700;">'+(x.metodo_pago||'—').toUpperCase()+'</div></div>'+
       '<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;">Total</div><div style="font-weight:800;color:var(--green);">'+gs(x.total)+'</div></div>'+
       (factura&&factura.nro_factura?'<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;">N° Factura</div><div style="font-weight:700;color:var(--blue);">'+factura.nro_factura+'</div></div>':'')+
-      (factura&&factura.nombre?'<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;">Cliente</div><div style="font-weight:700;">'+factura.nombre+'</div></div>':'')+
+      (cliName(x)?'<div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;">Cliente</div><div style="font-weight:700;">'+_esc(cliName(x))+'</div></div>':'')+
       '</div>'+
       '<table style="font-size:12px;"><thead><tr>'+
         '<th>Producto</th><th>Categoría</th><th style="text-align:center">Cant.</th>'+
@@ -1095,6 +1103,7 @@ function renderVT(v){
       '<td><div class="vh-tm-n">'+(x.terminal||'--')+'</div>'+
         (x.sucursal?'<div class="vh-tm-s">'+x.sucursal+'</div>':'')+
       '</td>'+
+      '<td>'+(function(){var n=cliName(x);return n?'<div class="vh-tm-n">'+_esc(n)+'</div>':'<span style="color:var(--muted)">—</span>';})()+'</td>'+
       '<td>'+tipoTag(x)+'</td>'+
       '<td>'+mb(x.metodo_pago)+'</td>'+
       '<td style="text-align:right;"><span class="vh-tot">'+gs(x.total)+'</span></td>'+
@@ -1102,7 +1111,7 @@ function renderVT(v){
       '<td><span class="vh-arr" id="arr_'+x.id+'">+</span></td>'+
       '</tr>'+
       detalleHtml(x);
-  }).join(''):'<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Sin ventas en el periodo seleccionado</td></tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Sin ventas en el periodo seleccionado</td></tr>';
 }
 
 // ── Helper para escapar HTML (evita XSS via motivo de anulación) ──
@@ -1218,6 +1227,7 @@ function filtrVAdv(){
     var matchTxt=!txt||
       (v.terminal||'').toLowerCase().includes(txt)||
       (v.sucursal||'').toLowerCase().includes(txt)||
+      (v.cliente_nombre||'').toLowerCase().includes(txt)||
       (v.metodo_pago||'').toLowerCase().includes(txt);
     // Buscar tambien en factura.nombre
     if(!matchTxt && txt && v.factura){
