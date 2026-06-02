@@ -661,6 +661,22 @@ const TIPOS={anual:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" 
 async function loadL(){
   try{
     allL=await sg('licencias','select=*,planes(nombre)&order=created_at.desc');
+    // Decorar con tipo_negocio desde pos_config (fuente de verdad real)
+    // Tolerante: si falla pos_config, allL queda sin decorar y el badge simplemente no muestra
+    try{
+      var rcRows=await sg('pos_config','clave=eq.rubro_config&select=licencia_email,valor');
+      var rcMap={};
+      rcRows.forEach(function(r){
+        try{
+          var v=JSON.parse(r.valor||'{}');
+          if(v.tipo_negocio) rcMap[(r.licencia_email||'').toLowerCase()]=v.tipo_negocio;
+        }catch(e){}
+      });
+      allL.forEach(function(l){
+        var em=(l.email_cliente||'').toLowerCase();
+        if(rcMap[em]) l._tipo_negocio=rcMap[em];
+      });
+    }catch(e){}
   }catch(e){
     allL=DEMO;
     toast('Demo: '+e.message,4000);
@@ -682,7 +698,8 @@ function renderL(lista){
     const pNom=l.planes?.nombre||PLANES[l.plan_id]||'Básico';
     const pCls=l.plan_id===1?'tag-g':l.plan_id===2?'tag-b':'tag-o';
     const rb=l.rubro?`<span class="tag tag-gr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ${RUBROS[l.rubro]||l.rubro}</span>`:'';
-    const tn=l.tipo_negocio&&l.tipo_negocio!=='gastronomia'?`<span class="tag" style="background:rgba(255,152,0,.12);color:#ff9800;border:1px solid rgba(255,152,0,.3);">Retail</span>`:'';
+    const _tn=l._tipo_negocio||l.tipo_negocio;
+    const tn=_tn&&_tn!=='gastronomia'?`<span class="tag" style="background:rgba(255,152,0,.12);color:#ff9800;border:1px solid rgba(255,152,0,.3);">Retail</span>`:'';
     const tp=l.tipo_pago?`<span class="tag tag-gr">${TIPOS[l.tipo_pago]||l.tipo_pago}</span>`:'';
 
     let vt='';
@@ -766,7 +783,7 @@ function editL(id){
   document.getElementById('mPlan').value=l.plan_id||2;
   document.getElementById('mRubro').value=l.rubro||'';
   document.getElementById('mTipo').value=l.tipo_pago||'anual';
-  document.getElementById('mTipoPOS').value=l.tipo_negocio||'gastronomia';
+  document.getElementById('mTipoPOS').value=l._tipo_negocio||l.tipo_negocio||'gastronomia';
   document.getElementById('mMonto').value=l.monto||'';
   document.getElementById('mSoporte').value=l.monto_soporte||'';
   document.getElementById('mPrecioTer').value=l.precio_terminal||'';
@@ -785,7 +802,7 @@ function renovar(id){
   document.getElementById('mPlan').value=l.plan_id||2;
   document.getElementById('mRubro').value=l.rubro||'';
   document.getElementById('mTipo').value=l.tipo_pago||'anual';
-  document.getElementById('mTipoPOS').value=l.tipo_negocio||'gastronomia';
+  document.getElementById('mTipoPOS').value=l._tipo_negocio||l.tipo_negocio||'gastronomia';
   document.getElementById('mMonto').value=l.monto||'';
   document.getElementById('mSoporte').value=l.monto_soporte||'';
   document.getElementById('mPrecioTer').value=l.precio_terminal||'';
@@ -823,9 +840,11 @@ async function guardarL(){
   if(!clave){toast('Generá una clave');return;}
   if(!vence){toast('Seleccioná la fecha de vencimiento');return;}
 
+  // NOTA: tipo_negocio NO va al payload de licencias (columna inexistente en Supabase).
+  // Se persiste en pos_config clave='rubro_config' para que rubro.js lo levante igual
+  // que cuando el dueno lo setea desde admin-negocio. Ver: js/rubro.js rubroCargarDesdeSupabase().
   const data={clave,plan_id:planId,nombre_cliente:nombre||null,email_cliente:email||null,
     fecha_vence:vence,notas:notas||null,rubro:rubro||null,tipo_pago:tipo,
-    tipo_negocio:tipoPOS||null,
     monto:monto||null,
     monto_soporte:parseInt(document.getElementById('mSoporte').value)||null,
     precio_terminal:parseInt(document.getElementById('mPrecioTer').value)||null};
@@ -841,6 +860,32 @@ async function guardarL(){
       try{await navigator.clipboard.writeText(clave);toast('Creada y copiada: '+clave,3000);}
       catch(e){toast('Licencia creada: '+clave,3000);}
     }
+
+    // Persistir tipo_negocio en pos_config si hay email de cliente
+    // Upsert por clave compuesta (licencia_email, clave) — mismo shape que lee rubro.js
+    if(email){
+      try{
+        const rcPayload={
+          licencia_email: email,
+          clave: 'rubro_config',
+          valor: JSON.stringify({ tipo_negocio: tipoPOS })
+        };
+        // POST con Prefer: resolution=merge-duplicates (upsert PostgREST)
+        const rcR=await fetch(SURL+'/rest/v1/pos_config',{
+          method:'POST',
+          headers: _saHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+          body: JSON.stringify(rcPayload)
+        });
+        // Tolerar fallo silencioso: la licencia ya fue guardada, esto es best-effort
+        if(!rcR.ok){
+          const eBody=await rcR.text();
+          console.warn('[SuperAdmin] pos_config upsert fallo (ignorado):', eBody);
+        }
+      }catch(rcE){
+        console.warn('[SuperAdmin] pos_config upsert error (ignorado):', rcE.message);
+      }
+    }
+
     closeM();
     await loadL();
   }catch(e){
