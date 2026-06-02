@@ -1,0 +1,198 @@
+// ── Rubro / Tipo de negocio — Fase 0 ──────────────────────
+// Fuente de verdad única para tipo_negocio y los 4 flags granulares.
+//
+// REGLA DE DEFAULTS:
+//   tipo_negocio setea los defaults de los 4 flags.
+//   Si un flag fue seteado explícitamente (pos_flag_*=0|1 en localStorage),
+//   gana el valor explícito (permite un retail que SÍ haga delivery, etc.).
+//
+// COMPATIBILIDAD HACIA ATRÁS:
+//   - Sin tipo_negocio configurado → gastronomia → todo como antes.
+//   - usa_cocina es ALIAS de comandasHabilitadas existente.
+//     Los dos sistemas escriben la misma clave localStorage 'pos_comandas'.
+//
+// PERSISTENCIA:
+//   localStorage keys:
+//     'pos_tipo_negocio'  → 'gastronomia' | 'retail'
+//     'pos_flag_mesas'    → '0' | '1' | null (null = usar default del tipo)
+//     'pos_flag_cocina'   → '0' | '1' | null
+//     'pos_flag_delivery' → '0' | '1' | null
+//     'pos_flag_mitades'  → '0' | '1' | null
+//   Supabase: pos_config clave='rubro_config' valor=JSON con los mismos campos.
+
+// ── Leer tipo de negocio ──────────────────────────────────
+function rubroGetTipo(){
+  return localStorage.getItem('pos_tipo_negocio') || 'gastronomia';
+}
+
+// ── Defaults por tipo ─────────────────────────────────────
+function _rubroDefaults(tipo){
+  if(tipo === 'retail'){
+    return { usa_mesas: false, usa_cocina: false, usa_delivery: false, usa_mitades: false };
+  }
+  // gastronomia (default) — usa_cocina refleja comandasHabilitadas existente
+  return {
+    usa_mesas:    true,
+    usa_cocina:   !!(configData && configData.comandasHabilitadas !== undefined
+                      ? configData.comandasHabilitadas
+                      : localStorage.getItem('pos_comandas') === '1'),
+    usa_delivery: true,
+    usa_mitades:  true,
+  };
+}
+
+// ── Leer un flag (con override explícito) ─────────────────
+function rubroFlag(flag){
+  var stored = localStorage.getItem('pos_flag_' + flag);
+  if(stored === '1') return true;
+  if(stored === '0') return false;
+  // Sin override explícito → usar default del tipo
+  return _rubroDefaults(rubroGetTipo())[flag];
+}
+
+// Atajos semánticos usados en el código de los módulos:
+function usaMesas()    { return rubroFlag('mesas');    }
+function usaCocina()   { return rubroFlag('cocina');   }
+function usaDelivery() { return rubroFlag('delivery'); }
+function usaMitades()  { return rubroFlag('mitades');  }
+
+// ── Setear tipo de negocio ────────────────────────────────
+// Al cambiar el tipo se limpian los overrides para que los defaults entren.
+// Si se quiere conservar overrides explícitos pasar keepOverrides=true.
+function rubroSetTipo(tipo, keepOverrides){
+  localStorage.setItem('pos_tipo_negocio', tipo);
+  if(!keepOverrides){
+    localStorage.removeItem('pos_flag_mesas');
+    localStorage.removeItem('pos_flag_cocina');
+    localStorage.removeItem('pos_flag_delivery');
+    localStorage.removeItem('pos_flag_mitades');
+  }
+  // Sincronizar usa_cocina con el sistema legacy (pos_comandas / configData)
+  _rubroSyncCocinaLegacy();
+  _rubroGuardarSupabaseDebounced();
+}
+
+// ── Setear un flag individual (override explícito) ────────
+function rubroSetFlag(flag, valor){
+  localStorage.setItem('pos_flag_' + flag, valor ? '1' : '0');
+  if(flag === 'cocina'){
+    _rubroSyncCocinaLegacy();
+  }
+  _rubroGuardarSupabaseDebounced();
+}
+
+// ── Compatibilidad con sistema legacy de comandas ─────────
+// Mantiene pos_comandas y configData.comandasHabilitadas en sync con usa_cocina.
+function _rubroSyncCocinaLegacy(){
+  var val = usaCocina();
+  localStorage.setItem('pos_comandas', val ? '1' : '0');
+  if(typeof configData !== 'undefined'){
+    configData.comandasHabilitadas = val;
+  }
+  // Actualizar botón de comanda si la función ya existe en memoria
+  if(typeof updBtnComandaCobro === 'function') updBtnComandaCobro();
+}
+
+// ── Aplicar los flags a la UI del POS ────────────────────
+// Llamar al iniciar la app y cada vez que cambien los flags.
+function rubroAplicarUI(){
+  var mesas    = usaMesas();
+  var delivery = usaDelivery();
+
+  // Ítem de Mesas en el drawer
+  var drawerMesas = document.getElementById('drawerItemMesas');
+  if(drawerMesas) drawerMesas.style.display = mesas ? '' : 'none';
+
+  // Barra de tipo de pedido (local/llevar/delivery) — desktop y mobile
+  var tipoBarsTab = document.querySelectorAll('.tab-tipo-btns');
+  var tipoBarMob  = document.querySelector('.mob-tipo-bar');
+
+  tipoBarsTab.forEach(function(el){ el.style.display = (mesas || delivery) ? '' : 'none'; });
+  if(tipoBarMob) tipoBarMob.style.display = (mesas || delivery) ? '' : 'none';
+
+  // Botón "Local" — solo disponible si hay mesas
+  var btnLocal    = document.getElementById('tipoBtnLocal');
+  var btnMobLocal = document.getElementById('mobTipoBtnLocal');
+  if(btnLocal)    btnLocal.style.display    = mesas ? '' : 'none';
+  if(btnMobLocal) btnMobLocal.style.display = mesas ? '' : 'none';
+
+  // Botón "Delivery" — solo disponible si usa_delivery
+  var btnDel    = document.getElementById('tipoBtnDelivery');
+  var btnMobDel = document.getElementById('mobTipoBtnDelivery');
+  if(btnDel)    btnDel.style.display    = delivery ? '' : 'none';
+  if(btnMobDel) btnMobDel.style.display = delivery ? '' : 'none';
+
+  // Si el tipo actual era delivery y ya no se usa, resetear a llevar
+  if(!delivery && typeof tipoPedido !== 'undefined' && tipoPedido === 'delivery'){
+    if(typeof setTipoPedido === 'function') setTipoPedido('llevar');
+  }
+
+  // Barra de monto de delivery — ocultar si no usa delivery
+  var tabDelivBar = document.getElementById('tabDeliveryBar');
+  var mobDelivBar = document.getElementById('mobDeliveryBar');
+  if(!delivery){
+    if(tabDelivBar) tabDelivBar.style.display = 'none';
+    if(mobDelivBar) mobDelivBar.style.display = 'none';
+  }
+
+  // Comanda — sincronizar con sistema legacy
+  _rubroSyncCocinaLegacy();
+  if(typeof updBtnComandaCobro === 'function') updBtnComandaCobro();
+}
+
+// ── Cargar desde Supabase al iniciar ─────────────────────
+async function rubroCargarDesdeSupabase(){
+  var email = localStorage.getItem('lic_email');
+  if(!email || (typeof USAR_DEMO !== 'undefined' && USAR_DEMO)) return;
+  try {
+    var rows = await supaGet('pos_config',
+      'licencia_email=eq.' + encodeURIComponent(email) +
+      '&clave=eq.rubro_config&select=valor&limit=1');
+    if(rows && rows[0]){
+      var cfg = JSON.parse(rows[0].valor || '{}');
+      // Solo aplicar si no hay override local más reciente
+      if(cfg.tipo_negocio && !localStorage.getItem('pos_tipo_negocio')){
+        localStorage.setItem('pos_tipo_negocio', cfg.tipo_negocio);
+      }
+      // Aplicar flags solo si no están ya seteados localmente
+      ['mesas','cocina','delivery','mitades'].forEach(function(f){
+        if(cfg['flag_' + f] !== undefined && localStorage.getItem('pos_flag_' + f) === null){
+          localStorage.setItem('pos_flag_' + f, cfg['flag_' + f] ? '1' : '0');
+        }
+      });
+      _log('[Rubro] Config cargada desde Supabase:', cfg.tipo_negocio);
+    }
+  } catch(e){
+    console.warn('[Rubro] Error cargando config:', e.message);
+  }
+}
+
+// ── Guardar en Supabase ───────────────────────────────────
+var _rubroSaveTimer = null;
+function _rubroGuardarSupabaseDebounced(){
+  clearTimeout(_rubroSaveTimer);
+  _rubroSaveTimer = setTimeout(_rubroGuardarSupabase, 1000);
+}
+
+async function _rubroGuardarSupabase(){
+  var email = localStorage.getItem('lic_email');
+  if(!email || (typeof USAR_DEMO !== 'undefined' && USAR_DEMO)) return;
+  if(typeof supaPost !== 'function') return;
+  try {
+    var payload = {
+      licencia_email: email,
+      clave: 'rubro_config',
+      valor: JSON.stringify({
+        tipo_negocio: rubroGetTipo(),
+        flag_mesas:    localStorage.getItem('pos_flag_mesas')    !== null ? usaMesas()    : null,
+        flag_cocina:   localStorage.getItem('pos_flag_cocina')   !== null ? usaCocina()   : null,
+        flag_delivery: localStorage.getItem('pos_flag_delivery') !== null ? usaDelivery() : null,
+        flag_mitades:  localStorage.getItem('pos_flag_mitades')  !== null ? usaMitades()  : null,
+      }),
+    };
+    await supaPost('pos_config', payload, 'licencia_email,clave', true);
+    _log('[Rubro] Config guardada en Supabase');
+  } catch(e){
+    console.warn('[Rubro] Error guardando config:', e.message);
+  }
+}

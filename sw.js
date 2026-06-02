@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-pos-v1.14.28-20260529-autoupdate';
+const CACHE = 'ampersand-pos-v1.14.29-20260602-retail';
 
 const ASSETS = [
   '/',
@@ -28,6 +28,7 @@ const ASSETS = [
   '/js/sync.js',
   '/js/licencia.js',
   '/js/mesas.js',
+  '/js/rubro.js',
   '/js/app.js',
   '/js/init.js',
 ];

@@ -702,6 +702,9 @@ function nuevoArticulo(){
   document.getElementById('artInventario').checked = false;
   document.getElementById('artComanda').checked = false;
   document.getElementById('btnEliminarArt').style.display = 'none';
+  // Ocultar opciones gastronómicas si el negocio no las usa
+  var _rowMitad = document.getElementById('artCheckMitad');
+  if(_rowMitad) _rowMitad.style.display = (typeof usaMitades === 'function' && !usaMitades()) ? 'none' : '';
   selIva('10');
   renderColorPicker();
   renderCatSelector();
@@ -726,6 +729,9 @@ function editarArticulo(idx){
   document.getElementById('artInventario').checked = !!p.inventario;
   document.getElementById('artComanda').checked = !!p.comanda;
   document.getElementById('btnEliminarArt').style.display = 'flex';
+  // Ocultar opciones gastronómicas si el negocio no las usa
+  var _rowMitad2 = document.getElementById('artCheckMitad');
+  if(_rowMitad2) _rowMitad2.style.display = (typeof usaMitades === 'function' && !usaMitades()) ? 'none' : '';
   selIva(artIvaSel);
   renderColorPicker();
   renderCatSelector();
@@ -1515,7 +1521,9 @@ function _renderFlujoSheet(){
 
   if(_flujo.paso === 1){
     // ── Paso 1: modo (si tiene mitad) + cantidad ──
-    const modoHTML = prod.mitad ? `
+    // El botón MITAD solo aparece si el producto lo admite Y el negocio usa mitades.
+    var _puedeVenderMitad = prod.mitad && (typeof usaMitades !== 'function' || usaMitades());
+    const modoHTML = _puedeVenderMitad ? `
       <div style="margin-bottom:16px;">
         <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;font-weight:700;">¿Cómo la querés?</div>
         <div style="display:flex;gap:0;border:1.5px solid var(--border2);">
