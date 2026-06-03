@@ -806,6 +806,21 @@ function guardarArticulo(){
   const comanda = document.getElementById('artComanda').checked;
   if(!nombre){ toast('Ingresá el nombre del artículo'); return; }
 
+  // Validar unicidad de código (código vacío es permitido)
+  if(codigo){
+    const codigoNorm = codigo.toLowerCase();
+    // El producto que se está editando se excluye de la búsqueda (por su índice)
+    const duplicado = PRODS.find(function(p, idx){
+      return idx !== artEditIdx &&
+             p.codigo && p.codigo.toLowerCase() === codigoNorm &&
+             !p.itemLibre;
+    });
+    if(duplicado){
+      toast('El código "' + codigo + '" ya existe en "' + duplicado.name + '"');
+      return;
+    }
+  }
+
   if(artEditIdx >= 0){
     // null = no cambiar, '' = borrar imagen, string = nueva imagen
     const imgUpdate = artImagenBase64 !== null ? {imagen: artImagenBase64 || null} : {};

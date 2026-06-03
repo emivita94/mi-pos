@@ -809,7 +809,7 @@ function _filterPInternal(){
   // NO filtrar por cat=Descuentos ya que eso rompe productos mal categorizados
   let l = (curCat==='Todos los artículos' ? PRODS : PRODS.filter(p=>p.cat===curCat))
            .filter(p=>!p.itemLibre && !p.esInsumo && p.activo!==false && p.activo!==0);
-  if(q) l = l.filter(p=>p.name.toLowerCase().includes(q));
+  if(q) l = l.filter(p=>p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q)));
 
   // Ítem libre siempre al final (en todas las vistas, sin búsqueda activa)
   if(!q){
@@ -849,6 +849,49 @@ function toggleSearch(){
   else{document.getElementById('sinput').value='';filterP();}
 }
 
+
+// -- Scan-to-cart: Enter en #sinput --
+function sinputKeydown(e){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  var raw = document.getElementById('sinput').value.trim();
+  if(!raw) return;
+  var q = raw.toLowerCase();
+
+  // Candidatos: excluir itemLibre, insumos, inactivos (igual que _filterPInternal)
+  var candidatos = PRODS.filter(function(p){
+    return !p.itemLibre && !p.esInsumo && p.activo !== false && p.activo !== 0;
+  });
+
+  // 1. Buscar match exacto por código
+  var exacto = candidatos.find(function(p){
+    return p.codigo && p.codigo.toLowerCase() === q;
+  });
+  if(exacto){
+    addCart(exacto.id);
+    document.getElementById('sinput').value = '';
+    filterP();
+    document.getElementById('sinput').focus();
+    return;
+  }
+
+  // 2. Si la lista filtrada por nombre/código tiene exactamente 1 resultado, agregar ese
+  var filtrados = candidatos.filter(function(p){
+    return p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q));
+  });
+  if(filtrados.length === 1){
+    addCart(filtrados[0].id);
+    document.getElementById('sinput').value = '';
+    filterP();
+    document.getElementById('sinput').focus();
+    return;
+  }
+
+  // 3. Sin coincidencia única: mostrar toast y dejar la lista filtrada
+  if(filtrados.length === 0){
+    if(typeof toast === 'function') toast('Sin coincidencia: "' + raw + '"');
+  }
+}
 
 // -- Pedidos: ver js/pedidos.js --
 
