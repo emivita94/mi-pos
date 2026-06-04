@@ -138,6 +138,14 @@ function rubroAplicarUI(){
   // Comanda — sincronizar con sistema legacy
   _rubroSyncCocinaLegacy();
   if(typeof updBtnComandaCobro === 'function') updBtnComandaCobro();
+
+  // Restos de cocina en Configuración (Fase 2): si no usa cocina, ocultar
+  // la card "Impresora de Comandas" y el toggle "Comandas" de Config General.
+  var cocina = usaCocina();
+  var comandaPrinter = document.getElementById('comandaPrinterSection');
+  if(comandaPrinter) comandaPrinter.style.display = cocina ? '' : 'none';
+  var comandaToggleField = document.getElementById('cfgComandasField');
+  if(comandaToggleField) comandaToggleField.style.display = cocina ? '' : 'none';
 }
 
 // ── Cargar desde Supabase al iniciar ─────────────────────

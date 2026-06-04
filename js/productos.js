@@ -277,7 +277,13 @@ function addDescuento(descId){
 let artEditIdx = -1;
 let artColorSel = COLORES_TILE[0];
 let artColorManual = false;
-let artCatSel = 'Comidas';
+// Categoría por defecto cuando todavía no hay categorías cargadas.
+// En retail evitamos el sesgo gastronómico ('Comidas') → 'General'.
+function _catDefault(){
+  try { if(typeof rubroGetTipo === 'function' && rubroGetTipo() === 'retail') return 'General'; } catch(e){}
+  return 'Comidas';
+}
+let artCatSel = _catDefault();
 let artIvaSel = '10';
 let artImagenBase64 = null; // imagen del producto actual en edición
 var nextProdId = 100;
@@ -687,7 +693,7 @@ function nuevoArticulo(){
   artImagenBase64 = null;
   setTimeout(()=>resetArtImagen(), 50);
   artEditIdx = -1;
-  artCatSel = CATEGORIAS.length > 0 ? CATEGORIAS[0].nombre : 'Comidas';
+  artCatSel = CATEGORIAS.length > 0 ? CATEGORIAS[0].nombre : _catDefault();
   artIvaSel = '10';
   artColorManual = false;
   const catObj = CATEGORIAS.find(c => c.nombre === artCatSel);
