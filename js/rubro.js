@@ -139,13 +139,15 @@ function rubroAplicarUI(){
   _rubroSyncCocinaLegacy();
   if(typeof updBtnComandaCobro === 'function') updBtnComandaCobro();
 
-  // Restos de cocina en Configuración (Fase 2): si no usa cocina, ocultar
-  // la card "Impresora de Comandas" y el toggle "Comandas" de Config General.
-  var cocina = usaCocina();
+  // Restos de cocina en Configuración (Fase 2): ocultar la card "Impresora de
+  // Comandas" y el toggle "Comandas" SOLO en retail sin cocina. En gastronomía
+  // (o retail con cocina habilitada vía override) se dejan visibles, para no
+  // cambiar el flujo y para no esconder el toggle que justamente activa cocina.
+  var ocultarCocinaUI = (rubroGetTipo() === 'retail') && !usaCocina();
   var comandaPrinter = document.getElementById('comandaPrinterSection');
-  if(comandaPrinter) comandaPrinter.style.display = cocina ? '' : 'none';
+  if(comandaPrinter) comandaPrinter.style.display = ocultarCocinaUI ? 'none' : '';
   var comandaToggleField = document.getElementById('cfgComandasField');
-  if(comandaToggleField) comandaToggleField.style.display = cocina ? '' : 'none';
+  if(comandaToggleField) comandaToggleField.style.display = ocultarCocinaUI ? 'none' : '';
 }
 
 // ── Cargar desde Supabase al iniciar ─────────────────────
