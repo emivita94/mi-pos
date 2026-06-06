@@ -395,7 +395,9 @@ function renderPT(p){
     ?p.map(function(x){
       return '<tr style="cursor:pointer" onclick="_clickProd('+x.id+')">'
         +'<td><div style="display:flex;align-items:center;gap:8px">'
-          +'<div style="width:24px;height:24px;border-radius:5px;background:'+(x.color||'#546e7a')+';flex-shrink:0"></div>'
+          +(x.foto_url
+            ?'<img src="'+_esc(x.foto_url)+'" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0" loading="lazy" alt="">'
+            :'<div style="width:36px;height:36px;border-radius:6px;background:'+(x.color||'#546e7a')+';flex-shrink:0"></div>')
           +'<span style="font-weight:600">'+_esc(x.nombre)+'</span>'
         +'</div></td>'
         +'<td>'+_esc(x.categoria||'—')+'</td>'
@@ -415,6 +417,7 @@ function _clickProd(id){
 // ── PANEL CREAR / EDITAR PRODUCTO ─────────────────────────────────────────
 
 var _prodPanel={prod:null};
+var _ppFoto={blob:null,url:null,stream:null,facingMode:'environment'};
 
 function abrirProdPanel(prod){
   _prodPanel.prod=prod||null;
@@ -434,6 +437,8 @@ function abrirProdPanel(prod){
   var com  = prod ? !!prod.comanda                : false;
   var col  = prod ? (prod.color||'#546e7a')       : '#546e7a';
   var cod  = prod ? _esc(prod.codigo||'')         : '';
+  var fotoUrl = prod ? (prod.foto_url||'') : '';
+  _ppFoto = { blob:null, url:fotoUrl||null, stream:null, facingMode:'environment' };
 
   var INP='width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:Barlow,sans-serif;font-size:14px;padding:10px 12px;outline:none;box-sizing:border-box';
   var LBL='font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px';
@@ -457,6 +462,22 @@ function abrirProdPanel(prod){
       +'</div>'
       // Formulario
       +'<div style="padding:20px;flex:1;display:flex;flex-direction:column;gap:16px">'
+        // Foto
+        +'<div style="display:flex;flex-direction:column;align-items:center;gap:10px">'
+          +'<div id="ppFotoWrap" onclick="_abrirCamaraModal()" style="width:104px;height:104px;border-radius:12px;border:2px dashed var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--card2)" title="Tocar para sacar foto">'
+            +'<img id="ppFotoImg" src="'+(fotoUrl||'')+'" style="display:'+(fotoUrl?'block':'none')+';width:100%;height:100%;object-fit:cover" alt="">'
+            +'<div id="ppFotoPlaceholder" style="display:'+(fotoUrl?'none':'flex')+';flex-direction:column;align-items:center;gap:5px;pointer-events:none;color:var(--muted)">'
+              +'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+              +'<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Sin foto</span>'
+            +'</div>'
+          +'</div>'
+          +'<div style="display:flex;gap:6px">'
+            +'<button type="button" onclick="_abrirCamaraModal()" style="background:var(--b2);border:1px solid var(--blue);border-radius:6px;color:var(--blue);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:6px 11px;cursor:pointer;display:flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Cámara</button>'
+            +'<button type="button" onclick="document.getElementById(\'ppFotoFile\').click()" style="background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:6px 11px;cursor:pointer;display:flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Archivo</button>'
+            +'<button type="button" id="ppFotoDel" onclick="_eliminarFoto()" style="display:'+(fotoUrl?'flex':'none')+';background:var(--r2);border:1px solid var(--red);border-radius:6px;color:var(--red);font-family:Barlow,sans-serif;font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Quitar</button>'
+            +'<input type="file" id="ppFotoFile" accept="image/*" style="display:none" onchange="_onFotoFile(this)">'
+          +'</div>'
+        +'</div>'
         // Nombre
         +'<div><label style="'+LBL+'">Nombre *</label>'
           +'<input id="ppNom" type="text" value="'+nom+'" oninput="this.value=this.value.toUpperCase()" placeholder="NOMBRE DEL PRODUCTO" style="'+INP+';font-weight:600" onfocus="this.style.borderColor=\'var(--green)\'" onblur="this.style.borderColor=\'var(--border)\'"></div>'
@@ -540,6 +561,14 @@ async function _guardarProd(){
   };
 
   try{
+    if(_ppFoto.blob){
+      if(btn) btn.textContent='Subiendo foto...';
+      payload.foto_url = await _uploadFotoProducto(_ppFoto.blob);
+    } else if(_ppFoto.url && _ppFoto.url.startsWith('https://')){
+      payload.foto_url = _ppFoto.url;
+    } else {
+      payload.foto_url = null;
+    }
     if(_prodPanel.prod){
       await supaPatch('pos_productos','id=eq.'+_prodPanel.prod.id+'&licencia_email=ilike.'+encodeURIComponent(SE),payload);
       toast('Producto actualizado');
@@ -858,3 +887,147 @@ async function exportarInsumos(){
 }
 
 function filtrP(q){if(!allPrds.length) return;var f=q.toLowerCase();renderPT(!q?allPrds:allPrds.filter(function(p){return (p.nombre||'').toLowerCase().includes(f)||(p.categoria||'').toLowerCase().includes(f);}));}
+
+// ── FOTO DE PRODUCTO ─────────────────────────────────────
+
+async function _getSupabaseSDK() {
+  if (window._sbClient) return window._sbClient;
+  await new Promise(function(res, rej) {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  window._sbClient = window.supabase.createClient(SUPA_URL, SUPA_ANON);
+  return window._sbClient;
+}
+
+async function _uploadFotoProducto(blob) {
+  var client = await _getSupabaseSDK();
+  var fname = encodeURIComponent(SE) + '/' + Date.now() + '.jpg';
+  var result = await client.storage.from('productos').upload(fname, blob, {
+    contentType: 'image/jpeg', upsert: true
+  });
+  if (result.error) throw new Error('Storage: ' + result.error.message);
+  return SUPA_URL + '/storage/v1/object/public/productos/' + fname;
+}
+
+async function _comprimirImagen(src) {
+  var bmp = await createImageBitmap(src);
+  var MAX = 480, w = bmp.width, h = bmp.height;
+  if (w > MAX || h > MAX) { var ratio = Math.min(MAX/w, MAX/h); w = Math.round(w*ratio); h = Math.round(h*ratio); }
+  var cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
+  return new Promise(function(res){ cv.toBlob(res, 'image/jpeg', 0.82); });
+}
+
+function _setFotoPreview(url) {
+  var img = document.getElementById('ppFotoImg');
+  var ph  = document.getElementById('ppFotoPlaceholder');
+  var del = document.getElementById('ppFotoDel');
+  if (!img) return;
+  if (url) {
+    img.src = url; img.style.display = 'block';
+    if (ph)  ph.style.display = 'none';
+    if (del) del.style.display = 'flex';
+  } else {
+    img.style.display = 'none';
+    if (ph)  ph.style.display = 'flex';
+    if (del) del.style.display = 'none';
+  }
+}
+
+function _eliminarFoto() {
+  _ppFoto.blob = null; _ppFoto.url = null;
+  _setFotoPreview(null);
+}
+
+async function _onFotoFile(input) {
+  var file = input.files[0]; input.value = '';
+  if (!file) return;
+  try {
+    var blob = await _comprimirImagen(file);
+    _ppFoto.blob = blob; _ppFoto.url = URL.createObjectURL(blob);
+    _setFotoPreview(_ppFoto.url);
+  } catch(e) { toast('Error al leer imagen'); }
+}
+
+function _abrirCamaraModal() {
+  var m = document.createElement('div');
+  m.id = 'camaraModal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+  m.addEventListener('click', function(e){ if (e.target === m) _cerrarCamaraModal(); });
+  m.innerHTML =
+    '<div style="background:var(--card);border-radius:14px;overflow:hidden;width:min(88vw,400px);display:flex;flex-direction:column">'
+    +'<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'
+      +'<span style="font-size:15px;font-weight:800">Sacar foto</span>'
+      +'<button type="button" onclick="_cerrarCamaraModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;display:flex"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+    +'</div>'
+    +'<div style="background:#111;position:relative;aspect-ratio:4/3;max-height:300px;overflow:hidden;display:flex;align-items:center;justify-content:center">'
+      +'<video id="camaraVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video>'
+      +'<div id="camaraErr" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#ccc;padding:20px;text-align:center">'
+        +'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+        +'<span id="camaraErrMsg" style="font-size:13px">Sin acceso a la cámara</span>'
+        +'<button type="button" onclick="document.getElementById(\'ppFotoFile\').click();_cerrarCamaraModal()" style="background:var(--b2);border:1px solid var(--blue);border-radius:7px;color:var(--blue);font-family:Barlow,sans-serif;font-size:13px;font-weight:700;padding:8px 16px;cursor:pointer">Seleccionar archivo</button>'
+      +'</div>'
+    +'</div>'
+    +'<div style="padding:14px 16px;display:flex;gap:8px;justify-content:center;align-items:center">'
+      +'<button type="button" onclick="_togCamara()" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:Barlow,sans-serif;font-size:12px;font-weight:700;padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Girar</button>'
+      +'<button type="button" onclick="_capturarFoto()" style="background:var(--green);border:none;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:10px 28px;cursor:pointer;display:flex;align-items:center;gap:7px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Capturar</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(m);
+  _iniciarCamara();
+}
+
+async function _iniciarCamara() {
+  var video = document.getElementById('camaraVideo');
+  var errDiv = document.getElementById('camaraErr');
+  if (!video) return;
+  try {
+    if (_ppFoto.stream) { _ppFoto.stream.getTracks().forEach(function(t){ t.stop(); }); }
+    var stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: _ppFoto.facingMode, width: { ideal: 1280 }, height: { ideal: 960 } },
+      audio: false
+    });
+    _ppFoto.stream = stream;
+    video.srcObject = stream;
+    if (errDiv) errDiv.style.display = 'none';
+    video.style.display = 'block';
+  } catch(e) {
+    if (errDiv) {
+      errDiv.style.display = 'flex';
+      var msg = document.getElementById('camaraErrMsg');
+      if (msg) msg.textContent = (e.name === 'NotAllowedError'
+        ? 'Permiso denegado — revisá la configuración del navegador'
+        : 'Cámara no disponible en este dispositivo');
+    }
+    if (video) video.style.display = 'none';
+  }
+}
+
+async function _togCamara() {
+  _ppFoto.facingMode = (_ppFoto.facingMode === 'environment' ? 'user' : 'environment');
+  await _iniciarCamara();
+}
+
+async function _capturarFoto() {
+  var video = document.getElementById('camaraVideo');
+  if (!video || !video.srcObject) return;
+  try {
+    var blob = await _comprimirImagen(video);
+    _ppFoto.blob = blob; _ppFoto.url = URL.createObjectURL(blob);
+    _cerrarCamaraModal();
+    _setFotoPreview(_ppFoto.url);
+  } catch(e) { toast('Error al capturar: ' + e.message); }
+}
+
+function _cerrarCamaraModal() {
+  if (_ppFoto.stream) {
+    _ppFoto.stream.getTracks().forEach(function(t){ t.stop(); });
+    _ppFoto.stream = null;
+  }
+  var m = document.getElementById('camaraModal');
+  if (m) m.remove();
+}
