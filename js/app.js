@@ -850,6 +850,79 @@ function toggleSearch(){
 }
 
 
+// -- Retail: captura de scanner a nivel documento --
+// Los lectores de código de barras funcionan como teclados HID: envían chars
+// muy rápido (~5-50ms entre chars) y terminan con Enter. Cuando ningún input
+// tiene el foco, los keystrokes se pierden. Este handler los intercepta,
+// acumula el código y en Enter lo procesa igual que sinputKeydown.
+// Solo actúa cuando el tipo de negocio es 'retail'.
+
+var _scanBuf = '', _scanTimer = null, _scannerInited = false;
+
+function _initRetailScanner(){
+  if(_scannerInited) return;
+  _scannerInited = true;
+  document.addEventListener('keydown', function(e){
+    if(typeof rubroGetTipo !== 'function' || rubroGetTipo() !== 'retail') return;
+    var active = document.activeElement;
+    var tag = active ? active.tagName : '';
+    if(active && active.id === 'sinput') return; // sinputKeydown lo maneja
+    if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if(e.ctrlKey || e.altKey || e.metaKey) return;
+
+    if(e.key === 'Enter'){
+      if(_scanBuf.trim()){
+        var code = _scanBuf.trim();
+        _scanBuf = '';
+        clearTimeout(_scanTimer);
+        _procesarCodigoScanner(code);
+      }
+      e.preventDefault();
+      return;
+    }
+    if(e.key.length === 1){
+      _scanBuf += e.key;
+      clearTimeout(_scanTimer);
+      // >300ms sin nuevo char = tipeo humano (no scanner) → descartar
+      _scanTimer = setTimeout(function(){ _scanBuf = ''; }, 300);
+      e.preventDefault();
+    }
+  });
+}
+
+function _procesarCodigoScanner(raw){
+  var q = raw.toLowerCase();
+  var candidatos = (typeof PRODS !== 'undefined' ? PRODS : []).filter(function(p){
+    return !p.itemLibre && !p.esInsumo && p.activo !== false && p.activo !== 0;
+  });
+  // 1. Match exacto por código
+  var exacto = candidatos.find(function(p){
+    return p.codigo && p.codigo.toLowerCase() === q;
+  });
+  if(exacto){ addCart(exacto.id); return; }
+  // 2. Único match por nombre o código parcial
+  var filtrados = candidatos.filter(function(p){
+    return p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q));
+  });
+  if(filtrados.length === 1){ addCart(filtrados[0].id); return; }
+  // 3. Sin coincidencia o ambiguo: abrir barra de búsqueda con el código
+  var sbar = document.getElementById('sbar');
+  var sinput = document.getElementById('sinput');
+  if(sbar && sinput){
+    sbar.classList.add('open');
+    sinput.value = raw;
+    sinput.focus();
+    if(typeof filterP === 'function') filterP();
+  }
+  if(filtrados.length === 0 && typeof toast === 'function') toast('Sin producto: "' + raw + '"');
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', _initRetailScanner);
+} else {
+  _initRetailScanner();
+}
+
 // -- Scan-to-cart: Enter en #sinput --
 function sinputKeydown(e){
   if(e.key !== 'Enter') return;
