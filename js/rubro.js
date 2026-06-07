@@ -154,58 +154,75 @@ function rubroAplicarUI(){
 }
 
 // ── Mapear licencias.rubro → tipo interno ─────────────────
-// licencias.rubro es texto libre; lo normalizamos al conjunto conocido.
-// Devuelve 'gastronomia' | 'retail' | null (null = no reconocido, no aplicar).
+// licencias.rubro es texto libre; normalizamos diacríticos y mapeamos.
+// Devuelve 'gastronomia' | 'retail' | null (null = no reconocido).
+var _RUBRO_MAPA = {
+  // Gastronomia
+  gastronomia:'gastronomia', restaurante:'gastronomia', bar:'gastronomia',
+  cafeteria:'gastronomia',   parrilla:'gastronomia',    lomiteria:'gastronomia',
+  delivery:'gastronomia',    heladeria:'gastronomia',   pizzeria:'gastronomia',
+  rotiseria:'gastronomia',   cantina:'gastronomia',     buffet:'gastronomia',
+  sandwicheria:'gastronomia',hamburgueseria:'gastronomia',
+  // Retail
+  retail:'retail',       electronica:'retail',  ferreteria:'retail',
+  farmacia:'retail',     ropa:'retail',         indumentaria:'retail',
+  supermercado:'retail', minimercado:'retail',  minimarket:'retail',
+  libreria:'retail',     jugueteria:'retail',   bazar:'retail',
+  perfumeria:'retail',   kiosco:'retail',       calzado:'retail',
+  joyeria:'retail',      relojeria:'retail',    optica:'retail',
+};
 function _rubroLicenciaToTipo(rubro) {
   if(!rubro) return null;
-  var r = (rubro + '').toLowerCase().trim();
+  // Normalizar: minúsculas + quitar diacríticos (gastronomía → gastronomia)
+  var r = (rubro + '').toLowerCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
   if(!r) return null;
-  var gastros = ['gastronomia','gastronomía','restaurante','bar','cafeteria','cafetería','parrilla','lomiteria','lomitería','delivery'];
-  if(gastros.indexOf(r) >= 0) return 'gastronomia';
-  var retails = ['retail','electronica','electrónica','ferreteria','ferretería','farmacia','ropa','indumentaria','supermercado','minimercado','libreria','librería','jugueteria','juguetería','bazar','perfumeria','perfumería'];
-  if(retails.indexOf(r) >= 0) return 'retail';
-  _log('[Rubro] Rubro de licencia no reconocido, se usa default:', rubro);
+  var tipo = _RUBRO_MAPA[r];
+  if(tipo) return tipo;
+  _log('[Rubro] Rubro de licencia no reconocido:', rubro);
   return null;
 }
 
 // ── Cargar desde Supabase al iniciar ─────────────────────
-// Cadena de prioridad:
-//   1. localStorage (override manual del usuario)
-//   2. pos_config.rubro_config (config guardada por la app)
-//   3. licencias.rubro (fuente de verdad de la licencia)
-//   4. 'gastronomia' (default en rubroGetTipo)
+// Cadena de prioridad (el servidor siempre gana sobre localStorage):
+//   1. pos_config.rubro_config → tipo + flags guardados por la app
+//   2. licencias.rubro         → derivación automática si no hay pos_config
+//   3. 'gastronomia'           → default en rubroGetTipo()
+//
+// NOTA: tipo_negocio SIEMPRE se sobreescribe desde el servidor para evitar
+// datos stale en localStorage cuando cambia la configuración del negocio.
+// Los flags son preferencias de usuario y solo se leen del servidor si no hay override local.
 async function rubroCargarDesdeSupabase(){
   var email = localStorage.getItem('lic_email');
   if(!email || (typeof USAR_DEMO !== 'undefined' && USAR_DEMO)) return;
   try {
-    // 1+2. Leer config explícita guardada por la app
+    // 1. pos_config — fuente de verdad principal
     var rows = await supaGet('pos_config',
       'licencia_email=eq.' + encodeURIComponent(email) +
       '&clave=eq.rubro_config&select=valor&limit=1');
     if(rows && rows[0]){
       var cfg = JSON.parse(rows[0].valor || '{}');
-      if(cfg.tipo_negocio && !localStorage.getItem('pos_tipo_negocio')){
-        localStorage.setItem('pos_tipo_negocio', cfg.tipo_negocio);
-      }
+      // tipo_negocio: servidor siempre gana (limpia stale de localStorage)
+      if(cfg.tipo_negocio) localStorage.setItem('pos_tipo_negocio', cfg.tipo_negocio);
+      // flags: solo si el usuario no tiene override local explícito
       ['mesas','cocina','delivery','mitades'].forEach(function(f){
         if(cfg['flag_' + f] !== undefined && localStorage.getItem('pos_flag_' + f) === null){
           localStorage.setItem('pos_flag_' + f, cfg['flag_' + f] ? '1' : '0');
         }
       });
       _log('[Rubro] Config cargada desde pos_config:', cfg.tipo_negocio);
+      return; // pos_config encontrada, no necesitamos consultar licencias
     }
 
-    // 3. Si aún no hay tipo definido, leer licencias.rubro como fallback
-    if(!localStorage.getItem('pos_tipo_negocio')){
-      var licRows = await supaGet('licencias',
-        'email_cliente=ilike.' + encodeURIComponent(email) +
-        '&activa=eq.true&select=rubro&limit=1');
-      var rubroLic = licRows && licRows[0] ? licRows[0].rubro : null;
-      var tipoDesdeRubro = _rubroLicenciaToTipo(rubroLic);
-      if(tipoDesdeRubro){
-        localStorage.setItem('pos_tipo_negocio', tipoDesdeRubro);
-        _log('[Rubro] Tipo derivado de licencias.rubro:', rubroLic, '→', tipoDesdeRubro);
-      }
+    // 2. Sin pos_config → derivar tipo desde licencias.rubro
+    var licRows = await supaGet('licencias',
+      'email_cliente=eq.' + encodeURIComponent(email) +
+      '&activa=eq.true&select=rubro&limit=1');
+    var rubroLic = licRows && licRows[0] ? licRows[0].rubro : null;
+    var tipoDesdeRubro = _rubroLicenciaToTipo(rubroLic);
+    if(tipoDesdeRubro){
+      localStorage.setItem('pos_tipo_negocio', tipoDesdeRubro);
+      _log('[Rubro] Tipo derivado de licencias.rubro:', rubroLic, '→', tipoDesdeRubro);
     }
   } catch(e){
     console.warn('[Rubro] Error cargando config:', e.message);
