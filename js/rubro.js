@@ -148,29 +148,64 @@ function rubroAplicarUI(){
   if(comandaPrinter) comandaPrinter.style.display = ocultarCocinaUI ? 'none' : '';
   var comandaToggleField = document.getElementById('cfgComandasField');
   if(comandaToggleField) comandaToggleField.style.display = ocultarCocinaUI ? 'none' : '';
+  // Ficha de producto: checkbox "Comanda (va a cocina)" — sin sentido en retail.
+  var artComandaRow = document.getElementById('artComandaRow');
+  if(artComandaRow) artComandaRow.style.display = ocultarCocinaUI ? 'none' : '';
+}
+
+// ── Mapear licencias.rubro → tipo interno ─────────────────
+// licencias.rubro es texto libre; lo normalizamos al conjunto conocido.
+// Devuelve 'gastronomia' | 'retail' | null (null = no reconocido, no aplicar).
+function _rubroLicenciaToTipo(rubro) {
+  if(!rubro) return null;
+  var r = (rubro + '').toLowerCase().trim();
+  if(!r) return null;
+  var gastros = ['gastronomia','gastronomía','restaurante','bar','cafeteria','cafetería','parrilla','lomiteria','lomitería','delivery'];
+  if(gastros.indexOf(r) >= 0) return 'gastronomia';
+  var retails = ['retail','electronica','electrónica','ferreteria','ferretería','farmacia','ropa','indumentaria','supermercado','minimercado','libreria','librería','jugueteria','juguetería','bazar','perfumeria','perfumería'];
+  if(retails.indexOf(r) >= 0) return 'retail';
+  _log('[Rubro] Rubro de licencia no reconocido, se usa default:', rubro);
+  return null;
 }
 
 // ── Cargar desde Supabase al iniciar ─────────────────────
+// Cadena de prioridad:
+//   1. localStorage (override manual del usuario)
+//   2. pos_config.rubro_config (config guardada por la app)
+//   3. licencias.rubro (fuente de verdad de la licencia)
+//   4. 'gastronomia' (default en rubroGetTipo)
 async function rubroCargarDesdeSupabase(){
   var email = localStorage.getItem('lic_email');
   if(!email || (typeof USAR_DEMO !== 'undefined' && USAR_DEMO)) return;
   try {
+    // 1+2. Leer config explícita guardada por la app
     var rows = await supaGet('pos_config',
       'licencia_email=eq.' + encodeURIComponent(email) +
       '&clave=eq.rubro_config&select=valor&limit=1');
     if(rows && rows[0]){
       var cfg = JSON.parse(rows[0].valor || '{}');
-      // Solo aplicar si no hay override local más reciente
       if(cfg.tipo_negocio && !localStorage.getItem('pos_tipo_negocio')){
         localStorage.setItem('pos_tipo_negocio', cfg.tipo_negocio);
       }
-      // Aplicar flags solo si no están ya seteados localmente
       ['mesas','cocina','delivery','mitades'].forEach(function(f){
         if(cfg['flag_' + f] !== undefined && localStorage.getItem('pos_flag_' + f) === null){
           localStorage.setItem('pos_flag_' + f, cfg['flag_' + f] ? '1' : '0');
         }
       });
-      _log('[Rubro] Config cargada desde Supabase:', cfg.tipo_negocio);
+      _log('[Rubro] Config cargada desde pos_config:', cfg.tipo_negocio);
+    }
+
+    // 3. Si aún no hay tipo definido, leer licencias.rubro como fallback
+    if(!localStorage.getItem('pos_tipo_negocio')){
+      var licRows = await supaGet('licencias',
+        'email_cliente=ilike.' + encodeURIComponent(email) +
+        '&activa=eq.true&select=rubro&limit=1');
+      var rubroLic = licRows && licRows[0] ? licRows[0].rubro : null;
+      var tipoDesdeRubro = _rubroLicenciaToTipo(rubroLic);
+      if(tipoDesdeRubro){
+        localStorage.setItem('pos_tipo_negocio', tipoDesdeRubro);
+        _log('[Rubro] Tipo derivado de licencias.rubro:', rubroLic, '→', tipoDesdeRubro);
+      }
     }
   } catch(e){
     console.warn('[Rubro] Error cargando config:', e.message);
