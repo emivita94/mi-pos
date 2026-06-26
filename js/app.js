@@ -906,12 +906,12 @@ function _procesarCodigoScanner(raw){
   var exacto = candidatos.find(function(p){
     return p.codigo && p.codigo.toLowerCase() === q;
   });
-  if(exacto){ addCart(exacto.id); return; }
+  if(exacto){ addCart(exacto.id); _mostrarTicketMobile(); return; }
   // 2. Único match por nombre o código parcial
   var filtrados = candidatos.filter(function(p){
     return p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q));
   });
-  if(filtrados.length === 1){ addCart(filtrados[0].id); return; }
+  if(filtrados.length === 1){ addCart(filtrados[0].id); _mostrarTicketMobile(); return; }
   // 3. Sin coincidencia o ambiguo: abrir barra de búsqueda con el código
   var sbar = document.getElementById('sbar');
   var sinput = document.getElementById('sinput');
@@ -951,7 +951,8 @@ function sinputKeydown(e){
     addCart(exacto.id);
     document.getElementById('sinput').value = '';
     filterP();
-    document.getElementById('sinput').focus();
+    _mostrarTicketMobile();
+    if(!showTkt) document.getElementById('sinput').focus();
     return;
   }
 
@@ -963,7 +964,8 @@ function sinputKeydown(e){
     addCart(filtrados[0].id);
     document.getElementById('sinput').value = '';
     filterP();
-    document.getElementById('sinput').focus();
+    _mostrarTicketMobile();
+    if(!showTkt) document.getElementById('sinput').focus();
     return;
   }
 
@@ -973,6 +975,19 @@ function sinputKeydown(e){
     filterP();
     _buscarCodigoEnAPI(raw);
   }
+}
+
+// En retail mobile: después de escanear, mostrar ticket directo en lugar de la grilla
+function _mostrarTicketMobile(){
+  if(window.innerWidth >= 768) return;
+  if(typeof rubroGetTipo === 'function' && rubroGetTipo() !== 'retail') return;
+  if(typeof showTkt !== 'undefined' && showTkt) return;
+  if(typeof setShowTkt === 'function') setShowTkt(true);
+  var tp = document.getElementById('tpanel');
+  var pv = document.getElementById('prodView');
+  if(tp) tp.classList.add('open');
+  if(pv) pv.style.display = 'none';
+  if(typeof renderTkt === 'function') renderTkt();
 }
 
 // -- Pedidos: ver js/pedidos.js --
@@ -2210,6 +2225,7 @@ function _guardarYVenderExterno(codigo){
   if(typeof supaUpsertProducto === 'function') supaUpsertProducto(newProd);
   if(typeof filterP === 'function') filterP();
   addCart(newProd.id);
+  _mostrarTicketMobile();
   toast(nombre + ' agregado al catálogo');
 }
 
@@ -2229,5 +2245,6 @@ function _soloVenderExterno(){
     item.price = precio;
     if(typeof renderCart === 'function') renderCart();
   }
+  _mostrarTicketMobile();
 }
 
