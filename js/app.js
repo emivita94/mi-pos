@@ -904,19 +904,27 @@ function _initRetailScanner(){
   });
 }
 
+// Busca un producto por código exacto en codigo O en el array codigos[]
+function _findProdByCodigo(q, candidatos){
+  return candidatos.find(function(p){
+    if(p.codigo && p.codigo.toLowerCase() === q) return true;
+    if(p.codigos && p.codigos.some(function(c){ return c.toLowerCase() === q; })) return true;
+    return false;
+  });
+}
+
 function _procesarCodigoScanner(raw){
   var q = raw.toLowerCase();
   var candidatos = (typeof PRODS !== 'undefined' ? PRODS : []).filter(function(p){
     return !p.itemLibre && !p.esInsumo && p.activo !== false && p.activo !== 0;
   });
-  // 1. Match exacto por código
-  var exacto = candidatos.find(function(p){
-    return p.codigo && p.codigo.toLowerCase() === q;
-  });
+  // 1. Match exacto por código (incluye codigos[])
+  var exacto = _findProdByCodigo(q, candidatos);
   if(exacto){ addCart(exacto.id); _mostrarTicketMobile(); return; }
   // 2. Único match por nombre o código parcial
   var filtrados = candidatos.filter(function(p){
-    return p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q));
+    var enCodigos = p.codigos && p.codigos.some(function(c){ return c.toLowerCase().includes(q); });
+    return p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q)) || enCodigos;
   });
   if(filtrados.length === 1){ addCart(filtrados[0].id); _mostrarTicketMobile(); return; }
   // 3. Sin coincidencia o ambiguo: abrir barra de búsqueda con el código
@@ -950,10 +958,8 @@ function sinputKeydown(e){
     return !p.itemLibre && !p.esInsumo && p.activo !== false && p.activo !== 0;
   });
 
-  // 1. Buscar match exacto por código
-  var exacto = candidatos.find(function(p){
-    return p.codigo && p.codigo.toLowerCase() === q;
-  });
+  // 1. Buscar match exacto por código (incluye codigos[])
+  var exacto = _findProdByCodigo(q, candidatos);
   if(exacto){
     addCart(exacto.id);
     document.getElementById('sinput').value = '';
@@ -965,7 +971,8 @@ function sinputKeydown(e){
 
   // 2. Si la lista filtrada por nombre/código tiene exactamente 1 resultado, agregar ese
   var filtrados = candidatos.filter(function(p){
-    return p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q));
+    var enCodigos = p.codigos && p.codigos.some(function(c){ return c.toLowerCase().includes(q); });
+    return p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q)) || enCodigos;
   });
   if(filtrados.length === 1){
     addCart(filtrados[0].id);
@@ -2216,7 +2223,7 @@ function _confirmarNuevoProducto(codigo){
     id: nextProdId, prodId: nextProdId,
     name: nombre, price: precio,
     precioVariable: false, costo: 0,
-    codigo: codigo, color: '#455a64',
+    codigo: codigo, codigos: [codigo], color: '#455a64',
     colorPropio: false, cat: 'General',
     iva: '10', mitad: false, inventario: false, comanda: false,
     activo: true,
@@ -2240,10 +2247,9 @@ function _extraerCampo(fila, candidatos){
 }
 
 function _crearYVenderExterno(fila, codigo){
-  // Si ya existe en catálogo por código, sumar al carrito directo sin preguntar
-  var existente = (typeof PRODS !== 'undefined' ? PRODS : []).find(function(p){
-    return p.codigo && p.codigo.toLowerCase() === codigo.toLowerCase();
-  });
+  // Si ya existe en catálogo por código (en cualquiera de sus códigos), sumar al carrito directo
+  var _allProds = (typeof PRODS !== 'undefined' ? PRODS : []).filter(function(p){ return !p.itemLibre; });
+  var existente = _findProdByCodigo(codigo.toLowerCase(), _allProds);
   if(existente){ addCart(existente.id); _mostrarTicketMobile(); toast('+' + existente.name); return; }
 
   var nombre = (_extraerCampo(fila, ['Descripcion','descripcion','DESCRIPCION','Nombre','nombre','NOMBRE','Producto','producto','PRODUCTO','Description','name']) || '').trim().toUpperCase();

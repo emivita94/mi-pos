@@ -702,6 +702,7 @@ function nuevoArticulo(){
   document.getElementById('artIdDisplay').textContent = 'ID: (se asigna al guardar)';
   document.getElementById('artNombre').value = '';
   document.getElementById('artCodigo').value = '';
+  // codigos es ahora textarea — limpiar
   document.getElementById('artPrecio').value = '';
   document.getElementById('artCosto').value = '';
   document.getElementById('artMitad').checked = false;
@@ -728,7 +729,9 @@ function editarArticulo(idx){
   document.getElementById('artFormTitle').textContent = 'Editar artículo';
   document.getElementById('artIdDisplay').textContent = 'ID interno: ' + p.prodId;
   document.getElementById('artNombre').value = p.name;
-  document.getElementById('artCodigo').value = p.codigo || '';
+  // Mostrar todos los códigos, uno por línea
+  var _allCodigos = (p.codigos && p.codigos.length ? p.codigos : (p.codigo ? [p.codigo] : []));
+  document.getElementById('artCodigo').value = _allCodigos.join('\n');
   document.getElementById('artPrecio').value = p.precioVariable ? '' : p.price;
   document.getElementById('artCosto').value = p.costo || '';
   document.getElementById('artMitad').checked = !!p.mitad;
@@ -806,39 +809,38 @@ function guardarArticulo(){
   const precio = parseInt(precioStr) || 0;
   const precioVariable = precioStr === '';
   const costo = parseInt(document.getElementById('artCosto').value) || 0;
-  const codigo = document.getElementById('artCodigo').value.trim();
+  // Leer códigos del textarea: uno por línea, limpiar vacíos y duplicados
+  const codigos = document.getElementById('artCodigo').value
+    .split('\n').map(function(c){ return c.trim(); }).filter(Boolean)
+    .filter(function(c, i, arr){ return arr.indexOf(c) === i; });
+  const codigo = codigos[0] || ''; // primer código = primario (compatibilidad)
   const mitad = document.getElementById('artMitad').checked;
   const inventario = document.getElementById('artInventario').checked;
   const comanda = document.getElementById('artComanda').checked;
   if(!nombre){ toast('Ingresá el nombre del artículo'); return; }
 
-  // Validar unicidad de código (código vacío es permitido)
-  if(codigo){
-    const codigoNorm = codigo.toLowerCase();
-    // El producto que se está editando se excluye de la búsqueda (por su índice)
-    const duplicado = PRODS.find(function(p, idx){
-      return idx !== artEditIdx &&
-             p.codigo && p.codigo.toLowerCase() === codigoNorm &&
-             !p.itemLibre;
+  // Validar que ningún código ya esté en otro producto
+  for(var _ci = 0; _ci < codigos.length; _ci++){
+    var _cn = codigos[_ci].toLowerCase();
+    var _dup = PRODS.find(function(p, idx){
+      if(idx === artEditIdx || p.itemLibre) return false;
+      if(p.codigo && p.codigo.toLowerCase() === _cn) return true;
+      if(p.codigos && p.codigos.some(function(c){ return c.toLowerCase() === _cn; })) return true;
+      return false;
     });
-    if(duplicado){
-      toast('El código "' + codigo + '" ya existe en "' + duplicado.name + '"');
-      return;
-    }
+    if(_dup){ toast('El código "' + codigos[_ci] + '" ya existe en "' + _dup.name + '"'); return; }
   }
 
   if(artEditIdx >= 0){
-    // null = no cambiar, '' = borrar imagen, string = nueva imagen
     const imgUpdate = artImagenBase64 !== null ? {imagen: artImagenBase64 || null} : {};
     Object.assign(PRODS[artEditIdx], {
       name: nombre.toUpperCase(), price: precioVariable?0:precio,
-      precioVariable, costo, codigo, color: artColorSel,
+      precioVariable, costo, codigo, codigos, color: artColorSel,
       colorPropio: artColorManual,
       cat: artCatSel, iva: artIvaSel, mitad, inventario, comanda,
       ...imgUpdate
     });
     const prod = PRODS[artEditIdx];
-    // Guardar en Dexie y Supabase
     dbSaveProducto(prod);
     supaUpsertProducto(prod);
     toast('Artículo actualizado');
@@ -846,13 +848,12 @@ function guardarArticulo(){
     const newProd = {
       id: nextProdId, prodId: nextProdId,
       name: nombre.toUpperCase(), price: precioVariable?0:precio,
-      precioVariable, costo, codigo, color: artColorSel,
+      precioVariable, costo, codigo, codigos, color: artColorSel,
       colorPropio: artColorManual,
       cat: artCatSel, iva: artIvaSel, mitad, inventario, comanda
     };
     PRODS.push(newProd);
     nextProdId++;
-    // Guardar en Dexie y Supabase
     dbSaveProducto(newProd);
     supaUpsertProducto(newProd);
     toast('Artículo agregado');
