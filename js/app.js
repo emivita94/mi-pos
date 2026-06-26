@@ -2149,11 +2149,42 @@ async function _buscarCodigoEnAPI(codigo){
     if(!r.ok) throw new Error('HTTP ' + r.status);
     var datos = await r.json();
     var fila = Array.isArray(datos) && datos.length > 0 ? datos[0] : null;
-    if(!fila){ toast('Código no registrado: ' + codigo); return; }
+    if(!fila){
+      _crearProductoNuevo(codigo);
+      return;
+    }
     _crearYVenderExterno(fila, codigo);
   } catch(e){
     toast('Error al buscar: ' + e.message);
   }
+}
+
+function _crearProductoNuevo(codigo){
+  var nombre = prompt('Código ' + codigo + ' no encontrado.\nNombre del producto:');
+  if(nombre === null) return;
+  nombre = nombre.trim().toUpperCase();
+  if(!nombre){ toast('Sin nombre'); return; }
+  var inputPrecio = prompt(nombre + '\nPrecio (Gs):');
+  if(inputPrecio === null) return;
+  var precio = parseFloat(inputPrecio) || 0;
+  if(!precio){ toast('Precio inválido'); return; }
+  var newProd = {
+    id: nextProdId, prodId: nextProdId,
+    name: nombre, price: precio,
+    precioVariable: false, costo: 0,
+    codigo: codigo, color: '#455a64',
+    colorPropio: false, cat: 'General',
+    iva: '10', mitad: false, inventario: false, comanda: false,
+    activo: true,
+  };
+  PRODS.push(newProd);
+  nextProdId++;
+  if(typeof dbSaveProducto === 'function') dbSaveProducto(newProd);
+  if(typeof supaUpsertProducto === 'function') supaUpsertProducto(newProd);
+  if(typeof filterP === 'function') filterP();
+  addCart(newProd.id);
+  _mostrarTicketMobile();
+  toast(nombre + ' — creado y agregado');
 }
 
 function _extraerCampo(fila, candidatos){
