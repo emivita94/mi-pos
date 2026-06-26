@@ -1,7 +1,7 @@
 // ── Licencia, sesion, login, activacion ──
 
 // SUPA_URL y SUPA_ANON vienen de js/config.js
-var APP_VERSION = 'v1.14.33 (2026-06-26)';
+var APP_VERSION = 'v1.14.34 (2026-06-26)';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MODO TERMINAL — 'caja' (default) o 'satelite'
@@ -878,6 +878,16 @@ function doContactarSoporte(){
 function doDesactivar(){
   if(!confirm('Desactivar esta licencia en este dispositivo?')) return;
   Object.values(SK).forEach(k=>localStorage.removeItem(k));
+  // Limpiar IndexedDB para que no queden datos de la cuenta anterior
+  try {
+    if(typeof db !== 'undefined' && db){
+      Promise.all([
+        db.productos.clear(),
+        db.categorias.clear(),
+        db.config.clear(),
+      ]).catch(function(){});
+    }
+  } catch(e){}
   document.getElementById('scBloqueado').style.display='none';
   document.getElementById('scActivacion').style.display='flex';
 }
