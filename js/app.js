@@ -2169,6 +2169,12 @@ function _crearYVenderExterno(fila, codigo){
   var precio  = parseFloat(_extraerCampo(fila, ['Precio','precio','PRECIO','PrecioVenta','PrecioUnitario','PRECIO_VENTA','Price','price','Importe']) || 0) || 0;
   var iva     = String(_extraerCampo(fila, ['IVA','Iva','iva','TasaIVA','tasa_iva']) || '10');
   if(!nombre){ toast('El producto no tiene nombre en la base'); return; }
+  if(!precio){
+    var input = prompt(nombre + '\nIngresá el precio (Gs):');
+    if(input === null) return; // canceló
+    precio = parseFloat(input) || 0;
+    if(!precio){ toast('Precio inválido'); return; }
+  }
 
   // Si ya existe en catálogo por código, sumar al carrito sin duplicar
   var existente = (typeof PRODS !== 'undefined' ? PRODS : []).find(function(p){
