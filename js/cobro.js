@@ -833,7 +833,10 @@ async function confirmarPago() {
   const itemsVenta        = JSON.parse(JSON.stringify(cart));
   const comprobante       = document.getElementById('compDisplay')?.textContent || '';
   const efectivoEntregado = document.getElementById('efecVal')?.textContent || '';
-  const vuelto            = document.getElementById('vueltoAmt')?.textContent || '';
+  const _vueltoRow        = document.getElementById('vueltoRow');
+  const vuelto            = (_vueltoRow && _vueltoRow.classList.contains('show'))
+                              ? (document.getElementById('vueltoAmt')?.textContent || '')
+                              : '';
   // Capturar descuento ANTES de resetTicketDescuento() y clearCart()
   const descTicketCopy    = ticketDescuento;
   const descMontoCopy     = calcDescuentoMonto();
@@ -929,7 +932,7 @@ async function confirmarPago() {
     divPagos:       divPagosCopia,
     clienteNombre:  clienteNombreCopy,
     efectivo:       efectivoEntregado,
-    vuelto:         document.getElementById('vueltoRow').classList.contains('show') ? vuelto : '',
+    vuelto:         vuelto,
     _supabasePedidoId, // UUID del pedido satélite (null si fue venta directa)
   });
 
@@ -956,7 +959,7 @@ async function confirmarPago() {
     metodo:      metodoPago,
     comprobante: comprobante === '—' ? '' : comprobante,
     efectivo:    efectivoEntregado,
-    vuelto:      document.getElementById('vueltoRow').classList.contains('show') ? vuelto : '',
+    vuelto:      vuelto,
     nroTicket,
     nroOrden:    nroTicket,
     tipoPedido:  tipoPedido || 'llevar',
