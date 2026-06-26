@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-const CACHE = 'ampersand-pos-v1.14.35-20260626';
-=======
 const CACHE = 'ampersand-pos-v1.14.36-20260626';
->>>>>>> Stashed changes
 
 const ASSETS = [
   '/',
