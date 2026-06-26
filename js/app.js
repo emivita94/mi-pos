@@ -2159,15 +2159,51 @@ async function _buscarCodigoEnAPI(codigo){
   }
 }
 
-function _crearProductoNuevo(codigo){
-  var nombre = prompt('Código ' + codigo + ' no encontrado.\nNombre del producto:');
-  if(nombre === null) return;
-  nombre = nombre.trim().toUpperCase();
-  if(!nombre){ toast('Sin nombre'); return; }
-  var inputPrecio = prompt(nombre + '\nPrecio (Gs):');
-  if(inputPrecio === null) return;
-  var precio = parseFloat(inputPrecio) || 0;
-  if(!precio){ toast('Precio inválido'); return; }
+function _crearProductoNuevo(codigo, nombrePrefill){
+  var prev = document.getElementById('_modalNuevoProd');
+  if(prev) prev.remove();
+  var valNombre = nombrePrefill ? nombrePrefill.replace(/"/g,'&quot;') : '';
+  var focusId   = nombrePrefill ? '_mnpPrecio' : '_mnpNombre';
+  var m = document.createElement('div');
+  m.id = '_modalNuevoProd';
+  m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;';
+  m.innerHTML =
+    '<div style="background:#1a1a1a;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 20px 32px;font-family:Barlow,sans-serif;">' +
+      '<div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 20px;"></div>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">' +
+        '<div style="width:36px;height:36px;border-radius:10px;background:#ff9800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        '</div>' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:.3px;">Nuevo producto</div>' +
+          '<div style="font-size:11px;color:#666;margin-top:1px;">Código: ' + codigo + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;">Nombre</div>' +
+      '<input id="_mnpNombre" autocomplete="off" autocapitalize="characters" placeholder="Ej: COCA COLA 500ML" value="' + valNombre + '" ' +
+        'style="width:100%;box-sizing:border-box;background:#2a2a2a;border:1.5px solid #3a3a3a;border-radius:12px;' +
+        'color:#fff;font-family:Barlow,sans-serif;font-size:16px;font-weight:600;padding:14px 16px;margin-bottom:14px;outline:none;letter-spacing:.3px;">' +
+      '<div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;">Precio (Gs)</div>' +
+      '<input id="_mnpPrecio" type="number" inputmode="numeric" placeholder="0" ' +
+        'style="width:100%;box-sizing:border-box;background:#2a2a2a;border:1.5px solid #3a3a3a;border-radius:12px;' +
+        'color:#fff;font-family:Barlow,sans-serif;font-size:22px;font-weight:800;padding:14px 16px;margin-bottom:22px;outline:none;">' +
+      '<div style="display:flex;gap:10px;">' +
+        '<button onclick="document.getElementById(\'_modalNuevoProd\').remove()" ' +
+          'style="flex:1;background:#2a2a2a;border:1.5px solid #3a3a3a;border-radius:12px;color:#888;font-family:Barlow,sans-serif;font-size:14px;font-weight:700;padding:16px;cursor:pointer;">Cancelar</button>' +
+        '<button onclick="_confirmarNuevoProducto(\'' + codigo + '\')" ' +
+          'style="flex:2;background:#ff9800;border:none;border-radius:12px;color:#fff;font-family:Barlow,sans-serif;font-size:15px;font-weight:800;padding:16px;cursor:pointer;letter-spacing:.3px;">AGREGAR AL CARRITO</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(m);
+  setTimeout(function(){ var el = document.getElementById(focusId); if(el) el.focus(); }, 80);
+}
+
+function _confirmarNuevoProducto(codigo){
+  var nombre = (document.getElementById('_mnpNombre').value || '').trim().toUpperCase();
+  var precio  = parseFloat(document.getElementById('_mnpPrecio').value) || 0;
+  if(!nombre){ document.getElementById('_mnpNombre').style.border='1.5px solid #f44336'; return; }
+  if(!precio){ document.getElementById('_mnpPrecio').style.border='1.5px solid #f44336'; return; }
+  document.getElementById('_modalNuevoProd').remove();
   var newProd = {
     id: nextProdId, prodId: nextProdId,
     name: nombre, price: precio,
@@ -2201,10 +2237,8 @@ function _crearYVenderExterno(fila, codigo){
   var iva     = String(_extraerCampo(fila, ['IVA','Iva','iva','TasaIVA','tasa_iva']) || '10');
   if(!nombre){ toast('El producto no tiene nombre en la base'); return; }
   if(!precio){
-    var input = prompt(nombre + '\nIngresá el precio (Gs):');
-    if(input === null) return; // canceló
-    precio = parseFloat(input) || 0;
-    if(!precio){ toast('Precio inválido'); return; }
+    _crearProductoNuevo(codigo, nombre);
+    return;
   }
 
   // Si ya existe en catálogo por código, sumar al carrito sin duplicar
