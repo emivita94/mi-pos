@@ -844,7 +844,14 @@ function renderDescuentosTiles(){
   }).join('');
 }
 function toggleSearch(){
-  const sb=document.getElementById('sbar'); sb.classList.toggle('open');
+  const sb=document.getElementById('sbar');
+  // En retail el buscador siempre queda abierto
+  if(typeof rubroGetTipo === 'function' && rubroGetTipo() === 'retail'){
+    sb.classList.add('open');
+    document.getElementById('sinput').focus();
+    return;
+  }
+  sb.classList.toggle('open');
   if(sb.classList.contains('open'))document.getElementById('sinput').focus();
   else{document.getElementById('sinput').value='';filterP();}
 }

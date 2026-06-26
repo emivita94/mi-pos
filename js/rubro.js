@@ -151,6 +151,12 @@ function rubroAplicarUI(){
   // Ficha de producto: checkbox "Comanda (va a cocina)" — sin sentido en retail.
   var artComandaRow = document.getElementById('artComandaRow');
   if(artComandaRow) artComandaRow.style.display = ocultarCocinaUI ? 'none' : '';
+
+  // En retail: buscador siempre visible y con foco para escanear sin tocar pantalla
+  if(rubroGetTipo() === 'retail'){
+    var sbar = document.getElementById('sbar');
+    if(sbar) sbar.classList.add('open');
+  }
 }
 
 // ── Mapear licencias.rubro → tipo interno ─────────────────
