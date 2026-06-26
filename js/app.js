@@ -8,6 +8,12 @@
 async function sincronizarConfigNegocio(){
   const email = localStorage.getItem('lic_email');
   if(!email || USAR_DEMO) return;
+  // Cargar config de rubro en paralelo (no bloquea el resto de la sync)
+  if(typeof rubroCargarDesdeSupabase === 'function'){
+    rubroCargarDesdeSupabase().then(function(){
+      if(typeof rubroAplicarUI === 'function') rubroAplicarUI();
+    }).catch(function(e){ console.warn('[Rubro] Error en sync inicial:', e.message); });
+  }
   try {
     const rows = await supaGet('pos_config',
       'licencia_email=eq.'+encodeURIComponent(email)+
@@ -302,6 +308,8 @@ function presupuestosHabilitados(){
 }
 
 function comandasHabilitadas(){
+  // Si el sistema de rubro está cargado, delegamos en él (que ya sincroniza con pos_comandas)
+  if(typeof usaCocina === 'function') return usaCocina();
   return !!(configData.comandasHabilitadas || localStorage.getItem('pos_comandas') === '1');
 }
 
@@ -801,7 +809,7 @@ function _filterPInternal(){
   // NO filtrar por cat=Descuentos ya que eso rompe productos mal categorizados
   let l = (curCat==='Todos los artículos' ? PRODS : PRODS.filter(p=>p.cat===curCat))
            .filter(p=>!p.itemLibre && !p.esInsumo && p.activo!==false && p.activo!==0);
-  if(q) l = l.filter(p=>p.name.toLowerCase().includes(q));
+  if(q) l = l.filter(p=>p.name.toLowerCase().includes(q) || (p.codigo && p.codigo.toLowerCase().includes(q)));
 
   // Ítem libre siempre al final (en todas las vistas, sin búsqueda activa)
   if(!q){

@@ -194,6 +194,12 @@ async function iniciarApp(){
   restaurarConfigImpresoras();
   cargarTimbradoSesion();
 
+  // ── FASE 0: Aplicar configuración de rubro/tipo de negocio ──
+  // Debe correr DESPUÉS de cargarConfigLocal() para que comandasHabilitadas
+  // ya esté en configData, y ANTES de renderizar pantallas para que las
+  // visibilidades sean correctas desde el primer frame.
+  if(typeof rubroAplicarUI === 'function') rubroAplicarUI();
+
   // ── PASO 2: Restaurar pendientes ──────────────────────────
   try {
     const rp = localStorage.getItem('pos_pendientes');

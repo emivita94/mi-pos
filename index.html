@@ -286,9 +286,9 @@
       </div>
     </div>
 
+    <!-- Impresora de comandas (se oculta en modo retail vía rubroAplicarUI) -->
+    <div id="comandaPrinterSection">
     <div class="printer-sep"></div>
-
-    <!-- Impresora de comandas -->
     <div style="padding:4px 12px 0;font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-weight:700;">Impresora de Comandas (Cocina)</div>
     <div class="printer-card" id="comandaPrinterCard">
       <div class="printer-card-header">
@@ -323,6 +323,7 @@
         </div>
       </div>
     </div>
+    </div><!-- /comandaPrinterSection -->
 
     <!-- Info -->
     <div class="print-info-box">
@@ -432,7 +433,7 @@
           </label>
         </div>
       </div>
-      <div class="general-field">
+      <div class="general-field" id="cfgComandasField">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div>
             <div style="font-size:14px;font-weight:600;color:var(--text);">Comandas</div>
@@ -986,7 +987,7 @@
     <!-- CONFIGURACIONES -->
     <div class="art-form-section">
       <div class="art-form-section-title">Configuraciones</div>
-      <div class="art-check-row">
+      <div class="art-check-row" id="artCheckMitad">
         <div class="art-check-info">
           <div class="art-check-title">Se vende por mitad</div>
           <div class="art-check-sub">Permite vender 0.5 unidades</div>
@@ -1195,7 +1196,7 @@
       Configuración
     </div>
 
-    <div class="drawer-item" onclick="drawerGo('mesas')">
+    <div class="drawer-item" id="drawerItemMesas" onclick="drawerGo('mesas')">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
         <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
@@ -1555,7 +1556,7 @@
         <div class="fdrop" onclick="openCat()"><span id="catLbl">Todos los artículos</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
         <button class="fsearch" onclick="toggleSearch()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
       </div>
-      <div class="search-bar" id="sbar"><input class="sinput" id="sinput" placeholder="Buscar producto..." oninput="filterP()"></div>
+      <div class="search-bar" id="sbar"><input class="sinput" id="sinput" placeholder="Buscar producto..." oninput="filterP()" onkeydown="sinputKeydown(event)"></div>
 <div class="products-grid" id="pgrid"></div>
     </div>
 
@@ -1923,10 +1924,11 @@
 <script src="js/pedidos.js?v=20260413107"></script>
 <script src="js/impresion.js?v=20260412103"></script>
 <script src="js/turno.js?v=20260413106"></script>
-<script src="js/productos.js?v=20260412103"></script>
+<script src="js/productos.js?v=20260604001"></script>
 <script src="js/sync.js?v=20260412103"></script>
 <script src="js/licencia.js?v=20260412103"></script>
 <script src="js/mesas.js?v=20260412103"></script>
+<script src="js/rubro.js?v=20260604001"></script>
 
 <script src="js/app.js?v=20260413108"></script>
 <script src="js/init.js?v=20260413105"></script>

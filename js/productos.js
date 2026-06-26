@@ -277,7 +277,13 @@ function addDescuento(descId){
 let artEditIdx = -1;
 let artColorSel = COLORES_TILE[0];
 let artColorManual = false;
-let artCatSel = 'Comidas';
+// Categoría por defecto cuando todavía no hay categorías cargadas.
+// En retail evitamos el sesgo gastronómico ('Comidas') → 'General'.
+function _catDefault(){
+  try { if(typeof rubroGetTipo === 'function' && rubroGetTipo() === 'retail') return 'General'; } catch(e){}
+  return 'Comidas';
+}
+let artCatSel = _catDefault();
 let artIvaSel = '10';
 let artImagenBase64 = null; // imagen del producto actual en edición
 var nextProdId = 100;
@@ -687,7 +693,7 @@ function nuevoArticulo(){
   artImagenBase64 = null;
   setTimeout(()=>resetArtImagen(), 50);
   artEditIdx = -1;
-  artCatSel = CATEGORIAS.length > 0 ? CATEGORIAS[0].nombre : 'Comidas';
+  artCatSel = CATEGORIAS.length > 0 ? CATEGORIAS[0].nombre : _catDefault();
   artIvaSel = '10';
   artColorManual = false;
   const catObj = CATEGORIAS.find(c => c.nombre === artCatSel);
@@ -702,6 +708,9 @@ function nuevoArticulo(){
   document.getElementById('artInventario').checked = false;
   document.getElementById('artComanda').checked = false;
   document.getElementById('btnEliminarArt').style.display = 'none';
+  // Ocultar opciones gastronómicas si el negocio no las usa
+  var _rowMitad = document.getElementById('artCheckMitad');
+  if(_rowMitad) _rowMitad.style.display = (typeof usaMitades === 'function' && !usaMitades()) ? 'none' : '';
   selIva('10');
   renderColorPicker();
   renderCatSelector();
@@ -726,6 +735,9 @@ function editarArticulo(idx){
   document.getElementById('artInventario').checked = !!p.inventario;
   document.getElementById('artComanda').checked = !!p.comanda;
   document.getElementById('btnEliminarArt').style.display = 'flex';
+  // Ocultar opciones gastronómicas si el negocio no las usa
+  var _rowMitad2 = document.getElementById('artCheckMitad');
+  if(_rowMitad2) _rowMitad2.style.display = (typeof usaMitades === 'function' && !usaMitades()) ? 'none' : '';
   selIva(artIvaSel);
   renderColorPicker();
   renderCatSelector();
@@ -799,6 +811,21 @@ function guardarArticulo(){
   const inventario = document.getElementById('artInventario').checked;
   const comanda = document.getElementById('artComanda').checked;
   if(!nombre){ toast('Ingresá el nombre del artículo'); return; }
+
+  // Validar unicidad de código (código vacío es permitido)
+  if(codigo){
+    const codigoNorm = codigo.toLowerCase();
+    // El producto que se está editando se excluye de la búsqueda (por su índice)
+    const duplicado = PRODS.find(function(p, idx){
+      return idx !== artEditIdx &&
+             p.codigo && p.codigo.toLowerCase() === codigoNorm &&
+             !p.itemLibre;
+    });
+    if(duplicado){
+      toast('El código "' + codigo + '" ya existe en "' + duplicado.name + '"');
+      return;
+    }
+  }
 
   if(artEditIdx >= 0){
     // null = no cambiar, '' = borrar imagen, string = nueva imagen
@@ -1515,7 +1542,9 @@ function _renderFlujoSheet(){
 
   if(_flujo.paso === 1){
     // ── Paso 1: modo (si tiene mitad) + cantidad ──
-    const modoHTML = prod.mitad ? `
+    // El botón MITAD solo aparece si el producto lo admite Y el negocio usa mitades.
+    var _puedeVenderMitad = prod.mitad && (typeof usaMitades !== 'function' || usaMitades());
+    const modoHTML = _puedeVenderMitad ? `
       <div style="margin-bottom:16px;">
         <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;font-weight:700;">¿Cómo la querés?</div>
         <div style="display:flex;gap:0;border:1.5px solid var(--border2);">

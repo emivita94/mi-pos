@@ -525,7 +525,119 @@ async function renderSucursalesTab(tc){
 // ── CONFIG ────────────────────────────────────────────────
 async function renderConfig(){
   var v=function(k){return localStorage.getItem(k)||'';};
-  document.getElementById('content').innerHTML='<div class="ph"><div><div class="pt">Configuración</div><div class="ps">Datos del negocio y terminales</div></div><button class="btn-sv" onclick="saveConf()">GUARDAR</button></div><div class="cfg-s"><div class="cfg-st">Datos del negocio</div><div class="cfg-r"><div><div class="cfg-rl">Razón social</div></div><input class="cfg-inp" id="cfgN" value="'+v('an')+'"></div><div class="cfg-r"><div><div class="cfg-rl">RUC</div></div><input class="cfg-inp" id="cfgRuc" value="'+v('ar')+'"></div><div class="cfg-r"><div><div class="cfg-rl">Dirección</div></div><input class="cfg-inp" id="cfgD" value="'+v('ad')+'"></div><div class="cfg-r"><div><div class="cfg-rl">Teléfono</div></div><input class="cfg-inp" id="cfgT" value="'+v('at')+'"></div></div><div class="cfg-s"><div class="cfg-st">Licencia</div><div class="cfg-r"><div><div class="cfg-rl">Email</div><div class="cfg-rs">'+(SE||'—')+'</div></div><span class="tag tag-g">Plan '+(SP||'—')+'</span></div></div><div class="cfg-s"><div class="cfg-st">Sesión</div><div class="cfg-r"><div><div class="cfg-rl">Cerrar sesión</div></div><button class="btn-dn" onclick="doLogout()">SALIR</button></div></div>';
+  var tipo   = localStorage.getItem('pos_tipo_negocio') || 'gastronomia';
+  var fMesas    = localStorage.getItem('pos_flag_mesas');
+  var fCocina   = localStorage.getItem('pos_flag_cocina');
+  var fDelivery = localStorage.getItem('pos_flag_delivery');
+  var fMitades  = localStorage.getItem('pos_flag_mitades');
+  // defaults según tipo cuando el flag no está seteado explícitamente
+  function flagVal(stored, defGastro, defRetail){
+    if(stored === '1') return true;
+    if(stored === '0') return false;
+    return tipo === 'retail' ? defRetail : defGastro;
+  }
+  var vMesas    = flagVal(fMesas,    true,  false);
+  var vCocina   = flagVal(fCocina,   !!(localStorage.getItem('pos_comandas')==='1'), false);
+  var vDelivery = flagVal(fDelivery, true,  false);
+  var vMitades  = flagVal(fMitades,  true,  false);
+
+  function chk(val){ return val ? 'checked' : ''; }
+  function selOpt(cur, val){ return cur===val ? 'selected' : ''; }
+
+  var rubroSection = [
+    '<div class="cfg-s">',
+      '<div class="cfg-st">Tipo de negocio</div>',
+      '<div class="cfg-r">',
+        '<div><div class="cfg-rl">Tipo</div><div class="cfg-rs">Define comportamiento predeterminado de las funciones</div></div>',
+        '<select class="cfg-inp" id="cfgTipoNegocio" onchange="onChangeTipoNegocio()" style="max-width:200px;">',
+          '<option value="gastronomia" '+selOpt(tipo,'gastronomia')+'>Gastronomia</option>',
+          '<option value="retail" '+selOpt(tipo,'retail')+'>Comercio (retail)</option>',
+        '</select>',
+      '</div>',
+      '<div class="cfg-st" style="margin-top:12px;font-size:11px;">Funciones activas</div>',
+      '<div class="cfg-r"><div><div class="cfg-rl">Mesas y salones</div><div class="cfg-rs">Gestionar mesas y asignar pedidos</div></div>',
+        '<label class="cfg-tog"><input type="checkbox" id="cfgFlagMesas" '+chk(vMesas)+' onchange="saveFlagRubro()"><span class="cfg-tog-sl"></span></label>',
+      '</div>',
+      '<div class="cfg-r"><div><div class="cfg-rl">Comanda a cocina</div><div class="cfg-rs">Imprimir comanda al guardar pedido</div></div>',
+        '<label class="cfg-tog"><input type="checkbox" id="cfgFlagCocina" '+chk(vCocina)+' onchange="saveFlagRubro()"><span class="cfg-tog-sl"></span></label>',
+      '</div>',
+      '<div class="cfg-r"><div><div class="cfg-rl">Delivery</div><div class="cfg-rs">Tipo de pedido delivery + cargo de envio</div></div>',
+        '<label class="cfg-tog"><input type="checkbox" id="cfgFlagDelivery" '+chk(vDelivery)+' onchange="saveFlagRubro()"><span class="cfg-tog-sl"></span></label>',
+      '</div>',
+      '<div class="cfg-r"><div><div class="cfg-rl">Venta por mitades</div><div class="cfg-rs">Opcion pizza mitad y mitad en productos</div></div>',
+        '<label class="cfg-tog"><input type="checkbox" id="cfgFlagMitades" '+chk(vMitades)+' onchange="saveFlagRubro()"><span class="cfg-tog-sl"></span></label>',
+      '</div>',
+    '</div>',
+  ].join('');
+
+  document.getElementById('content').innerHTML=
+    '<div class="ph"><div><div class="pt">Configuracion</div><div class="ps">Datos del negocio y terminales</div></div><button class="btn-sv" onclick="saveConf()">GUARDAR</button></div>'+
+    '<div class="cfg-s"><div class="cfg-st">Datos del negocio</div>'+
+    '<div class="cfg-r"><div><div class="cfg-rl">Razon social</div></div><input class="cfg-inp" id="cfgN" value="'+v('an')+'"></div>'+
+    '<div class="cfg-r"><div><div class="cfg-rl">RUC</div></div><input class="cfg-inp" id="cfgRuc" value="'+v('ar')+'"></div>'+
+    '<div class="cfg-r"><div><div class="cfg-rl">Direccion</div></div><input class="cfg-inp" id="cfgD" value="'+v('ad')+'"></div>'+
+    '<div class="cfg-r"><div><div class="cfg-rl">Telefono</div></div><input class="cfg-inp" id="cfgT" value="'+v('at')+'"></div>'+
+    '</div>'+
+    rubroSection+
+    '<div class="cfg-s"><div class="cfg-st">Licencia</div>'+
+    '<div class="cfg-r"><div><div class="cfg-rl">Email</div><div class="cfg-rs">'+(SE||'—')+'</div></div><span class="tag tag-g">Plan '+(SP||'—')+'</span></div>'+
+    '</div>'+
+    '<div class="cfg-s"><div class="cfg-st">Sesion</div>'+
+    '<div class="cfg-r"><div><div class="cfg-rl">Cerrar sesion</div></div><button class="btn-dn" onclick="doLogout()">SALIR</button></div>'+
+    '</div>';
+}
+
+// Cambia el tipo y resetea los flags a los defaults del tipo nuevo
+function onChangeTipoNegocio(){
+  var tipo = (document.getElementById('cfgTipoNegocio')||{}).value || 'gastronomia';
+  localStorage.setItem('pos_tipo_negocio', tipo);
+  // Limpiar overrides para que los defaults del tipo nuevo entren
+  localStorage.removeItem('pos_flag_mesas');
+  localStorage.removeItem('pos_flag_cocina');
+  localStorage.removeItem('pos_flag_delivery');
+  localStorage.removeItem('pos_flag_mitades');
+  // Sincronizar cocina con sistema legacy
+  var defCocina = tipo === 'retail' ? false : !!(localStorage.getItem('pos_comandas') === '1');
+  localStorage.setItem('pos_comandas', defCocina ? '1' : '0');
+  // Guardar en Supabase
+  _saveRubroSupabase(tipo, null, null, null, null);
+  toast('Tipo de negocio actualizado — los cambios se aplican al abrir el POS');
+  // Re-render para reflejar nuevos defaults
+  renderConfig();
+}
+
+// Guarda un flag individual modificado por el toggle
+async function saveFlagRubro(){
+  var tipo     = localStorage.getItem('pos_tipo_negocio') || 'gastronomia';
+  var vMesas    = (document.getElementById('cfgFlagMesas')   ||{}).checked;
+  var vCocina   = (document.getElementById('cfgFlagCocina')  ||{}).checked;
+  var vDelivery = (document.getElementById('cfgFlagDelivery')||{}).checked;
+  var vMitades  = (document.getElementById('cfgFlagMitades') ||{}).checked;
+  localStorage.setItem('pos_flag_mesas',    vMesas    ? '1' : '0');
+  localStorage.setItem('pos_flag_cocina',   vCocina   ? '1' : '0');
+  localStorage.setItem('pos_flag_delivery', vDelivery ? '1' : '0');
+  localStorage.setItem('pos_flag_mitades',  vMitades  ? '1' : '0');
+  // Sincronizar cocina con sistema legacy pos_comandas
+  localStorage.setItem('pos_comandas', vCocina ? '1' : '0');
+  await _saveRubroSupabase(tipo, vMesas, vCocina, vDelivery, vMitades);
+  toast('Guardado');
+}
+
+async function _saveRubroSupabase(tipo, fMesas, fCocina, fDelivery, fMitades){
+  if(!SE) return;
+  try {
+    await supaPost('pos_config',{
+      licencia_email: SE,
+      clave: 'rubro_config',
+      valor: JSON.stringify({
+        tipo_negocio: tipo,
+        flag_mesas:    fMesas,
+        flag_cocina:   fCocina,
+        flag_delivery: fDelivery,
+        flag_mitades:  fMitades,
+      }),
+    },'licencia_email,clave',true);
+  } catch(e){ console.warn('[Rubro admin] Error guardando:', e.message); }
 }
 
 async function saveConf(){

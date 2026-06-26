@@ -1,4 +1,4 @@
-const CACHE = 'ampersand-superadmin-v20260529-autoupdate';
+const CACHE = 'ampersand-superadmin-v20260602-retail';
 
 const ASSETS = [
   '/super-admin.html',
