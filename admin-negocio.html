@@ -456,7 +456,17 @@ function showApp(){
   // BUG side-effect fix: testConexion vive en admin-finanzas.js que se carga
   // dinámicamente — puede no estar disponible al momento del login.
   setTimeout(function(){ if(typeof testConexion === 'function') testConexion(); }, 1000);
+  aplicarRubroAdminUI();
   goTo('dashboard');
+}
+
+// Retail: ocultar accesos de comida en el menú lateral de admin-negocio.
+// Insumos = producción / recetas (productos es_insumo), sin sentido en retail.
+// Lee pos_tipo_negocio de localStorage (mismo patrón que renderConfig).
+function aplicarRubroAdminUI(){
+  var esRetail = (localStorage.getItem('pos_tipo_negocio') === 'retail');
+  var sbInsumos = document.getElementById('sbi-insumos');
+  if(sbInsumos) sbInsumos.style.display = esRetail ? 'none' : '';
 }
 
 // ── NAVIGATION ────────────────────────────────────────────
@@ -601,6 +611,8 @@ function onChangeTipoNegocio(){
   localStorage.setItem('pos_comandas', defCocina ? '1' : '0');
   // Guardar en Supabase
   _saveRubroSupabase(tipo, null, null, null, null);
+  // Actualizar el menú lateral en vivo (ocultar/mostrar Insumos)
+  aplicarRubroAdminUI();
   toast('Tipo de negocio actualizado — los cambios se aplican al abrir el POS');
   // Re-render para reflejar nuevos defaults
   renderConfig();

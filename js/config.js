@@ -18,6 +18,10 @@ if (typeof window !== 'undefined') {
 var SUPA_URL  = 'https://kmreiniqgcvqgdtzvmel.supabase.co';
 var SUPA_ANON = 'sb_publishable_j6btNHo1o3tSprmYUJITPw_8AsYgcvJ';
 
+// ── API SQL externa (búsqueda de productos por código de barras) ──
+var APISQL_URL   = 'https://nodoapi.ddns.net/sql';
+var APISQL_TOKEN = '73933b2b2901d24b20ee8de4542cfe7c072829e49921ad0795a3f16acbb2159e';
+
 var SUPA_HEADERS = {
   'apikey':        SUPA_ANON,
   'Authorization': 'Bearer ' + SUPA_ANON,

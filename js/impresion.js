@@ -828,6 +828,12 @@ function imprimirCierreTurno(data, html){
     return;
   }
 
+  // 3.5) USB Local (agente NODO) — cierre directo por USB
+  if(btpsTipo === 'usblocal' || (p && p.type === 'usblocal')){
+    imprimirUSBLocal(html, size);
+    return;
+  }
+
   // 4) Navegador / PC / USB
   var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   if(isPWA){
@@ -1155,6 +1161,12 @@ function imprimirRecibo(dataOverride){
     ? generarHTMLFactura(data, size)
     : generarHTMLTicket(data, size);
   const p = printers['ticket'];
+
+  // USB Local (agente NODO en la PC) — manda ESC/POS directo por USB, sin diálogo.
+  if(btpsTipo === 'usblocal' || (p && p.type === 'usblocal')){
+    imprimirUSBLocal(html, size);
+    return;
+  }
   if(isAndroidAPK() && typeof window.AndroidPrint !== 'undefined'){
     imprimirAndroidNativo(html, size);
   } else if(p && p.type === 'bt' && p.device){
@@ -1262,6 +1274,14 @@ function imprimirComanda(data){
         }
       }
     });
+    return;
+  }
+
+  // USB Local (agente NODO) — comanda directa por USB a la impresora configurada.
+  if(btpsTipo === 'usblocal'
+     || (printers['comanda'] && printers['comanda'].type === 'usblocal')
+     || (printers['ticket'] && printers['ticket'].type === 'usblocal')){
+    imprimirUSBLocal(html, size);
     return;
   }
 
@@ -2373,7 +2393,13 @@ async function imprimirUSBLocal(htmlContent, size){
   if(r.status === 'ok'){
     toast('\u2713 Impreso por USB');
   } else {
-    toast('\u26a0\ufe0f Error USB: '+(r.mensaje||'desconocido'));
+    // Fallback: si el agente no responde, no perder el ticket \u2014 abrir el
+    // di\u00e1logo del navegador (salvo en sat\u00e9lite, que no debe abrir ventanas).
+    toast('\u26a0\ufe0f Agente USB sin respuesta, usando navegador...');
+    if(typeof MODO_TERMINAL === 'undefined' || MODO_TERMINAL !== 'satelite'){
+      try { abrirVentanaImpresion(htmlContent, size); }
+      catch(e){ toast('Error USB: '+(r.mensaje||'desconocido')); }
+    }
   }
 }
 
@@ -2754,14 +2780,44 @@ async function imprimirBluetooth(device, htmlContent, size){
 // ══════════════════════════════════════════════════════════════════
 // ── USB Print Server (local — puerto 9200) ──────────────────────────────────
 var USBPrinter = {
-  BASE: 'http://127.0.0.1:9200',
+  // Puerto del agente local. 9100 = agente compartido NODO (Print Agent que
+  // imprime etiquetas Y tickets); 9200 = agente viejo dedicado (legacy). Se
+  // sondean en orden y se cachea el que responda. Override: localStorage
+  // 'usblocal_port' (ej. para probar contra un agente de desarrollo).
+  PORTS: [9100, 9200],
+  BASE: null,
   TIMEOUT_MS: 4000,
 
+  _baseList() {
+    var custom = null;
+    try { custom = localStorage.getItem('usblocal_port'); } catch(e) {}
+    var ports = custom ? [parseInt(custom, 10)] : this.PORTS;
+    return ports.map(function(p){ return 'http://127.0.0.1:' + p; });
+  },
+
+  // Encuentra el agente vivo probando /status en cada puerto candidato.
+  async _resolveBase() {
+    if (this.BASE) return this.BASE;
+    var list = this._baseList();
+    for (var i = 0; i < list.length; i++) {
+      try {
+        var ctrl = new AbortController();
+        var tid  = setTimeout(function(){ ctrl.abort(); }, 1500);
+        var r = await fetch(list[i] + '/status', { signal: ctrl.signal });
+        clearTimeout(tid);
+        if (r.ok) { this.BASE = list[i]; return this.BASE; }
+      } catch(e) { /* puerto no responde, probar el siguiente */ }
+    }
+    return null;
+  },
+
   async _fetch(path, opts) {
+    var base = await this._resolveBase();
+    if (!base) throw new Error('Agente local no encontrado');
     var ctrl = new AbortController();
     var tid  = setTimeout(function(){ ctrl.abort(); }, this.TIMEOUT_MS);
     try {
-      var r = await fetch(this.BASE + path, Object.assign({}, opts, { signal: ctrl.signal }));
+      var r = await fetch(base + path, Object.assign({}, opts, { signal: ctrl.signal }));
       clearTimeout(tid);
       return r;
     } catch(e) { clearTimeout(tid); throw e; }

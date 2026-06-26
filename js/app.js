@@ -914,7 +914,7 @@ function _procesarCodigoScanner(raw){
     sinput.focus();
     if(typeof filterP === 'function') filterP();
   }
-  if(filtrados.length === 0 && typeof toast === 'function') toast('Sin producto: "' + raw + '"');
+  if(filtrados.length === 0) _buscarCodigoEnAPI(raw);
 }
 
 if(document.readyState === 'loading'){
@@ -960,9 +960,11 @@ function sinputKeydown(e){
     return;
   }
 
-  // 3. Sin coincidencia única: mostrar toast y dejar la lista filtrada
+  // 3. Sin coincidencia única: consultar API externa
   if(filtrados.length === 0){
-    if(typeof toast === 'function') toast('Sin coincidencia: "' + raw + '"');
+    document.getElementById('sinput').value = '';
+    filterP();
+    _buscarCodigoEnAPI(raw);
   }
 }
 
@@ -2106,4 +2108,119 @@ function selPrinterSize(tipo, size){
 // ══════════════════════════════════════════════════════════
 // SISTEMA DE LICENCIAS
 // ══════════════════════════════════════════════════════════
+
+// ── Búsqueda de código de barras en API externa (SpCodigoBarra) ──────────────
+
+async function _buscarCodigoEnAPI(codigo){
+  if(!navigator.onLine){ toast('Sin internet — código no encontrado'); return; }
+  if(typeof APISQL_URL === 'undefined'){ toast('Sin producto: "' + codigo + '"'); return; }
+  toast('Buscando código...');
+  try {
+    var r = await fetch(APISQL_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + APISQL_TOKEN,
+      },
+      body: JSON.stringify({ sp: "Exec SpCodigoBarra @CodigoBarra='" + codigo.replace(/'/g,"''") + "'" }),
+    });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    var datos = await r.json();
+    var fila = Array.isArray(datos) && datos.length > 0 ? datos[0] : null;
+    if(!fila){ toast('Código no registrado: ' + codigo); return; }
+    _mostrarModalProductoExterno(fila, codigo);
+  } catch(e){
+    toast('Error al buscar: ' + e.message);
+  }
+}
+
+function _extraerCampo(fila, candidatos){
+  for(var i = 0; i < candidatos.length; i++){
+    if(fila[candidatos[i]] !== undefined && fila[candidatos[i]] !== null && fila[candidatos[i]] !== '')
+      return fila[candidatos[i]];
+  }
+  return null;
+}
+
+function _mostrarModalProductoExterno(fila, codigo){
+  var nombre = _extraerCampo(fila, ['Descripcion','descripcion','DESCRIPCION','Nombre','nombre','NOMBRE','Producto','producto','PRODUCTO','Description','name']) || '';
+  var precio = parseFloat(_extraerCampo(fila, ['Precio','precio','PRECIO','PrecioVenta','PrecioUnitario','PRECIO_VENTA','Price','price','Importe']) || 0) || 0;
+  var iva    = String(_extraerCampo(fila, ['IVA','Iva','iva','TasaIVA','tasa_iva']) || '10');
+
+  // Eliminar modal previo si existe
+  var prev = document.getElementById('_modalCodExt');
+  if(prev) prev.remove();
+
+  var m = document.createElement('div');
+  m.id = '_modalCodExt';
+  m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:20px;';
+  m.innerHTML = [
+    '<div style="background:#1e1e1e;border:1px solid #333;border-radius:14px;width:100%;max-width:360px;padding:22px 20px;font-family:Barlow,sans-serif;">',
+      '<div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#4caf50;text-transform:uppercase;margin-bottom:12px;">Producto encontrado en base externa</div>',
+      '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">Nombre</div>',
+      '<input id="_cextNombre" value="' + nombre.replace(/"/g,'&quot;') + '" style="width:100%;box-sizing:border-box;background:#2a2a2a;border:1.5px solid #444;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:15px;padding:10px 12px;margin-bottom:14px;outline:none;">',
+      '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">Precio (Gs)</div>',
+      '<input id="_cextPrecio" type="number" value="' + precio + '" style="width:100%;box-sizing:border-box;background:#2a2a2a;border:1.5px solid #444;border-radius:8px;color:#fff;font-family:Barlow,sans-serif;font-size:15px;padding:10px 12px;margin-bottom:6px;outline:none;">',
+      '<div style="font-size:11px;color:#666;margin-bottom:18px;">Código: ' + codigo + '</div>',
+      '<div style="display:flex;flex-direction:column;gap:9px;">',
+        '<button onclick="_guardarYVenderExterno(\'' + codigo + '\')" style="background:#4caf50;border:none;border-radius:9px;color:#fff;font-family:Barlow,sans-serif;font-size:14px;font-weight:800;padding:14px;cursor:pointer;letter-spacing:.5px;">GUARDAR EN CATÁLOGO Y VENDER</button>',
+        '<button onclick="_soloVenderExterno()" style="background:#2a2a2a;border:1.5px solid #555;border-radius:9px;color:#ccc;font-family:Barlow,sans-serif;font-size:14px;font-weight:700;padding:13px;cursor:pointer;">Solo vender esta vez</button>',
+        '<button onclick="_cerrarModalCodigoExterno()" style="background:transparent;border:none;color:#555;font-family:Barlow,sans-serif;font-size:13px;padding:8px;cursor:pointer;">Cancelar</button>',
+      '</div>',
+    '</div>',
+  ].join('');
+  // Guardar IVA en dataset para usarlo al guardar
+  m.dataset.iva = iva;
+  document.body.appendChild(m);
+  setTimeout(function(){ var n = document.getElementById('_cextNombre'); if(n) n.focus(); }, 50);
+}
+
+function _cerrarModalCodigoExterno(){
+  var m = document.getElementById('_modalCodExt');
+  if(m) m.remove();
+}
+
+function _guardarYVenderExterno(codigo){
+  var m = document.getElementById('_modalCodExt');
+  var nombre = (document.getElementById('_cextNombre').value || '').trim().toUpperCase();
+  var precio  = parseFloat(document.getElementById('_cextPrecio').value) || 0;
+  var iva     = (m && m.dataset.iva) || '10';
+  if(!nombre){ toast('Ingresá un nombre'); return; }
+  _cerrarModalCodigoExterno();
+
+  var newProd = {
+    id: nextProdId, prodId: nextProdId,
+    name: nombre, price: precio,
+    precioVariable: false, costo: 0,
+    codigo: codigo, color: '#455a64',
+    colorPropio: false, cat: 'General',
+    iva: iva, mitad: false, inventario: false, comanda: false,
+    activo: true,
+  };
+  PRODS.push(newProd);
+  nextProdId++;
+  if(typeof dbSaveProducto === 'function') dbSaveProducto(newProd);
+  if(typeof supaUpsertProducto === 'function') supaUpsertProducto(newProd);
+  if(typeof filterP === 'function') filterP();
+  addCart(newProd.id);
+  toast(nombre + ' agregado al catálogo');
+}
+
+function _soloVenderExterno(){
+  var nombre = (document.getElementById('_cextNombre').value || '').trim().toUpperCase();
+  var precio  = parseFloat(document.getElementById('_cextPrecio').value) || 0;
+  _cerrarModalCodigoExterno();
+  if(!nombre){ toast('Sin nombre'); return; }
+  // Vender como ítem libre con nombre y precio precargados
+  var libre = PRODS.find(function(p){ return p.itemLibre; });
+  if(!libre){ toast('Sin producto libre'); return; }
+  addCart(libre.id);
+  // Ajustar el ítem recién agregado al carrito
+  var item = cart[cart.length - 1];
+  if(item){
+    item.name  = nombre;
+    item.price = precio;
+    if(typeof renderCart === 'function') renderCart();
+  }
+}
 
