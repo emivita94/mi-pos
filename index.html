@@ -1007,7 +1007,7 @@
           <span class="toggle-slider"></span>
         </label>
       </div>
-      <div class="art-check-row">
+      <div class="art-check-row" id="artComandaRow">
         <div class="art-check-info">
           <div class="art-check-title">Comanda (va a cocina)</div>
           <div class="art-check-sub">Al agregar al ticket se envía a la cocina</div>
@@ -1231,6 +1231,14 @@
         <line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
       Soporte
+    </div>
+    <div class="drawer-item" onclick="closeDrawer();doDesactivar();" style="color:#ef5350;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef5350" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Cambiar licencia
     </div>
   </div>
   <div class="drawer-footer">
@@ -1928,7 +1936,7 @@
 <script src="js/sync.js?v=20260412103"></script>
 <script src="js/licencia.js?v=20260412103"></script>
 <script src="js/mesas.js?v=20260412103"></script>
-<script src="js/rubro.js?v=20260604001"></script>
+<script src="js/rubro.js?v=20260604002"></script>
 
 <script src="js/app.js?v=20260413108"></script>
 <script src="js/init.js?v=20260413105"></script>
