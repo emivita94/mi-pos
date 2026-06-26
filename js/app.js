@@ -2166,10 +2166,11 @@ async function _buscarCodigoEnAPI(codigo){
   }
 }
 
-function _crearProductoNuevo(codigo, nombrePrefill){
+function _crearProductoNuevo(codigo, nombrePrefill, precioPrefill){
   var prev = document.getElementById('_modalNuevoProd');
   if(prev) prev.remove();
   var valNombre = nombrePrefill ? nombrePrefill.replace(/"/g,'&quot;') : '';
+  var valPrecio = precioPrefill ? String(precioPrefill) : '';
   var focusId   = nombrePrefill ? '_mnpPrecio' : '_mnpNombre';
   var m = document.createElement('div');
   m.id = '_modalNuevoProd';
@@ -2191,7 +2192,7 @@ function _crearProductoNuevo(codigo, nombrePrefill){
         'style="width:100%;box-sizing:border-box;background:#2a2a2a;border:1.5px solid #3a3a3a;border-radius:12px;' +
         'color:#fff;font-family:Barlow,sans-serif;font-size:16px;font-weight:600;padding:14px 16px;margin-bottom:14px;outline:none;letter-spacing:.3px;">' +
       '<div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;">Precio (Gs)</div>' +
-      '<input id="_mnpPrecio" type="number" inputmode="numeric" placeholder="0" ' +
+      '<input id="_mnpPrecio" type="number" inputmode="numeric" placeholder="0" value="' + valPrecio + '" ' +
         'style="width:100%;box-sizing:border-box;background:#2a2a2a;border:1.5px solid #3a3a3a;border-radius:12px;' +
         'color:#fff;font-family:Barlow,sans-serif;font-size:22px;font-weight:800;padding:14px 16px;margin-bottom:22px;outline:none;">' +
       '<div style="display:flex;gap:10px;">' +
@@ -2239,43 +2240,15 @@ function _extraerCampo(fila, candidatos){
 }
 
 function _crearYVenderExterno(fila, codigo){
-  var nombre = (_extraerCampo(fila, ['Descripcion','descripcion','DESCRIPCION','Nombre','nombre','NOMBRE','Producto','producto','PRODUCTO','Description','name']) || '').trim().toUpperCase();
-  var precio  = parseFloat(_extraerCampo(fila, ['Precio','precio','PRECIO','PrecioVenta','PrecioUnitario','PRECIO_VENTA','Price','price','Importe']) || 0) || 0;
-  var iva     = String(_extraerCampo(fila, ['IVA','Iva','iva','TasaIVA','tasa_iva']) || '10');
-  if(!nombre){ toast('El producto no tiene nombre en la base'); return; }
-  if(!precio){
-    _crearProductoNuevo(codigo, nombre);
-    return;
-  }
-
-  // Si ya existe en catálogo por código, sumar al carrito sin duplicar
+  // Si ya existe en catálogo por código, sumar al carrito directo sin preguntar
   var existente = (typeof PRODS !== 'undefined' ? PRODS : []).find(function(p){
     return p.codigo && p.codigo.toLowerCase() === codigo.toLowerCase();
   });
-  if(existente){
-    addCart(existente.id);
-    _mostrarTicketMobile();
-    toast('+' + nombre);
-    return;
-  }
+  if(existente){ addCart(existente.id); _mostrarTicketMobile(); toast('+' + existente.name); return; }
 
-  // Crear y guardar en catálogo
-  var newProd = {
-    id: nextProdId, prodId: nextProdId,
-    name: nombre, price: precio,
-    precioVariable: false, costo: 0,
-    codigo: codigo, color: '#455a64',
-    colorPropio: false, cat: 'General',
-    iva: iva, mitad: false, inventario: false, comanda: false,
-    activo: true,
-  };
-  PRODS.push(newProd);
-  nextProdId++;
-  if(typeof dbSaveProducto === 'function') dbSaveProducto(newProd);
-  if(typeof supaUpsertProducto === 'function') supaUpsertProducto(newProd);
-  if(typeof filterP === 'function') filterP();
-  addCart(newProd.id);
-  _mostrarTicketMobile();
-  toast(nombre + ' — agregado al catálogo');
+  var nombre = (_extraerCampo(fila, ['Descripcion','descripcion','DESCRIPCION','Nombre','nombre','NOMBRE','Producto','producto','PRODUCTO','Description','name']) || '').trim().toUpperCase();
+  var precio  = parseFloat(_extraerCampo(fila, ['Precio','precio','PRECIO','PrecioVenta','PrecioUnitario','PRECIO_VENTA','Price','price','Importe']) || 0) || 0;
+  // Mostrar sheet para confirmar/ajustar antes de crear
+  _crearProductoNuevo(codigo, nombre, precio);
 }
 
