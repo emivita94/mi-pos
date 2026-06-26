@@ -928,6 +928,8 @@ async function confirmarPago() {
     nroTicket,
     divPagos:       divPagosCopia,
     clienteNombre:  clienteNombreCopy,
+    efectivo:       efectivoEntregado,
+    vuelto:         document.getElementById('vueltoRow').classList.contains('show') ? vuelto : '',
     _supabasePedidoId, // UUID del pedido satélite (null si fue venta directa)
   });
 

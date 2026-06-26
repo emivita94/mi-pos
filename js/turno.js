@@ -116,6 +116,8 @@ function registrarVentaEnTurno(data){
     nroTicket:      data.nroTicket,
     divPagos:       data.divPagos || null,
     clienteNombre:  data.clienteNombre || '',
+    efectivo:       data.efectivo || '',
+    vuelto:         data.vuelto  || '',
   });
   // Persistir en localStorage (sobrevive al cerrar la app)
   turnoGuardar();

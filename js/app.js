@@ -470,6 +470,13 @@ function renderTkt(){
       '<div class="tempty"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg><p>Ticket vacío</p></div>';
     return;
   }
+  // Pie de venta cobrada: efectivo y vuelto
+  const _pieVenta = (_enLectura && _viewingCobradaVenta && !_esAnul && (_viewingCobradaVenta.efectivo || _viewingCobradaVenta.vuelto))
+    ? `<div style="margin-top:10px;padding:10px 12px;background:var(--surface2,#1e1e1e);border-radius:8px;font-size:12px;font-family:var(--font-mono,monospace);">` +
+      (_viewingCobradaVenta.efectivo ? `<div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:4px;"><span>Recibido</span><span style="color:var(--text);">${_viewingCobradaVenta.efectivo}</span></div>` : '') +
+      (_viewingCobradaVenta.vuelto   ? `<div style="display:flex;justify-content:space-between;"><span style="color:#4caf50;font-weight:700;">Vuelto</span><span style="color:#4caf50;font-weight:800;">${_viewingCobradaVenta.vuelto}</span></div>` : '') +
+      `</div>`
+    : '';
   tl.innerHTML = bannerLectura + headerCliente + cart.map(i=>i.esDescuento
     ? `<div class="titem" style="border-left:2px solid #ef5350;"><div class="tiname" style="color:#ef9a9a;">${i.name}</div><div class="tictrl"><button class="qbtn" onclick="chgQty(${i.lineId},-1)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div class="tiprice" style="color:#ef5350;">-${gs(i.montoDesc)}</div></div>`
     : `<div class="titem" style="${i.enviado?'opacity:.6;':''}">`+
@@ -486,7 +493,7 @@ function renderTkt(){
         `</div>`+
         `<div class="tiprice">${gs(i.price*i.qty)}</div>`+
       `</div>`
-  ).join('');
+  ).join('') + _pieVenta;
 }
 
 
@@ -2171,7 +2178,7 @@ function _crearProductoNuevo(codigo, nombrePrefill){
     '<div style="background:#1a1a1a;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 20px 32px;font-family:Barlow,sans-serif;">' +
       '<div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 20px;"></div>' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">' +
-        '<div style="width:36px;height:36px;border-radius:10px;background:#ff9800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+        '<div style="width:36px;height:36px;border-radius:10px;background:#4caf50;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
           '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
         '</div>' +
         '<div>' +
@@ -2191,7 +2198,7 @@ function _crearProductoNuevo(codigo, nombrePrefill){
         '<button onclick="document.getElementById(\'_modalNuevoProd\').remove()" ' +
           'style="flex:1;background:#2a2a2a;border:1.5px solid #3a3a3a;border-radius:12px;color:#888;font-family:Barlow,sans-serif;font-size:14px;font-weight:700;padding:16px;cursor:pointer;">Cancelar</button>' +
         '<button onclick="_confirmarNuevoProducto(\'' + codigo + '\')" ' +
-          'style="flex:2;background:#ff9800;border:none;border-radius:12px;color:#fff;font-family:Barlow,sans-serif;font-size:15px;font-weight:800;padding:16px;cursor:pointer;letter-spacing:.3px;">AGREGAR AL CARRITO</button>' +
+          'style="flex:2;background:#4caf50;border:none;border-radius:12px;color:#fff;font-family:Barlow,sans-serif;font-size:15px;font-weight:800;padding:16px;cursor:pointer;letter-spacing:.3px;">AGREGAR AL CARRITO</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(m);
