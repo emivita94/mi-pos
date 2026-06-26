@@ -3057,8 +3057,15 @@ var BTPrinter = {
         txt += pad(metodo, gs(data.total) + ' Gs.') + n;
       }
     }
-    if (data.vuelto && data.vuelto > 0) {
-      txt += pad('Vuelto', gs(data.vuelto) + ' Gs.') + n;
+    // Efectivo entregado y vuelto (vuelto puede venir como string "₲5.000")
+    var _parseMonto = function(v){ return parseInt(String(v||'').replace(/[^0-9]/g,'')) || 0; };
+    var _efecNum  = _parseMonto(data.efectivo);
+    var _vueltoNum = _parseMonto(data.vuelto);
+    if (_efecNum > 0) {
+      txt += pad('Entregado', gs(_efecNum) + ' Gs.') + n;
+    }
+    if (_vueltoNum > 0) {
+      txt += '[BOLD]' + pad('VUELTO', gs(_vueltoNum) + ' Gs.') + '[/BOLD]' + n;
     }
 
     // ── DATOS CLIENTE E IVA (solo en factura) ────────────
