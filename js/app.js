@@ -856,7 +856,7 @@ function renderDescuentosTiles(){
 function toggleSearch(){
   const sb=document.getElementById('sbar');
   // En retail el buscador siempre queda abierto
-  if(typeof rubroGetTipo === 'function' && rubroGetTipo() === 'retail'){
+  if(typeof esRetail === 'function' && esRetail()){
     sb.classList.add('open');
     document.getElementById('sinput').focus();
     return;
@@ -880,7 +880,7 @@ function _initRetailScanner(){
   if(_scannerInited) return;
   _scannerInited = true;
   document.addEventListener('keydown', function(e){
-    if(typeof rubroGetTipo !== 'function' || rubroGetTipo() !== 'retail') return;
+    if(typeof esRetail !== 'function' || !esRetail()) return;
     var active = document.activeElement;
     var tag = active ? active.tagName : '';
     if(active && active.id === 'sinput') return; // sinputKeydown lo maneja
@@ -997,7 +997,7 @@ function sinputKeydown(e){
 // En retail mobile: después de escanear, mostrar ticket directo en lugar de la grilla
 function _mostrarTicketMobile(){
   if(window.innerWidth >= 768) return;
-  if(typeof rubroGetTipo === 'function' && rubroGetTipo() !== 'retail') return;
+  if(typeof esRetail === 'function' && !esRetail()) return;
   if(typeof showTkt !== 'undefined' && showTkt) return;
   if(typeof setShowTkt === 'function') setShowTkt(true);
   var tp = document.getElementById('tpanel');

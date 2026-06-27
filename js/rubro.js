@@ -51,6 +51,7 @@ function rubroFlag(flag){
 }
 
 // Atajos semánticos usados en el código de los módulos:
+function esRetail()    { return rubroGetTipo() === 'retail'; }
 function usaMesas()    { return rubroFlag('mesas');    }
 function usaCocina()   { return rubroFlag('cocina');   }
 function usaDelivery() { return rubroFlag('delivery'); }

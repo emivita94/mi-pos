@@ -280,7 +280,7 @@ let artColorManual = false;
 // Categoría por defecto cuando todavía no hay categorías cargadas.
 // En retail evitamos el sesgo gastronómico ('Comidas') → 'General'.
 function _catDefault(){
-  try { if(typeof rubroGetTipo === 'function' && rubroGetTipo() === 'retail') return 'General'; } catch(e){}
+  try { if(typeof esRetail === 'function' && esRetail()) return 'General'; } catch(e){}
   return 'Comidas';
 }
 let artCatSel = _catDefault();
