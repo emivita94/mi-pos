@@ -2149,15 +2149,12 @@ function selPrinterSize(tipo, size){
 
 async function _buscarCodigoEnAPI(codigo){
   if(!navigator.onLine){ toast('Sin internet — código no encontrado'); return; }
-  if(typeof APISQL_URL === 'undefined'){ toast('Sin producto: "' + codigo + '"'); return; }
+  if(typeof APISQL_WORKER === 'undefined'){ toast('Sin producto: "' + codigo + '"'); return; }
   toast('Buscando código...');
   try {
-    var r = await fetch(APISQL_URL, {
+    var r = await fetch(APISQL_WORKER + '/sql', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + APISQL_TOKEN,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sp: "Exec SpCodigoBarra @CodigoBarra='" + codigo.replace(/'/g,"''") + "'" }),
     });
     if(!r.ok) throw new Error('HTTP ' + r.status);

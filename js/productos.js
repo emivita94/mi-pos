@@ -1042,6 +1042,7 @@ async function supaUpsertProducto(prod){
       precio_variable: prod.precioVariable || false,
       costo:           prod.costo || 0,
       codigo:          prod.codigo || '',
+      codigos:         JSON.stringify(prod.codigos || []),
       categoria:       prod.cat || 'Sin categoría',
       iva:             prod.iva || '10',
       color:           prod.color || '#546e7a',
