@@ -152,9 +152,12 @@ function loadGeneralConfigInputs(){
   }
   const chkCom = document.getElementById('cfgComandas');
   if(chkCom){
-    const hab = configData.comandasHabilitadas !== undefined
-      ? configData.comandasHabilitadas
-      : localStorage.getItem('pos_comandas') === '1';
+    // Fuente de verdad: rubro (pos_flag_cocina) si está disponible, sino legacy (pos_comandas)
+    const hab = typeof usaCocina === 'function'
+      ? usaCocina()
+      : (configData.comandasHabilitadas !== undefined
+          ? configData.comandasHabilitadas
+          : localStorage.getItem('pos_comandas') === '1');
     chkCom.checked = !!hab;
     configData.comandasHabilitadas = !!hab;
   }
@@ -1883,14 +1886,20 @@ function saveGeneralConfig(){
   configData.telefono  = (_cfgTel  ? _cfgTel.value   : null) || configData.telefono;
   configData.ruc       = (_cfgRuc  ? _cfgRuc.value   : null) || configData.ruc;
   configData.presupuestosHabilitados = !!(_cfgPre ? _cfgPre.checked : false);
-  configData.comandasHabilitadas     = !!(_cfgCom ? _cfgCom.checked : false);
+  var nuevoValorCocina = !!(_cfgCom ? _cfgCom.checked : false);
   // Persistir en localStorage
   localStorage.setItem('an', configData.negocio);
   localStorage.setItem('ad', configData.direccion);
   localStorage.setItem('at', configData.telefono);
   localStorage.setItem('ar', configData.ruc);
   localStorage.setItem('pos_presupuestos', configData.presupuestosHabilitados ? '1' : '0');
-  localStorage.setItem('pos_comandas', configData.comandasHabilitadas ? '1' : '0');
+  // Pasar por el sistema rubro para mantener pos_flag_cocina y legacy en sync
+  if(typeof rubroSetFlag === 'function'){
+    rubroSetFlag('cocina', nuevoValorCocina);
+  } else {
+    configData.comandasHabilitadas = nuevoValorCocina;
+    localStorage.setItem('pos_comandas', nuevoValorCocina ? '1' : '0');
+  }
   // Mostrar u ocultar botón comanda en cobro
   updBtnComandaCobro();
   // Persistir también en Supabase (debounced para no spammear en cada tecla)
