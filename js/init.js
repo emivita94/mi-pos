@@ -319,6 +319,17 @@ async function iniciarApp(){
   updTabTicketHeader();
   updBtnGuardar();
 
+  // ── Rubro desde Supabase: cargar ANTES de navegar ───────────
+  // Evita el flash de modo incorrecto si localStorage tiene un tipo stale
+  // (ej: local tiene 'gastronomia' pero Supabase tiene 'retail').
+  // Las llamadas del turno ya aguardaron — el splash sigue visible aquí.
+  if(typeof rubroCargarDesdeSupabase === 'function' && navigator.onLine && !USAR_DEMO){
+    try {
+      await rubroCargarDesdeSupabase();
+      if(typeof rubroAplicarUI === 'function') rubroAplicarUI();
+    } catch(e){ /* continuar con el valor de localStorage */ }
+  }
+
   // ── Recuperar carrito en curso si la app se recargó con venta sin cobrar ──
   // Esto evita la perdida de ventas por Ctrl+R, crash o corte de luz.
   // Se ejecuta DESPUES de cargar productos y config pero ANTES de navegar
