@@ -15,8 +15,27 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  item JSONB;
+  item       JSONB;
+  v_licencia INTEGER;
 BEGIN
+  -- Nada que hacer si el array está vacío
+  IF jsonb_array_length(p_items) = 0 THEN
+    RETURN;
+  END IF;
+
+  -- Extraer licencia_id del primer item (todos pertenecen al mismo tenant)
+  v_licencia := ((p_items->0)->>'licencia_id')::INTEGER;
+
+  -- Validar que el depósito pertenece a la licencia del caller.
+  -- Impide que un tenant manipule stock de otro pasando un deposito_id ajeno.
+  IF NOT EXISTS (
+    SELECT 1 FROM depositos
+    WHERE id = p_deposito_id
+      AND licencia_id = v_licencia
+  ) THEN
+    RAISE EXCEPTION 'deposito_id % no pertenece a licencia_id %', p_deposito_id, v_licencia;
+  END IF;
+
   FOR item IN SELECT * FROM jsonb_array_elements(p_items)
   LOOP
     INSERT INTO stock (deposito_id, sucursal_id, licencia_id, producto_id, nombre_producto, cantidad, updated_at)
