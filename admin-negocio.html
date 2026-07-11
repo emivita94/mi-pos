@@ -649,7 +649,10 @@ async function _saveRubroSupabase(tipo, fMesas, fCocina, fDelivery, fMitades){
         flag_mitades:  fMitades,
       }),
     },'licencia_email,clave',true);
-  } catch(e){ console.warn('[Rubro admin] Error guardando:', e.message); }
+  } catch(e){
+    console.warn('[Rubro admin] Error guardando:', e.message);
+    toast('⚠ No se guardó en el servidor, revisá la conexión y volvé a intentar');
+  }
 }
 
 async function saveConf(){

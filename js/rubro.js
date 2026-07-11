@@ -263,5 +263,23 @@ async function _rubroGuardarSupabase(){
     _log('[Rubro] Config guardada en Supabase');
   } catch(e){
     console.warn('[Rubro] Error guardando config:', e.message);
+    // Sin este aviso, un guardado que falla (ej. sin señal en ese momento) queda
+    // solo en este dispositivo para siempre — nada más lo vuelve a intentar.
+    if(typeof toast === 'function') toast('⚠ No se guardó en el servidor, revisá la conexión');
   }
+}
+
+// ── Restablecer overrides locales de este dispositivo ─────
+// Borra los 4 flags guardados en ESTE dispositivo y vuelve a traerlos del
+// servidor. Arregla el caso en que un guardado anterior quedó solo local
+// (ej. _rubroGuardarSupabase falló en silencio) y algún botón (Comanda,
+// Delivery, Mesas) desapareció sin que nadie lo haya desactivado a propósito.
+async function resetearFlagsRubro(){
+  localStorage.removeItem('pos_flag_mesas');
+  localStorage.removeItem('pos_flag_cocina');
+  localStorage.removeItem('pos_flag_delivery');
+  localStorage.removeItem('pos_flag_mitades');
+  if(typeof rubroCargarDesdeSupabase === 'function') await rubroCargarDesdeSupabase();
+  if(typeof rubroAplicarUI === 'function') rubroAplicarUI();
+  if(typeof toast === 'function') toast('Funciones restablecidas desde el servidor');
 }
