@@ -14,3 +14,9 @@ playwright-report/
 test-results/
 blob-report/
 .playwright/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
